@@ -434,3 +434,19 @@ CREATE TABLE IF NOT EXISTS source_change (
  id TEXT PRIMARY KEY, before_json TEXT NOT NULL, after_json TEXT NOT NULL,
  state TEXT NOT NULL, created_at TEXT NOT NULL
 );
+
+-- 题单可逆操作记录（N01 批量加入 / N02 撤销重做共用）。
+-- op_key 由页面生成，同一 op_key 与同一输入返回原结果；输入变了则拒绝。
+CREATE TABLE IF NOT EXISTS collection_command (
+    id             TEXT PRIMARY KEY,
+    collection_id  TEXT NOT NULL,
+    op_key         TEXT NOT NULL,
+    kind           TEXT NOT NULL,
+    input_digest   TEXT NOT NULL,
+    before_revision TEXT NOT NULL,
+    after_revision TEXT NOT NULL,
+    result_json    TEXT,
+    created_at     TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_command_op ON collection_command(collection_id, op_key);
+CREATE INDEX IF NOT EXISTS ix_command_time ON collection_command(collection_id, created_at);

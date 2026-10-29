@@ -8,6 +8,7 @@ import { openBasket } from '../lib/bus.js';
 import { addToBasket, readBasket, removeFromBasket } from '../lib/basket.js';
 import { upgradeMath } from '../lib/math.js';
 import { openCorrections } from '../lib/corrections.js';
+import { openAddToCollection } from '../lib/add-to-collection.js';
 import { mountSavedSearches } from '../lib/saved-searches.js';
 import { openQuestionDrawer } from '../lib/question-drawer.js';
 import { selectionValues, chooseFilter, singleFilter, matchesFilter } from '../lib/search-selection.js';
@@ -51,7 +52,7 @@ export default async function mount(root, ctx) {
     <div class="page-head search-heading">
       <div><h1 class="page-title">题库检索</h1>
         <p class="page-sub">按知识点、题型或试卷查找题目。</p></div>
-      <div class="row-actions"><a class="btn" href="#/sources">管理试卷信息</a><button type="button" class="btn" id="search-basket">查看选题篮</button></div>
+      <div class="row-actions"><a class="btn" href="#/sources">管理试卷信息</a><button type="button" class="btn" id="search-add-collection">加入已有题单</button><button type="button" class="btn" id="search-basket">查看选题篮</button></div>
     </div>
     <div class="search-layout">
     <aside class="search-tag-sidebar" id="search-tag-sidebar" aria-label="知识点与方法标签筛选"></aside>
@@ -415,6 +416,7 @@ export default async function mount(root, ctx) {
   }
 
   $('#search-basket', root).addEventListener('click', openBasket);
+  $('#search-add-collection', root).addEventListener('click', () => openAddToCollection(readBasket()));
   document.addEventListener('basket:change', syncBasketButtons);
   if (ctx.onCleanup) ctx.onCleanup(() => document.removeEventListener('basket:change', syncBasketButtons));
 

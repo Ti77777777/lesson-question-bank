@@ -256,12 +256,37 @@
 | PATCH | `/api/sections/{sid}` | 改分节 |
 | DELETE | `/api/sections/{sid}` | 删分节（其条目移入未分节） |
 | POST | `/api/collections/{cid}/items` | 加题：`{"question_id","version_id"?,"section_id","role",...}` |
+| POST | `/api/collections/{cid}/items/batch` | 批量加入（N01）：`{"operation_id","base_revision","section_id","items":[{"question_id","question_version_id"?,"allow_duplicate"?}]}` |
 | PATCH | `/api/items/{iid}` | 改条目设置 |
 | DELETE | `/api/items/{iid}` | 移除条目 |
 | POST | `/api/collections/{cid}/reorder` | `{"items": [{"id","order_no","section_id"}]}` |
 | GET | `/api/collections/{cid}/check` | 组题检查 |
 
 条目字段：`role`、`solution_id`、`hint_level`、`time_solve_min`、`time_explain_min`、`space_mm`、`page_break_before`、`required`、`points`、`subq_keys`、`note`。
+
+### 批量加入与题单修订（N01）
+
+`POST /api/collections/{cid}/items/batch` 的语义：
+
+- **逐项预校验、合法项原子写入**：不合格的条目不写入，在 `results[]` 里给出 `code`（`not_found` / `merged` / `version_mismatch` / `no_version` / `duplicate` / `duplicate_in_batch` / `missing_field` / `bad_field`）与说明；其余条目正常加入，不会因为一条出错整批丢弃。
+- **并发基准**：请求带 `base_revision`（取自 `GET /api/collections/{cid}` 的 `revision`）。与服务端当前值不一致时返回 409 `revision_conflict`，**整批不执行**，`detail.revision` 给出当前值。
+- **幂等**：`operation_id` 由页面生成。同一题单内，同编号同输入返回第一次的结果并带 `"replayed": true`；同编号但输入不同返回 409 `operation_conflict`。摘要是按原始请求计算的，重试时不会因为「题已加入」而误判成另一个操作。
+- **重复题**：默认把集合里已有的题判为 `duplicate`；确实要放两次时对那一条传 `allow_duplicate: true`。
+
+返回：
+
+```json
+{
+  "results": [{"index": 0, "question_id": "Q000001", "question_version_id": "QV000001",
+               "ok": true, "item_id": "ITM000007", "order_no": 3}],
+  "added": 1,
+  "section_id": "SEC000001",
+  "revision": "cr1:9f2c…",
+  "replayed": false
+}
+```
+
+`revision` 是题单、分节、条目与排版的聚合摘要（`app/commands.py`）。它只用于题单结构写入的并发校验；题目自身版本变化另行核对，不混进这个摘要。
 
 `GET /api/collections/{cid}` 返回：
 

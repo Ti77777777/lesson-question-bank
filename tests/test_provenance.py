@@ -63,12 +63,13 @@ class ProvenanceTest(unittest.TestCase):
     def test_02_backfill_and_teacher_correction(self):
         sid,fid,j,q=self.fixture()
         title=identity.extract(HEAD1)['title']
-        self.assertEqual(self.call('/api/questions/'+q)['question']['short_name'],title+' · 第1题')
+        # v0.4.4 起简称改用自然语句连接，不再用中点分隔
+        self.assertEqual(self.call('/api/questions/'+q)['question']['short_name'],title+'，第1题')
         self.assertEqual(self.call('/api/ai/jobs/'+j)['source_document']['name'],title)
         self.call('/api/sources/'+sid,{'name':'南宁三十三中 · 2026年10月月考'},'PATCH')
         identity.apply(fid,identity.extract(HEAD1))
         self.assertEqual(self.call('/api/sources/'+sid)['name'],'南宁三十三中 · 2026年10月月考')
-        self.assertEqual(self.call('/api/questions/'+q)['question']['short_name'],'南宁三十三中 · 2026年10月月考 · 第1题')
+        self.assertEqual(self.call('/api/questions/'+q)['question']['short_name'],'南宁三十三中 · 2026年10月月考，第1题')
     def test_03_search_custom_title_and_source_filter(self):
         sid,fid,j,q=self.fixture(HEAD2)
         self.call('/api/questions/'+q,{'short_name':'集合运算例题'},'PATCH')

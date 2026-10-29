@@ -720,6 +720,8 @@ def collection_detail(req):
 
 
 def _collection_detail_payload(cid: str) -> dict:
+    from app import commands
+
     collection = _collection(cid)
     sections = db.all_(
         "SELECT * FROM collection_section WHERE collection_id = ? ORDER BY order_no, id", (cid,))
@@ -730,6 +732,8 @@ def _collection_detail_payload(cid: str) -> dict:
         "sections": sections,
         "items": [_public(item) for item in items],
         "check": _build_check(collection, items),
+        # 写入前的并发校验基准；题目版本变化另行核对，不混进这个摘要
+        "revision": commands.collection_revision(cid),
     }
 
 
@@ -1076,6 +1080,138 @@ def item_create(req):
         "duplicate": bool(previous),
         "notice": (f"题单里已有同一道题（{previous['id']}）" if previous else ""),
     }
+
+
+@post("/api/collections/{cid}/items/batch")
+def item_batch_create(req):
+    """N01 连续选题：向指定分节批量加入题目。
+
+    逐项预校验，合法项在一个事务里整批写入；不合格项单独报告原因，
+    不会因为一条出错就丢掉已经合法的其余条目。基准修订过期则整批不执行。
+    """
+    from app import commands
+
+    cid = req.params["cid"]
+    _collection(cid)
+    body = req.json or {}
+    entries = body.get("items")
+    if not isinstance(entries, list) or not 1 <= len(entries) <= 100:
+        raise ApiError(400, "bad_field", "items 必须是 1 至 100 条")
+    section_id = _text(body.get("section_id")) or None
+    if section_id:
+        _section_in_collection(section_id, cid)
+
+    existing = {row["question_id"] for row in db.all_(
+        "SELECT question_id FROM collection_item WHERE collection_id = ?", (cid,))}
+
+    prepared: list[dict] = []
+    results: list[dict] = []
+    seen: set[str] = set()
+
+    for index, raw in enumerate(entries):
+        entry = {"index": index, "question_id": None, "ok": False}
+        try:
+            if not isinstance(raw, dict):
+                raise ApiError(400, "bad_field", "每条应为对象")
+            qid = _text(raw.get("question_id")).strip()
+            if not qid:
+                raise ApiError(400, "missing_field", "缺少 question_id")
+            entry["question_id"] = qid
+            question = db.one("SELECT * FROM question WHERE id = ?", (qid,))
+            if question is None:
+                raise ApiError(404, "not_found", "题目 %s 不存在" % qid)
+            if question["merged_into"]:
+                raise ApiError(409, "merged", "题目已合并到 %s" % question["merged_into"])
+
+            version_id = raw.get("question_version_id") or raw.get("version_id")
+            if version_id:
+                version = db.one("SELECT * FROM question_version WHERE id = ?", (version_id,))
+                if version is None:
+                    raise ApiError(404, "not_found", "版本 %s 不存在" % version_id)
+                if version["question_id"] != qid:
+                    raise ApiError(400, "version_mismatch", "版本 %s 不属于该题" % version_id)
+            else:
+                version_id = question["current_version_id"]
+                if not version_id:
+                    latest = db.one("SELECT id FROM question_version WHERE question_id = ? "
+                                    "ORDER BY version_no DESC LIMIT 1", (qid,))
+                    version_id = latest["id"] if latest else None
+                    if not version_id:
+                        raise ApiError(409, "no_version", "题目还没有任何版本")
+                version = db.one("SELECT * FROM question_version WHERE id = ?", (version_id,))
+            entry["question_version_id"] = version_id
+
+            allow_duplicate = bool(raw.get("allow_duplicate"))
+            if qid in existing and not allow_duplicate:
+                raise ApiError(409, "duplicate", "题单里已有这道题")
+            if qid in seen and not allow_duplicate:
+                raise ApiError(409, "duplicate_in_batch", "本批里重复选了同一道题")
+
+            settings = _item_settings(
+                {key: value for key, value in raw.items() if key in ITEM_FIELDS},
+                None, version)
+            settings.setdefault("role", "example")
+            settings.setdefault("hint_level", "none")
+            settings.setdefault("required", 1)
+            settings.setdefault("page_break_before", 0)
+
+            seen.add(qid)
+            prepared.append({"entry": entry, "settings": settings,
+                             "question_id": qid, "version_id": version_id})
+            entry["ok"] = True
+        except ApiError as exc:
+            entry.update({"code": exc.code, "message": exc.message})
+        results.append(entry)
+
+    def apply(conn, _before):
+        next_no = conn.execute(
+            "SELECT COALESCE(MAX(order_no), -1) + 1 AS n FROM collection_item "
+            "WHERE collection_id = ?", (cid,)).fetchone()["n"]
+        added = 0
+        for index, item in enumerate(prepared):
+            iid = db.next_id(conn, "ITM")
+            columns = (["id", "collection_id", "section_id", "question_id",
+                        "question_version_id", "order_no", "created_at"]
+                       + list(item["settings"].keys()))
+            values = ([iid, cid, section_id, item["question_id"], item["version_id"],
+                       next_no + index, db.now()] + list(item["settings"].values()))
+            conn.execute(
+                "INSERT INTO collection_item(%s) VALUES(%s)"
+                % (", ".join(columns), ", ".join("?" * len(columns))), values)
+            item["entry"]["item_id"] = iid
+            item["entry"]["order_no"] = next_no + index
+            added += 1
+            db.audit("item.create", "collection_item", iid,
+                     {"collection_id": cid, "question_id": item["question_id"],
+                      "version_id": item["version_id"], "batch": True})
+        if added:
+            _touch_collection(conn, cid)
+        return {"results": results, "added": added,
+                "section_id": section_id}
+
+    outcome = commands.execute(cid, _text(body.get("operation_id")),
+                               "items.batch", _batch_input(entries, section_id),
+                               apply, base_revision=_text(body.get("base_revision")) or None)
+    return outcome
+
+
+def _batch_input(entries, section_id):
+    """幂等摘要按「原始请求」计算，不按预校验后的子集。
+
+    否则重试时合法项已入库、预校验把它们判成重复，摘要随之变化，
+    同一个操作编号会被误判成「用旧编号改了内容」。
+    """
+    normalized = []
+    for raw in entries:
+        if isinstance(raw, dict):
+            normalized.append({
+                "question_id": str(raw.get("question_id") or ""),
+                "version": raw.get("question_version_id") or raw.get("version_id") or None,
+                "allow_duplicate": bool(raw.get("allow_duplicate")),
+            })
+        else:
+            normalized.append({"invalid": True, "value": repr(raw)[:40]})
+    return {"section_id": section_id, "items": normalized}
 
 
 @patch("/api/items/{iid}")
