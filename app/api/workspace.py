@@ -7,7 +7,7 @@ from app.server import ApiError, get, post, patch, delete
 
 QUERY_KEYS = {'keyword','source_id','source_category','source_year','source_region','source_grade',
               'qtype','tags','tag_mode','think_min','think_max','think_unrated','calc_max','scope_max',
-              'review','sort','correction'}
+              'review','sort','correction','think_levels','multi'}
 SOURCE_FIELDS = ('name','school','year','region','exam_type','grade')
 
 

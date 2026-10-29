@@ -10,10 +10,13 @@ import { upgradeMath } from '../lib/math.js';
 import { openCorrections } from '../lib/corrections.js';
 import { mountSavedSearches } from '../lib/saved-searches.js';
 import { openQuestionDrawer } from '../lib/question-drawer.js';
+import { selectionValues, chooseFilter, singleFilter, matchesFilter } from '../lib/search-selection.js';
 
 const SORTS = [['recent', '最近录入'], ['difficulty', '思维难度优先'], ['used', '最近使用']];
 const LEVELS = [['', '不限'], ['basic', '基础', '1–2'], ['regular', '常规', '3'], ['advanced', '进阶', '4–5'], ['unrated', '未标注']];
 const csv = value => new Set((value || '').split(',').filter(Boolean));
+const FILTER_GROUPS = {category:'来源类别', grade:'适用年级', qtypes:'题型', levels:'思维难度', year:'年份', region:'地区 / 卷别', sourceId:'来源试卷'};
+const modeControl = key => `<label class="search-multi-toggle" title="取消多选时保留最后选择的一项"><input type="checkbox" data-multi="${key}" aria-label="${FILTER_GROUPS[key]}多选">多选</label>`;
 const validScore = value => /^[1-5]$/.test(value || '') ? value : '';
 
 export default async function mount(root, ctx) {
@@ -30,7 +33,14 @@ export default async function mount(root, ctx) {
     onlyCorrections: query.correction === 'pending',
     sort: SORTS.some(x => x[0] === query.sort) ? query.sort : 'recent',
   };
+  const multiple = new Set(selectionValues(query.multi).filter(k => k in FILTER_GROUPS));
+  state.levels = selectionValues(query.think_levels).filter(v => LEVELS.some(([id]) => id && id === v)).join(',');
+  if (state.levels) { state.thinkMin = state.thinkMax = ''; state.unrated = false; }
   if (state.unrated) state.thinkMin = state.thinkMax = '';
+  for (const key of Object.keys(FILTER_GROUPS)) {
+    const value = key === 'qtypes' ? [...state.qtypes].join(',') : state[key];
+    if (selectionValues(value).length > 1) multiple.add(key);
+  }
   let tagList = [], sources = [], categories = [], items = [], total = 0;
   let grades = [...Object.entries(SOURCE_GRADES).map(([id,name])=>({id,name})),{id:'_unknown',name:'未标注'}];
   let tagError = '', tagsLoading = true, revision = 0, busy = false, appliedRevision = -1, timer, categoryMarkup = '',gradeMarkup='';
@@ -54,23 +64,22 @@ export default async function mount(root, ctx) {
     <div class="saved-searches" id="saved-searches"></div>
     <section class="card search-filters" aria-label="题目筛选">
       <div class="search-filter-top"><span>筛选条件</span><span class="hint">切换条件后自动更新</span></div>
-      <div class="search-filter-row"><span class="search-filter-label">来源类别</span><div class="search-options" id="f-categories"></div></div>
-      <div class="search-filter-row"><span class="search-filter-label">适用年级</span><div class="search-options" id="f-grades"></div></div>
+      <div class="search-filter-row"><span class="search-filter-label">来源类别</span><div class="search-options" id="f-categories"></div>${modeControl('category')}</div>
+      <div class="search-filter-row"><span class="search-filter-label">适用年级</span><div class="search-options" id="f-grades"></div>${modeControl('grade')}</div>
       <div class="search-filter-row"><span class="search-filter-label">题型</span><div class="search-options" id="f-qtypes">
         <button type="button" class="search-option" data-qtype="">全部</button>
         ${Object.entries(QTYPES).map(([id, name]) => `<button type="button" class="search-option" data-qtype="${id}">${name}</button>`).join('')}
-        <span class="search-inline-hint">可多选</span>
-      </div></div>
+        </div>${modeControl('qtypes')}</div>
       <div class="search-filter-row"><span class="search-filter-label">思维难度</span><div class="search-options" id="f-levels">
         ${LEVELS.map(([id, name, score]) => `<button type="button" class="search-option" data-level="${id}">${name}${score ? `<small>${score}</small>` : ''}</button>`).join('')}
         <span class="search-inline-hint" id="custom-level" hidden>自定义区间</span>
-      </div></div>
+      </div>${modeControl('levels')}</div>
       <div class="search-source-area">
         <div class="search-source-title">定位试卷 <span>按年份、地区或完整卷名缩小范围</span></div>
         <div class="search-source-fields">
-          <label class="field"><span>年份</span><select id="f-year"><option value="">全部年份</option></select></label>
-          <label class="field"><span>地区 / 卷别</span><select id="f-region"><option value="">全部地区 / 卷别</option></select></label>
-          <label class="field search-source-select"><span>来源试卷</span><select id="f-source"><option value="">全部试卷与资料</option></select></label>
+          <div class="field"><div class="search-field-heading"><label for="f-year">年份</label>${modeControl('year')}</div><select id="f-year"><option value="">全部年份</option></select><details class="search-multi-select" id="multi-year" hidden><summary></summary><div data-options></div></details></div>
+          <div class="field"><div class="search-field-heading"><label for="f-region">地区 / 卷别</label>${modeControl('region')}</div><select id="f-region"><option value="">全部地区 / 卷别</option></select><details class="search-multi-select" id="multi-region" hidden><summary></summary><div data-options></div></details></div>
+          <div class="field search-source-select"><div class="search-field-heading"><label for="f-source">来源试卷</label>${modeControl('sourceId')}</div><select id="f-source"><option value="">全部试卷与资料</option></select><details class="search-multi-select" id="multi-source" hidden><summary></summary><div data-options></div></details></div>
         </div>
         <p class="search-source-caption" id="source-caption" hidden></p>
       </div>
@@ -112,6 +121,7 @@ export default async function mount(root, ctx) {
     return '<option value="">不限</option>' + [1, 2, 3, 4, 5].map(n => `<option value="${n}">${n}</option>`).join('');
   }
   function preset() {
+    if (state.levels) return selectionValues(state.levels).length === 1 ? state.levels : 'multiple';
     if (state.unrated) return 'unrated';
     if (!state.thinkMin && !state.thinkMax) return '';
     if (state.thinkMin === '1' && state.thinkMax === '2') return 'basic';
@@ -120,36 +130,48 @@ export default async function mount(root, ctx) {
     return 'custom';
   }
   function sourceMatches(source, skip = '') {
-    return ['category', 'year', 'region','grade'].every(key => key === skip || !state[key] || (source[key] || '_unknown') === state[key]);
+    return ['category', 'year', 'region','grade'].every(key => key === skip || matchesFilter(state[key], source[key] || '_unknown'));
+  }
+  function renderSourcePicker(key, selector, entries, all) {
+    const select = $(selector, root), menu = $('#multi-' + selector.slice(3), root);
+    select.hidden = multiple.has(key); menu.hidden = !multiple.has(key);
+    select.innerHTML = `<option value="">${all}</option>` + entries.map(([id,name]) => `<option value="${esc(id)}">${esc(name)}</option>`).join('');
+    select.value = singleFilter(state[key]);
+    const selected = selectionValues(state[key]);
+    menu.querySelector('summary').textContent = selected.length ? selected.map(id => entries.find(e => e[0] === id)?.[1] || id).join('、') : all;
+    const choices = `<label><input type="checkbox" data-source-group="${key}" value="" ${!selected.length?'checked':''}>${all}</label>` + entries.map(([id,name]) => `<label><input type="checkbox" data-source-group="${key}" value="${esc(id)}" ${selected.includes(id)?'checked':''}>${esc(name)}</label>`).join('');
+    const container=menu.querySelector('[data-options]');
+    // Keep focus on the active checkbox while results update.
+    if(container.dataset.catalog !== JSON.stringify(entries)) { container.innerHTML=choices; container.dataset.catalog=JSON.stringify(entries); }
+    container.querySelectorAll('input').forEach(input => input.checked=input.value?selected.includes(input.value):!selected.length);
   }
   function renderSourceOptions() {
     for (const [key, selector, all] of [['year', '#f-year', '全部年份'], ['region', '#f-region', '全部地区 / 卷别']]) {
       const values = [...new Set(sources.filter(s => sourceMatches(s, key)).map(s => s[key] || '_unknown'))];
-      if (state[key] && !values.includes(state[key])) values.push(state[key]);
+      for(const value of selectionValues(state[key])) if(!values.includes(value))values.push(value);
       values.sort((a, b) => key === 'year' ? b.localeCompare(a) : a.localeCompare(b, 'zh-CN'));
-      $(selector, root).innerHTML = `<option value="">${all}</option>` + values.map(v => `<option value="${esc(v)}">${v === '_unknown' ? '未标注' : esc(v)}</option>`).join('');
-      $(selector, root).value = state[key];
+      renderSourcePicker(key,selector,values.map(v=>[v,v === '_unknown'?'未标注':v]),all);
     }
     const available = sources.filter(s => sourceMatches(s));
-    const selected = sources.find(s => s.id === state.sourceId);
-    if (selected && !available.includes(selected)) available.push(selected);
-    $('#f-source', root).innerHTML = '<option value="">全部试卷与资料</option>' + available.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
-    $('#f-source', root).value = state.sourceId;
-    const caption = $('#source-caption', root);
-    caption.hidden = !state.sourceId;
-    caption.textContent = selected ? `当前试卷：${selected.name}` : state.sourceId ? `来源编号：${state.sourceId}` : '';
+    for(const id of selectionValues(state.sourceId)) {
+      const source=sources.find(s=>s.id===id);
+      if(source&&!available.includes(source))available.push(source);
+      else if(!source)available.push({id,name:id});
+    }
+    renderSourcePicker('sourceId','#f-source',available.map(s=>[s.id,s.name]),'全部试卷与资料');
+    const caption = $('#source-caption', root); caption.hidden = !state.sourceId;
+    caption.textContent = selectionValues(state.sourceId).length ? `已定位 ${selectionValues(state.sourceId).length} 份试卷` : '';
   }
   function activeConditions() {
     const list = [];
     const push = (key, name) => list.push({key, name});
     if (state.keyword) push('keyword', `关键词：${state.keyword}`);
-    if (state.category) push('category', categories.find(c => c.id === state.category)?.name || state.category);
-    if (state.grade) push('grade', `年级：${grades.find(g=>g.id===state.grade)?.name||state.grade}`);
-    if (state.year) push('year', `年份：${state.year === '_unknown' ? '未标注' : state.year}`);
-    if (state.region) push('region', `地区 / 卷别：${state.region === '_unknown' ? '未标注' : state.region}`);
-    if (state.sourceId) push('sourceId', sources.find(s => s.id === state.sourceId)?.name || state.sourceId);
+    for(const [key, rows, prefix] of [['category',categories,''],['grade',grades,'年级：'],['year',[],'年份：'],['region',[],'地区 / 卷别：'],['sourceId',sources,'']]) {
+      for(const id of selectionValues(state[key])) push(`choice:${key}:${id}`,prefix+(rows.find(r=>r.id===id)?.name || (id==='_unknown'?'未标注':id)));
+    }
     for (const id of state.qtypes) push(`type:${id}`, QTYPES[id]);
-    if (state.unrated) push('think', '思维难度：未标注');
+    if(state.levels) for(const id of selectionValues(state.levels)) push(`level:${id}`,`思维难度：${LEVELS.find(l=>l[0]===id)?.[1]||id}`);
+    else if (state.unrated) push('think', '思维难度：未标注');
     else if (state.thinkMin || state.thinkMax) push('think', `思维：${state.thinkMin || '1'}–${state.thinkMax || '5'}`);
     if (state.calcMax) push('calcMax', `计算 ≤ ${state.calcMax}`);
     if (state.scopeMax) push('scopeMax', `综合 ≤ ${state.scopeMax}`);
@@ -164,12 +186,13 @@ export default async function mount(root, ctx) {
     const gradeButtons=[{id:'',name:'全部'},...grades].map(g=>`<button type="button" class="search-option" data-grade="${esc(g.id)}">${esc(g.name)}</button>`).join('');
     if(gradeButtons!==gradeMarkup){$('#f-grades',root).innerHTML=gradeButtons;gradeMarkup=gradeButtons;}
     for (const [selector, attr, selected] of [
-      ['#f-categories button', 'category', id => state.category === id],
-      ['#f-grades button','grade',id=>state.grade===id],
+      ['#f-categories button', 'category', id => id ? selectionValues(state.category).includes(id) : !state.category],
+      ['#f-grades button','grade',id=>id ? selectionValues(state.grade).includes(id) : !state.grade],
       ['#f-qtypes button', 'qtype', id => id ? state.qtypes.has(id) : !state.qtypes.size],
-      ['#f-levels button', 'level', id => preset() === id],
+      ['#f-levels button', 'level', id => state.levels ? (id ? selectionValues(state.levels).includes(id) : false) : preset() === id],
     ]) $$(selector, root).forEach(btn => { const on = selected(btn.dataset[attr]); btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', String(on)); });
     $('#custom-level', root).hidden = preset() !== 'custom';
+    $$('[data-multi]',root).forEach(input=>input.checked=multiple.has(input.dataset.multi));
     tagSidebar.update({tags: tagList, selected: state.tags, mode: state.tagMode, loading: tagsLoading, error: tagError});
     for (const [key, id] of [['thinkMin', 'think-min'], ['thinkMax', 'think-max'], ['calcMax', 'calc-max'], ['scopeMax', 'scope-max'], ['sort', 'sort']]) $(`#f-${id}`, root).value = state[key];
     $('#f-usable', root).checked = state.onlyUsable;
@@ -188,6 +211,7 @@ export default async function mount(root, ctx) {
       qtype: [...state.qtypes].join(',') || undefined, tags: [...state.tags].join(',') || undefined,
       tag_mode: state.tags.size ? state.tagMode : undefined,
       think_min: state.thinkMin || undefined, think_max: state.thinkMax || undefined,
+      think_levels: state.levels || undefined, multi: [...multiple].join(',') || undefined,
       think_unrated: state.unrated ? '1' : undefined, calc_max: state.calcMax || undefined, scope_max: state.scopeMax || undefined,
       review: state.onlyUsable ? 'pass' : undefined, sort: state.sort === 'recent' ? undefined : state.sort,
       correction: state.onlyCorrections ? 'pending' : undefined,
@@ -387,39 +411,39 @@ export default async function mount(root, ctx) {
   if (ctx.onCleanup) ctx.onCleanup(() => document.removeEventListener('basket:change', syncBasketButtons));
 
 
-  $('#f-categories', root).addEventListener('click', event => {
-    const btn = event.target.closest('[data-category]'); if (!btn) return;
-    state.category = btn.dataset.category;
-    // 上级来源类别改变时清除试卷定位，避免“高考 + 月考试卷”这样的隐性冲突。
-    state.sourceId = state.year = state.region = ''; changed();
-  });
-  $('#f-grades',root).addEventListener('click',event=>{
-    const btn=event.target.closest('[data-grade]');if(!btn)return;
-    state.grade=btn.dataset.grade;state.sourceId='';changed();
-  });
-  $('#f-qtypes', root).addEventListener('click', event => {
-    const btn = event.target.closest('[data-qtype]'); if (!btn) return;
-    const id = btn.dataset.qtype;
-    if (!id) state.qtypes.clear(); else if (state.qtypes.has(id)) state.qtypes.delete(id); else state.qtypes.add(id);
+  for(const [selector,key,attribute] of [['#f-categories','category','category'],['#f-grades','grade','grade'],['#f-qtypes','qtypes','qtype'],['#f-levels','levels','level']]) {
+    $(selector,root).addEventListener('click',event=>{
+      const btn=event.target.closest(`[data-${attribute}]`);if(!btn)return;
+      const current=key==='qtypes'?[...state.qtypes].join(','):key==='levels'?(state.levels || (preset()==='custom'?'':preset())):state[key];
+      const next=chooseFilter(current,btn.dataset[attribute],multiple.has(key));
+      if(key==='qtypes')state.qtypes=csv(next);else state[key]=next;
+      if(key==='levels'){state.thinkMin=state.thinkMax='';state.unrated=false;}
+      changed();
+    });
+  }
+  $$('[data-multi]',root).forEach(input=>input.addEventListener('change',()=>{
+    const key=input.dataset.multi;
+    if(input.checked)multiple.add(key);else {
+      multiple.delete(key);
+      if(key==='qtypes')state.qtypes=csv(singleFilter([...state.qtypes].join(',')));
+      else state[key]=singleFilter(state[key]);
+    }
     changed();
-  });
-  $('#f-levels', root).addEventListener('click', event => {
-    const btn = event.target.closest('[data-level]'); if (!btn) return;
-    const level = btn.dataset.level;
-    [state.thinkMin, state.thinkMax] = ({basic: ['1', '2'], regular: ['3', '3'], advanced: ['4', '5']})[level] || ['', ''];
-    state.unrated = level === 'unrated'; changed();
+  }));
+  $('.search-source-fields',root).addEventListener('change',event=>{
+    const input=event.target.closest('[data-source-group]');if(!input)return;
+    const key=input.dataset.sourceGroup;state[key]=chooseFilter(state[key],input.value,true);changed();
   });
   for (const [id, key] of [['year', 'year'], ['region', 'region'], ['source', 'sourceId']]) {
     $(`#f-${id}`, root).addEventListener('change', event => {
       state[key] = event.target.value;
-      if (key !== 'sourceId') state.sourceId = '';
       changed();
     });
   }
   for (const [id, key] of [['think-min', 'thinkMin'], ['think-max', 'thinkMax'], ['calc-max', 'calcMax'], ['scope-max', 'scopeMax'], ['sort', 'sort']]) {
     $(`#f-${id}`, root).addEventListener('change', event => {
       state[key] = event.target.value;
-      if (key === 'thinkMin' || key === 'thinkMax') state.unrated = false;
+      if (key === 'thinkMin' || key === 'thinkMax') {state.unrated = false;state.levels='';}
       changed();
     });
   }
@@ -429,15 +453,17 @@ export default async function mount(root, ctx) {
     const btn = event.target.closest('[data-remove]');
     if (btn) {
       const key = btn.dataset.remove;
-      if (key.startsWith('type:')) state.qtypes.delete(key.slice(5));
+      if(key.startsWith('choice:')) {const [,group,...parts]=key.split(':');state[group]=selectionValues(state[group]).filter(v=>v!==parts.join(':')).join(',');}
+      else if(key.startsWith('level:')) state.levels=selectionValues(state.levels).filter(v=>v!==key.slice(6)).join(',');
+      else if (key.startsWith('type:')) state.qtypes.delete(key.slice(5));
       else if (key.startsWith('tag:')) state.tags.delete(key.slice(4));
-      else if (key === 'think') { state.thinkMin = state.thinkMax = ''; state.unrated = false; }
+      else if (key === 'think') { state.thinkMin = state.thinkMax = state.levels = ''; state.unrated = false; }
       else state[key] = ['onlyUsable', 'onlyCorrections'].includes(key) ? false : '';
       if (key === 'keyword') $('#f-keyword', root).value = '';
       changed();
     }
     if (event.target.closest('#f-reset')) {
-      Object.assign(state, {keyword: '', sourceId: '', category: '', year: '', region: '',grade:'', qtypes: new Set(), tags: new Set(), tagMode: 'all', thinkMin: '', thinkMax: '', calcMax: '', scopeMax: '', unrated: false, onlyUsable: false, onlyCorrections: false});
+      Object.assign(state, {keyword: '', sourceId: '', category: '', year: '', region: '',grade:'', levels:'', qtypes: new Set(), tags: new Set(), tagMode: 'all', thinkMin: '', thinkMax: '', calcMax: '', scopeMax: '', unrated: false, onlyUsable: false, onlyCorrections: false});
       $('#f-keyword', root).value = ''; changed();
     }
   });

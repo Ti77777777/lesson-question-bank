@@ -1,5 +1,19 @@
 .draft-banner { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:14px 18px; margin:0 0 18px; border:1px solid #cddfe3; background:#f0f7f7; border-radius:10px; font-size:13px; color:#335d67; }
 .draft-banner > span { flex:1; min-width:180px; }
+.search-filter-row { grid-template-columns:90px minmax(0,1fr) auto; }
+.search-multi-toggle { display:flex; align-items:center; gap:5px; white-space:nowrap; font-size:11px; color:var(--muted); cursor:pointer; padding-top:7px; }
+.search-multi-toggle input { width:13px; height:13px; margin:0; accent-color:var(--search-accent); }
+.search-field-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:11px; color:var(--muted); }
+.search-field-heading .search-multi-toggle { padding-top:0; }
+.search-source-fields [hidden] { display:none !important; }
+.search-multi-select { min-width:0; border:1px solid var(--line); border-radius:5px; background:#fff; }
+.search-multi-select > summary { cursor:pointer; padding:7px 10px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:18px; list-style:none; }
+.search-multi-select > summary::-webkit-details-marker { display:none; }
+.search-multi-select > summary:after { content:' ▾'; }
+.search-multi-select [data-options] { display:grid; gap:3px; max-height:220px; overflow:auto; padding:8px; border-top:1px solid var(--line-soft); }
+.search-multi-select [data-options] label { display:flex; align-items:flex-start; gap:7px; padding:6px 3px; line-height:1.6; font-size:12px; cursor:pointer; overflow-wrap:anywhere; }
+.search-multi-select [data-options] input { flex:none; margin-top:3px; accent-color:var(--search-accent); }
+@media(max-width:640px) { .search-filter-row { grid-template-columns:65px minmax(0,1fr) auto; } }
 .compact-fold { margin-top:16px; border-top:1px solid var(--line,#e2dfd7); padding-top:12px; }
 .compact-fold > summary,.compact-card > summary,.ai-new-task > summary { cursor:pointer; color:var(--ink-soft); font-size:13px; font-weight:500; }
 .compact-fold-body { padding-top:16px; display:grid; gap:12px; }

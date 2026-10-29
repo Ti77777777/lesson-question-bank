@@ -1830,9 +1830,9 @@ def question_search(req):
     source_year = _text(req.arg('source_year'))
     source_region = _text(req.arg('source_region'))
     source_grade = _text(req.arg('source_grade'))
-    if source_category and source_category not in search_catalog.CATEGORIES:
+    if any(value not in search_catalog.CATEGORIES for value in _split_csv(source_category)):
         raise ApiError(400, 'bad_query', '来源类别无效')
-    if source_grade and source_grade not in (*search_catalog.GRADES,'_unknown'):
+    if any(value not in (*search_catalog.GRADES,'_unknown') for value in _split_csv(source_grade)):
         raise ApiError(400,'bad_query','年级无效')
     tag_ids = _split_csv(req.arg("tags"))
     tag_mode = (req.arg("tag_mode") or "all").lower()
@@ -1847,6 +1847,11 @@ def question_search(req):
     calc_max = req.arg("calc_max", None, int)
     scope_max = req.arg("scope_max", None, int)
     think_unrated = req.arg('think_unrated') == '1'
+    think_levels = _split_csv(req.arg('think_levels'))
+    if any(value not in ('basic','regular','advanced','unrated') for value in think_levels):
+        raise ApiError(400,'bad_query','思维难度分类无效')
+    if think_levels and (think_min is not None or think_max is not None or think_unrated):
+        raise ApiError(400,'bad_query','思维难度分类不能同时指定难度区间或未标注条件')
     for value in (think_min, think_max, calc_max, scope_max):
         if value is not None and not 1 <= value <= 5:
             raise ApiError(400, 'bad_query', '难度取值应为 1 至 5')
@@ -1934,6 +1939,10 @@ def question_search(req):
                    f"AND st.tag_id IN ({_ph(len(method_tags))}))")
         params += method_tags
 
+    if think_levels:
+        clauses = {'basic':'q.difficulty_think BETWEEN 1 AND 2', 'regular':'q.difficulty_think = 3',
+                   'advanced':'q.difficulty_think BETWEEN 4 AND 5', 'unrated':'q.difficulty_think IS NULL'}
+        sql.append(' AND (' + ' OR '.join(clauses[value] for value in think_levels) + ')')
     if think_unrated:
         sql.append(' AND q.difficulty_think IS NULL')
     if think_min is not None:

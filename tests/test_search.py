@@ -98,6 +98,29 @@ class SearchTest(unittest.TestCase):
                 self.ids(**query)
             self.assertEqual(error.exception.code, 400)
 
+    def test_multi_groups_use_union_inside_and_same_occurrence_across_groups(self):
+        self.assertEqual(self.ids(source_category='gaokao,monthly'), {self.a,self.b,self.d})
+        self.assertEqual(self.ids(source_grade='senior1,senior3', source_year='2024,2026',
+                                  source_id=self.gaokao+','+self.monthly), {self.a,self.b,self.d})
+        self.assertEqual(self.ids(source_category='monthly',source_year='2024,_unknown'),set())
+        self.assertEqual(self.ids(source_category='gaokao,monthly',source_year='2024',
+                                  source_grade='senior1'),set())
+        self.assertEqual(self.ids(source_region='北京,_unknown',source_year='2024,2026'),{self.a,self.b,self.d})
+        self.assertEqual(self.ids(source_category='monthly,self',qtype='multi,blank'),{self.c,self.d})
+        for query in ({'source_category':'monthly,bad'},{'source_grade':'senior1,bad'}):
+            with self.assertRaises(urllib.error.HTTPError) as error:self.ids(**query)
+            self.assertEqual(error.exception.code,400)
+
+    def test_nonadjacent_difficulty_groups_and_unrated_union(self):
+        self.assertEqual(self.ids(think_levels='basic,advanced'),{self.c,self.d})
+        self.assertEqual(self.ids(think_levels='regular,unrated'),{self.a,self.b})
+        self.assertEqual(self.ids(think_levels='advanced,unrated',source_category='monthly'),{self.a,self.d})
+        self.assertEqual(self.ids(think_levels='basic,regular,advanced,unrated'),{self.a,self.b,self.c,self.d})
+        for query in ({'think_levels':'basic,bad'},{'think_levels':'basic','think_min':2},
+                      {'think_levels':'unrated','think_unrated':1}):
+            with self.assertRaises(urllib.error.HTTPError) as error:self.ids(**query)
+            self.assertEqual(error.exception.code,400)
+
     def test_search_keeps_complete_formula_for_rendered_preview(self):
         stem = '这是较长的试题背景。' * 12 + r'求 $\frac{x^2+1}{x-1}$ 的最小值。'
         qid = self.call('/api/questions', {'qtype': 'solve', 'stem': stem, 'answer': '测试'})['question']['id']

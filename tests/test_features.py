@@ -80,6 +80,13 @@ class FeatureTest(unittest.TestCase):
         self.call('/api/search/presets',{'name':'duplicate','query':{}})
         self.call('/api/search/presets',{'name':'duplicate','query':{}},status=409)
 
+    def test_presets_keep_independent_multi_modes_and_unions(self):
+        query={'multi':'category,grade,levels,year','source_category':'mock,monthly',
+               'source_grade':'senior1,senior3','think_levels':'basic,advanced,unrated','source_year':'2025,2026'}
+        p=self.call('/api/search/presets',{'name':'多类别多选','query':query})
+        rows=self.call('/api/search/presets')['items']
+        self.assertEqual(next(r for r in rows if r['id']==p['id'])['query'],query)
+
     def test_source_preview_apply_and_undo(self):
         s=self.source();qid=self.call('/api/questions',{'qtype':'blank','stem':'来源测试','answer':'2','occurrence':{'source_id':s['id'],'qno':'1'}})['question']['id']
         changes={'name':'某中学2027年高三模拟考试','school':'某中学','year':'2027','exam_type':'mock','grade':'senior3'}

@@ -63,9 +63,9 @@ def sources():
 
 
 def matches(source, category='', year='', region='', source_id='', grade=''):
-    return (not source_id or source['id'] == source_id) and all(
-        not wanted or (source[field] or '_unknown') == wanted
-        for field, wanted in [('category', category), ('year', year), ('region', region), ('grade',grade)]
+    return all(
+        not wanted or (source[field] or '_unknown') in {v.strip() for v in wanted.split(',') if v.strip()}
+        for field, wanted in [('category', category), ('year', year), ('region', region), ('grade',grade), ('id',source_id)]
     )
 
 
