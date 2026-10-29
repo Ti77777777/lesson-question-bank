@@ -77,6 +77,29 @@ def _existing(conn, cid: str, op_key: str):
         (cid, op_key)).fetchone()
 
 
+def replay_of(cid: str, op_key: str, kind: str, payload):
+    """在业务校验之前先看这次操作是不是已经执行过。
+
+    写操作的前置校验通常是按「当前状态」判断的，重放时状态已经变了
+    （例如换题后条目已指向新题，会被判成「换的仍是同一道题」）。
+    所以先查操作记录：同编号同输入直接返回原结果，避免把重试误判成新错误。
+    """
+    if not op_key:
+        return None
+    digest = input_digest({"kind": kind, "payload": payload})
+    row = db.one("SELECT * FROM collection_command WHERE collection_id = ? AND op_key = ?",
+                 (cid, op_key))
+    if row is None:
+        return None
+    if row["input_digest"] != digest:
+        raise ApiError(409, "operation_conflict",
+                       "这个操作编号已经用在同一题单的其他内容上，请换一个新编号")
+    result = json.loads(row["result_json"] or "{}")
+    result["replayed"] = True
+    result["revision"] = row["after_revision"]
+    return result
+
+
 def execute(cid: str, op_key: str, kind: str, payload, apply_fn,
             base_revision: str | None = None, conn=None):
     """在一个事务内执行一次可重试的题单写入。

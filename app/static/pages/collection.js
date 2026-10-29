@@ -108,6 +108,7 @@ export default async function mount(root, ctx) {
         <button type="button" class="order-btn" data-move="up" data-item-id="${esc(item.id)}" title="上移" ${index === 0 ? 'disabled' : ''}>↑</button>
         <button type="button" class="order-btn" data-move="down" data-item-id="${esc(item.id)}" title="下移" ${index === groupLength - 1 ? 'disabled' : ''}>↓</button>
         <button type="button" class="btn btn-sm" data-settings="${esc(item.id)}">设置</button>
+        <button type="button" class="btn-link" data-swap="${esc(item.id)}">换一道</button>
         <button type="button" class="btn-link danger" data-del-item="${esc(item.id)}">删除</button>
       </div>
     </li>`;
@@ -295,6 +296,85 @@ export default async function mount(root, ctx) {
 
     renderCheck();
     upgradeMath(root);
+  }
+
+  /** N07 换一道：原位替换，条目编号、分节、顺序与角色都不变。 */
+  function openSwapModal(itemId) {
+    const item = items.find((row) => row.id === itemId);
+    const modal = openModal({
+      title: '换一道题',
+      width: 'modal-wide',
+      body: `<div class="modal-error" hidden data-error></div>
+        <p class="hint">换题只改这一条引用的题目，题目本身不会被删除，分节与顺序也不动。
+        这一条已有的指定解法、小问范围、提示级别与逐题留白会清空，需要在新题上重设。</p>
+        <div class="inline-fields two">
+          <label class="field"><span>按关键词找题</span>
+            <input type="text" data-keyword placeholder="如 单调性、含参二次函数">
+          </label>
+          <label class="field"><span>　</span>
+            <button type="button" class="btn" data-search>查找</button>
+          </label>
+        </div>
+        <div class="usage-items" data-results><p class="hint">输入关键词后点「查找」。</p></div>`,
+      footer: `<button type="button" class="btn" data-close>取消</button>
+               <button type="button" class="btn btn-primary" data-apply disabled>换成选中的题</button>`,
+    });
+
+    const err = modal.body.querySelector('[data-error]');
+    const results = modal.body.querySelector('[data-results]');
+    const applyBtn = modal.foot.querySelector('[data-apply]');
+    let picked = '';
+
+    async function runSearch() {
+      const keyword = modal.body.querySelector('[data-keyword]').value.trim();
+      results.innerHTML = '<p class="hint">正在查找…</p>';
+      try {
+        const data = await api('/api/questions', { query: { keyword: keyword || undefined, limit: 10 } });
+        const rows = (data.items || []).filter((row) => !item || row.id !== item.question_id);
+        results.innerHTML = rows.length ? rows.map((row) => `
+          <label class="check usage-item">
+            <input type="radio" name="swap-pick" value="${esc(row.id)}">
+            <span>${esc(row.short_name || row.id)}<br><span class="hint">${esc((row.stem_preview || '').slice(0, 60))}</span></span>
+          </label>`).join('') : '<p class="hint">没有找到别的题，换个关键词或先录入新题。</p>';
+      } catch (e) {
+        results.innerHTML = `<p class="hint">查找失败：${esc(e.message || String(e))}</p>`;
+      }
+    }
+
+    modal.body.querySelector('[data-search]').addEventListener('click', runSearch);
+    modal.body.querySelector('[data-keyword]').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') { event.preventDefault(); runSearch(); }
+    });
+    results.addEventListener('change', (event) => {
+      const radio = event.target.closest('input[name="swap-pick"]');
+      picked = radio ? radio.value : '';
+      applyBtn.disabled = !picked;
+    });
+
+    applyBtn.addEventListener('click', async () => {
+      if (!picked) return;
+      applyBtn.disabled = true;
+      try {
+        const out = await api(`/api/items/${encodeURIComponent(itemId)}/swap`, {
+          method: 'POST',
+          body: { operation_id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+                  base_revision: revision, question_id: picked },
+        });
+        revision = out.revision || revision;
+        modal.close();
+        flash(out.dropped.length
+          ? `已换题；${out.dropped.join('、')}已清空，请在这条上重设`
+          : '已换题。', 'ok');
+        await reloadPreserve();
+        loadCheck();
+      } catch (e) {
+        err.hidden = false;
+        err.textContent = e.code === 'revision_conflict'
+          ? '题单在操作期间被改过，请关闭后重新打开本窗口。'
+          : (e.message || String(e));
+        applyBtn.disabled = false;
+      }
+    });
   }
 
   async function loadVersionUpdates() {
@@ -958,6 +1038,12 @@ export default async function mount(root, ctx) {
     const settings = event.target.closest('[data-settings]');
     if (settings) {
       openItemSettings(settings.dataset.settings);
+      return;
+    }
+
+    const swapBtn = event.target.closest('[data-swap]');
+    if (swapBtn) {
+      openSwapModal(swapBtn.dataset.swap);
       return;
     }
 

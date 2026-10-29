@@ -1254,6 +1254,89 @@ def item_delete(req):
 ITEM_RESTORE_FIELDS = ("section_id", "question_id", "question_version_id", "order_no") + ITEM_FIELDS
 
 
+@post("/api/items/{iid}/swap")
+def item_swap(req):
+    """N07 换一道：原位替换成另一道题，条目编号、分节、顺序与角色保留。
+
+    题目专属设置（指定解法、小问范围、提示级别、逐题留白、题前换页）不照搬：
+    新题有自己的一套，先清空并逐项列出，由教师重新设置。
+    """
+    from app import commands
+
+    iid = req.params["iid"]
+    row = _item_row(iid)
+    cid = row["collection_id"]
+    _collection(cid)
+    body = req.json or {}
+    qid = _text(body.get("question_id")).strip()
+    if not qid:
+        raise ApiError(400, "missing_field", "缺少 question_id")
+
+    # 先查操作记录：重试时条目已经换过了，按当前状态校验会误判成「仍是同一道题」
+    swap_payload = {"item_id": iid, "question_id": qid,
+                    "version_id": _text(body.get("question_version_id")).strip() or ""}
+    early = commands.replay_of(cid, _text(body.get("operation_id")), "item.swap", swap_payload)
+    if early is not None:
+        early["item"] = _public(_item_by_id(cid, iid))
+        return early
+
+    if qid == row["question_id"]:
+        raise ApiError(409, "same_question", "换的仍是同一道题")
+
+    question = db.one("SELECT * FROM question WHERE id = ?", (qid,))
+    if question is None:
+        raise ApiError(404, "not_found", "题目 %s 不存在" % qid)
+    if question["merged_into"]:
+        raise ApiError(409, "merged", "该题已合并到 %s，请改用它" % question["merged_into"])
+    version_id = _text(body.get("question_version_id")).strip() or question["current_version_id"]
+    version = db.one("SELECT * FROM question_version WHERE id = ?", (version_id,))
+    if version is None:
+        raise ApiError(404, "not_found", "版本 %s 不存在" % version_id)
+    if version["question_id"] != qid:
+        raise ApiError(400, "version_mismatch", "版本不属于这道题")
+
+    dropped = []
+    if row.get("solution_id"):
+        dropped.append("指定解法")
+    if row.get("subq_keys"):
+        dropped.append("小问范围")
+    if (row.get("hint_level") or "none") != "none":
+        dropped.append("提示级别")
+    if row.get("space_mm"):
+        dropped.append("逐题留白")
+    if row.get("page_break_before"):
+        dropped.append("题前换页")
+
+    previous = {"question_id": row["question_id"],
+                "question_version_id": row["question_version_id"],
+                "solution_id": row.get("solution_id"),
+                "subq_keys": row.get("subq_keys"),
+                "hint_level": row.get("hint_level"),
+                "space_mm": row.get("space_mm"),
+                "page_break_before": row.get("page_break_before")}
+
+    def apply(conn, _before):
+        conn.execute(
+            "UPDATE collection_item SET question_id = ?, question_version_id = ?, "
+            "solution_id = NULL, subq_keys = NULL, hint_level = 'none', "
+            "space_mm = NULL, page_break_before = 0 WHERE id = ?",
+            (qid, version_id, iid))
+        from app.layout import clear_item_override
+        clear_item_override(conn, cid, iid, {"space_mm", "page_break_before"})
+        _touch_collection(conn, cid)
+        db.audit("item.swap", "collection_item", iid,
+                 {"from": row["question_id"], "to": qid, "version_id": version_id,
+                  "dropped": dropped})
+        return {"item_id": iid, "question_id": qid, "question_version_id": version_id,
+                "dropped": dropped, "previous": previous}
+
+    out = commands.execute(cid, _text(body.get("operation_id")), "item.swap",
+                           {"item_id": iid, "question_id": qid, "version_id": swap_payload["version_id"]},
+                           apply, base_revision=_text(body.get("base_revision")) or None)
+    out["item"] = _public(_item_by_id(cid, iid))
+    return out
+
+
 @get("/api/collections/{cid}/version-updates")
 def collection_version_updates(req):
     """N06 新版提醒：列出条目引用的版本落后于题目当前版本的条目。
