@@ -1,5 +1,26 @@
 .draft-banner { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:14px 18px; margin:0 0 18px; border:1px solid #cddfe3; background:#f0f7f7; border-radius:10px; font-size:13px; color:#335d67; }
 .draft-banner > span { flex:1; min-width:180px; }
+.compact-fold { margin-top:16px; border-top:1px solid var(--line,#e2dfd7); padding-top:12px; }
+.compact-fold > summary,.compact-card > summary,.ai-new-task > summary { cursor:pointer; color:var(--ink-soft); font-size:13px; font-weight:500; }
+.compact-fold-body { padding-top:16px; display:grid; gap:12px; }
+.compact-card-body { padding:18px 22px 22px; }
+.compact-card > summary { padding:17px 22px; }
+.layout-controls .compact-card { padding:0; }
+.layout-help { padding:12px 5px; margin:0; font-size:12px; color:var(--muted); line-height:1.8; }
+.layout-save-state { color:#557165; font-size:11px; max-width:230px; line-height:1.6; }
+.layout-status [data-interaction]:not(:empty) { display:block; padding-top:4px; }
+.layout-status [data-interaction]:empty { display:none; }
+.compact-actions { position:relative; }
+.compact-actions > summary { cursor:pointer; list-style:none; }
+.compact-actions > summary::-webkit-details-marker { display:none; }
+.compact-actions > summary:after { content:' ▾'; }
+.compact-actions[open] > div { position:absolute; right:0; top:calc(100% + 7px); z-index:40; display:grid; gap:6px; min-width:160px; padding:10px; border:1px solid var(--line); border-radius:8px; background:#fff; box-shadow:0 6px 20px #00000012; }
+.compact-actions > div .btn { width:100%; white-space:nowrap; text-align:left; }
+.backup-fold { margin-top:24px; }
+.backup-fold .workspace-toolbar h2 { display:none; }
+.ai-new-task > summary { font-size:17px; }
+.ai-new-task[open] > summary { margin-bottom:22px; }
+.ai-job-summary .compact-fold { margin-top:12px; padding-top:8px; }
 .modal.modal-ai-editor { width:min(1180px,96vw); max-width:1180px; }
 .visual-editor { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:26px; align-items:start; }
 .visual-editor form { min-width:0; }

@@ -22,18 +22,18 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">导出与归档</h1>
-        <p class="page-sub">每次生成都是一个固定快照：题目版本、解法、素材与构建配置一并保存。生成不等于已发放，发放与使用请到「使用与反馈」登记。</p>
+        <p class="page-sub">查看已生成讲义，下载文件或按原快照重新导出。</p>
       </div>
       <div class="page-head-actions">
         <button type="button" class="btn" id="release-refresh">刷新</button>
         <a class="btn btn-primary" href="#/collections">去题单生成</a>
       </div>
     </div>
-    <section class="card workspace-card" id="backup-panel"></section>
     <div class="results-head" style="margin-top:0;"><span class="total" id="release-total"></span></div>
     <section class="card">
       <div id="release-list">${loading()}</div>
     </section>
+    <details class="card compact-card backup-fold"><summary>备份与恢复</summary><div class="workspace-card compact-card-body" id="backup-panel"></div></details>
   `;
 
   const listEl = $('#release-list', root);
@@ -42,7 +42,7 @@ export default async function mount(root, ctx) {
 
   function render() {
     if (!items.length) {
-      listEl.innerHTML = `<div class="card-body">${emptyState('还没有发布物', '在题单编辑页点「生成讲义」，生成的学生版、解答版与解析版会归档到这里，并保留当时使用的题目版本。')}</div>`;
+      listEl.innerHTML = `<div class="card-body">${emptyState('还没有发布物', '从题单进入「排版与导出」，生成的三版讲义会归档到这里，并保留当时使用的题目版本。')}</div>`;
       return;
     }
     listEl.innerHTML = `<div class="table-wrap"><table class="table">

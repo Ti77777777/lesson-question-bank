@@ -242,9 +242,8 @@ export default async function mount(root, ctx) {
         </div>
         <div class="detail-actions">
           <button type="button" class="btn" data-act="edit-collection">改题单信息</button>
-          <a class="btn" href="#/releases">导出与归档</a>
-          <a class="btn btn-primary" href="#/layout/${encodeURIComponent(cid)}">排版与预览</a>
-          <button type="button" class="btn" data-act="build">快速导出</button>
+          <a class="btn btn-primary" href="#/layout/${encodeURIComponent(cid)}">排版与导出</a>
+          <details class="compact-actions"><summary class="btn">更多操作</summary><div><button type="button" class="btn" data-act="build">快速导出</button><a class="btn" href="#/releases">查看归档</a></div></details>
         </div>
       </div>
 

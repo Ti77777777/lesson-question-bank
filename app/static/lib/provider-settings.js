@@ -26,8 +26,8 @@ export async function mountProviderSettings(root, onChanged = () => {}) {
       <label class="field"><span>请求超时（秒）</span><input data-config="timeout" type="number" min="10" max="600" value="${cfg.timeout}"></label>
     </div></details>
     <div class="provider-actions"><button class="btn btn-primary" data-provider-save>保存接口与密钥</button><button class="btn" data-provider-test="models">读取模型列表</button><button class="btn" data-provider-test="text">验证文字与JSON</button><button class="btn" data-provider-test="vision">验证图片接口</button></div>
-    <p class="hint">读取模型列表不生成内容。文字和图片验证会发送合成测试内容，可能计费，按所填单价预留不超过1元；不发送你的试卷。每个服务地址的密钥分别加密保存，页面不会显示已存密钥。</p>
-    <p class="hint">自定义兼容接口可用于其他服务商、Azure OpenAI、局域网网关或本地模型；协议与模型能力以该服务的实际支持为准。只读模型不代表具备识图能力，请分别验证。</p><div data-provider-result role="status"></div>`;
+    <p class="hint">文字和图片验证可能计费。</p><details class="compact-fold"><summary>连接与费用说明</summary><div class="compact-fold-body"><p class="hint">读取模型列表不生成内容。文字和图片验证会发送合成测试内容，可能计费，按所填单价预留不超过1元；不发送你的试卷。每个服务地址的密钥分别加密保存，页面不会显示已存密钥。</p>
+    <p class="hint">自定义兼容接口可用于其他服务商、Azure OpenAI、局域网网关或本地模型；协议与模型能力以该服务的实际支持为准。只读模型不代表具备识图能力，请分别验证。</p></div></details><div data-provider-result role="status"></div>`;
     root.querySelector('[data-config="preset"]').onchange = e => {
       cfg = structuredClone(state.presets.find(p => p.id === e.target.value).config); configured = false; render();
       result('已切换预设，请填写模型和单价后保存。原密钥仍保存在原服务地址下。');

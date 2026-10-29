@@ -160,16 +160,16 @@
       "sha256": "35fb4c6191844ed3adf80791458c709f78d2e9c91c583f2a3045782030d8c3ab"
     },
     "app/static/experience.css": {
-      "bytes": 2703,
-      "sha256": "e1368b64da7dd8f147a24e8d6910c6781584975cc591dc07f170a3a505fc62e2"
+      "bytes": 4282,
+      "sha256": "5aba1dc59802d7a4f8abb7b0419c788774266947b1f6c59e9a153a1d2b330aca"
     },
     "app/static/index.html": {
       "bytes": 1803,
       "sha256": "d42bf993f3de9df8a20ddb363a17ae64a91b093cfc023c6dc6c7e8117907d8f4"
     },
     "app/static/layout.css": {
-      "bytes": 9362,
-      "sha256": "73d323c7f99980da0487a39bdc88afe5ab010e887a159118243fcce3d6543c68"
+      "bytes": 8873,
+      "sha256": "2ad881685a95078a4b5a25ff41659ca4c3d829131147d88f925435926091cd43"
     },
     "app/static/lib/ai-editor.js": {
       "bytes": 10209,
@@ -216,16 +216,16 @@
       "sha256": "c7c5cf5b3cf69139dad2d63ae545a3a2601d92c307e0589ef36919a0b952259a"
     },
     "app/static/lib/layout-templates.js": {
-      "bytes": 3552,
-      "sha256": "a0bddb307fe75219e05a43037eeb30dbcb3789a2da4fade6f1f0fd049c61ddca"
+      "bytes": 3483,
+      "sha256": "c96a4e6a220366db769514161d46e93ed52ddc4e50afd091bf8021c7b0d4338b"
     },
     "app/static/lib/math.js": {
       "bytes": 5741,
       "sha256": "287a2ce96f6ad28b8369bb5928211a650d125888d6d4df20ad1f6ebd276eb2a9"
     },
     "app/static/lib/provider-settings.js": {
-      "bytes": 7572,
-      "sha256": "cbfdf9cde931909f575d8571c906eff51aee27e9568cdde57d782027ed38d07e"
+      "bytes": 7745,
+      "sha256": "080dd4f496889d66c67b5074d40a9c92580c803d175edec5a5d1bb6788942fbf"
     },
     "app/static/lib/question-drawer.js": {
       "bytes": 4472,
@@ -252,12 +252,12 @@
       "sha256": "b080075246767c1ebc7302138799fcc1172cb0224ca2b7beedfd776487d3406b"
     },
     "app/static/pages/ai.js": {
-      "bytes": 18473,
-      "sha256": "7de095172ccd47f8628fb04c17b31418763cd0e5da6accaa41eb02dcf50f14f2"
+      "bytes": 18600,
+      "sha256": "3736bd8855b28b7e41c6d2d1de8ac8572d49d0b0e8a5617002bee7947ac661a5"
     },
     "app/static/pages/collection.js": {
-      "bytes": 42083,
-      "sha256": "33b0670154a085bf8e97b8d8d78ef2a9ade7f09d8012882e6c123aafa39f14fb"
+      "bytes": 42165,
+      "sha256": "7f1637820e2a3726958d9cee987a70d290c5f7af1846d975bd0959ba912eee1b"
     },
     "app/static/pages/collections.js": {
       "bytes": 6267,
@@ -268,8 +268,8 @@
       "sha256": "47798378da9e6bca99925852017bee65cd98c1b275dcbf4947b2e11341dadfea"
     },
     "app/static/pages/layout.js": {
-      "bytes": 25338,
-      "sha256": "9b7b37ebb7c06901d57f184d34eec513f43a754e4b81ed157e22f154df027e60"
+      "bytes": 25905,
+      "sha256": "0b4e8a788910de3f12811ec81f4abda0d26d8095d4d27848435ae6fea2d39edf"
     },
     "app/static/pages/question-new.js": {
       "bytes": 36754,
@@ -280,8 +280,8 @@
       "sha256": "3897e6c6cb46dd1e0f79f65c2fd9088a5ceb782b736b4f1ee145fdd49bc2f095"
     },
     "app/static/pages/releases.js": {
-      "bytes": 10908,
-      "sha256": "d49b7038f58069a20ff73eafbef941f5a64f9f42e9bc1e74b811c2b8b37060a7"
+      "bytes": 10869,
+      "sha256": "4f35c320f5864365d643804529c8e77692bfb27f6e143faca81e21db0cffe36a"
     },
     "app/static/pages/search.js": {
       "bytes": 29097,
@@ -304,8 +304,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 2690,
-      "sha256": "7ef30c92a60af31f0107d56e7fc221b55f22b1afdeed98b765afd7bec19cdd72"
+      "bytes": 3709,
+      "sha256": "81581e39a824dc7736b0edddb4aadb87e97be49dd357d952f7a3888a3cd33bc7"
     },
     "data/schema.sql": {
       "bytes": 20776,
@@ -376,8 +376,8 @@
       "sha256": "dd9e90cf6eaaefdebd712477cdb26e6f90f5f54c4c3a1eec65a8b35fa7aca3f5"
     },
     "docs/编辑与草稿.md": {
-      "bytes": 4225,
-      "sha256": "21f48b82eaf3a561ad64d3cbf6ca060ec13737ea754abb486e10803173ad422c"
+      "bytes": 5248,
+      "sha256": "dd77687393a6c8c6ce395fb3bc64ea6f4fb6915d2742af6bcabf580efc07cc8b"
     },
     "docs/讲义排版预览.md": {
       "bytes": 2686,
@@ -401,7 +401,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "2df9ab704573eff1ec4acba8a873fc2a99dbe62bfbac5b856af65b17e2fe45c2"
+      "sha256": "218f560a7f59bbb661d73147ac74a097d031d2cef4a2af79dc662d7e71e8925c"
     },
     "README.md": {
       "bytes": 4184,
