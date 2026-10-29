@@ -54,7 +54,7 @@ python -m pip install -r requirements.txt
 
 ## 文档与开发
 
-- [更新记录](CHANGELOG.md) · [项目协作规则](AGENTS.md)
+- [更新记录](CHANGELOG.md) · [项目协作规则](AGENTS.md) · [界面样式与回滚](docs/界面样式与回滚.md)
 - [操作说明](docs/操作说明.md) · [检索说明](docs/检索工作台使用说明.md) · [纠错功能](docs/题目纠错使用说明.md)
 - [排版与预览](docs/讲义排版预览.md) · [编辑与草稿](docs/编辑与草稿.md) · [多模型接口](docs/多模型接口接入.md)
 - [AI工作台](docs/AI工作台使用说明.md) · [字段字典](docs/字段字典.md) · [API](docs/API.md)

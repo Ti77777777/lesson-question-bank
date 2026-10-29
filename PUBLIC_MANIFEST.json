@@ -164,8 +164,8 @@
       "sha256": "012ccaa3827e0d5701b2a6d883cfe8619efe65461b4fcd6208fdf9d453e8463d"
     },
     "app/static/index.html": {
-      "bytes": 1803,
-      "sha256": "d42bf993f3de9df8a20ddb363a17ae64a91b093cfc023c6dc6c7e8117907d8f4"
+      "bytes": 1849,
+      "sha256": "cda20722fd602941aeac2a1b2ac7603d26d46a1a09f4c1db075050ed35bd8e45"
     },
     "app/static/layout.css": {
       "bytes": 8873,
@@ -299,6 +299,10 @@
       "bytes": 30795,
       "sha256": "2c728b322c70fcfc3b6dc787ff8a70a2de449b4b83993d19a15206fd60abee14"
     },
+    "app/static/polish.css": {
+      "bytes": 9261,
+      "sha256": "b9220050d3010436963f2641934d025b264b82f375328ee851796bdeba249d53"
+    },
     "app/static/style.css": {
       "bytes": 88833,
       "sha256": "76dbcb1da7f6bba85b354597a84f4a0915a153a70816acc1ffcd349b3e578c2c"
@@ -308,8 +312,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 4753,
-      "sha256": "51f636eb0a8f5ffc702a7fbc7e37daec0dbd2bded3510ad7baab2aefae449f0c"
+      "bytes": 5810,
+      "sha256": "46be94bce6c5b3a96d20a61ca956474883c6edf0ba1e77298eb554cbd0bc7166"
     },
     "data/schema.sql": {
       "bytes": 20776,
@@ -379,6 +383,10 @@
       "bytes": 31205,
       "sha256": "dd9e90cf6eaaefdebd712477cdb26e6f90f5f54c4c3a1eec65a8b35fa7aca3f5"
     },
+    "docs/界面样式与回滚.md": {
+      "bytes": 1789,
+      "sha256": "149030cbc02962391c61d227d2a91d00dc359b7779091cd9ec3ae497e032e768"
+    },
     "docs/编辑与草稿.md": {
       "bytes": 6284,
       "sha256": "3609924b0cb608c3355e6e0d12d20d60906f088860ec42bdbdae09544d9625e9"
@@ -405,11 +413,11 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "345acbf5a5f859778d3b70e40b1f4b9c3d38b394da6fddd3838bc11268c564ad"
+      "sha256": "0e8bd97fb225f30348da7bd53eb9ae792ecc6744dff8b817ce7f4adb4e29c290"
     },
     "README.md": {
-      "bytes": 4184,
-      "sha256": "a0f8f9266d6a1b206f05769cdcea450fdecc2f0c5ce6c9eef83ba88e2b9777f8"
+      "bytes": 4242,
+      "sha256": "b978046ffb9fc21dd8c73aae1303c87be459bed0aa409e72cc5594eef114e12c"
     },
     "requirements.txt": {
       "bytes": 103,
