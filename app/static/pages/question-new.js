@@ -102,6 +102,21 @@ export default async function mount(root, ctx) {
 
       <form class="newq-form" id="newq-form" novalidate>
         <section class="card form-section">
+          <div class="card-head">
+            <h3>出处</h3>
+            <div class="row-actions">
+              <span class="hint">可选填，也可稍后补</span>
+              <button type="button" class="btn btn-sm" data-add-occ>再添一处出处</button>
+            </div>
+          </div>
+          <div class="card-body">
+            ${sourceError ? `<div class="prefill-note" style="border-color:#ecd5c7;background:#fbf5f1;color:#7b3c1f;">资料接口暂不可用：${esc(sourceError)}。可先把出处标为待确认。</div>` : ''}
+            <div class="occ-editor" id="occ-list"></div>
+            <span class="field-hint">先记下资料、页码与题号即可；来源不明时保留「待确认」，不要编造资料名称。</span>
+          </div>
+        </section>
+
+        <section class="card form-section">
           <div class="card-head"><h3>基本信息</h3><span class="hint">题目 ID 与版本由系统分配</span></div>
           <div class="card-body">
             <div class="inline-fields two">
@@ -129,11 +144,11 @@ export default async function mount(root, ctx) {
             <button type="button" class="btn btn-sm" data-add-option>添加选项</button>
           </div>
           <div class="card-body">
-            <div class="option-editor" id="option-list"></div>
+            <div class="option-editor" id="option-list" style="gap:9px;"></div>
             <div>
               <span class="field-label">正确选项</span>
               <div class="chips" id="answer-key-list"></div>
-              <span class="field-hint">单选点一个；多选可点多个。选项标识稳定不变，显示时映射为 A/B/C/D。</span>
+              <span class="field-hint">单选点一个；多选可点多个。选项文本可用 $...$；选项标识稳定不变，显示时映射为 A/B/C/D。</span>
             </div>
           </div>
         </section>
@@ -165,6 +180,17 @@ export default async function mount(root, ctx) {
         </section>
 
         <section class="card form-section">
+          <div class="card-head">
+            <h3>解法</h3>
+            <button type="button" class="btn btn-sm" data-add-solution>添加解法</button>
+          </div>
+          <div class="card-body">
+            <div class="sol-editor" id="solution-list"></div>
+            <span class="field-hint">方法标签标在具体解法上，检索时按方法找题会命中对应解法。</span>
+          </div>
+        </section>
+
+        <section class="card form-section">
           <div class="card-head"><h3>教学说明</h3><span class="hint">可按教师版配置显示</span></div>
           <div class="card-body">
             <div class="inline-fields two">
@@ -174,17 +200,6 @@ export default async function mount(root, ctx) {
               <label class="field"><span>易错点</span><textarea name="teach_pitfalls" rows="2" placeholder="如忽略定义域、漏掉等号"></textarea></label>
             </div>
             <label class="field"><span>前置知识</span><input type="text" name="teach_prereq" placeholder="如 判别式、韦达定理、定义域"></label>
-          </div>
-        </section>
-
-        <section class="card form-section">
-          <div class="card-head">
-            <h3>解法</h3>
-            <button type="button" class="btn btn-sm" data-add-solution>添加解法</button>
-          </div>
-          <div class="card-body">
-            <div class="sol-editor" id="solution-list"></div>
-            <span class="field-hint">方法标签标在具体解法上，检索时按方法找题会命中对应解法。</span>
           </div>
         </section>
 
@@ -214,18 +229,6 @@ export default async function mount(root, ctx) {
               <label class="field"><span>预计讲解（分钟）</span><input type="number" name="time_explain_min" min="0" step="0.5" placeholder="8"></label>
               <label class="field"><span>推荐理由</span><input type="text" name="rec_reason" placeholder="如 边界比较典型"></label>
             </div>
-          </div>
-        </section>
-
-        <section class="card form-section">
-          <div class="card-head">
-            <h3>出处</h3>
-            <button type="button" class="btn btn-sm" data-add-occ>再添一处出处</button>
-          </div>
-          <div class="card-body">
-            ${sourceError ? `<div class="prefill-note" style="border-color:#ecd5c7;background:#fbf5f1;color:#7b3c1f;">资料接口暂不可用：${esc(sourceError)}。可先把出处标为待确认。</div>` : ''}
-            <div class="occ-editor" id="occ-list"></div>
-            <span class="field-hint">一题可关联多个出处；来源不明时保留「待确认」，不要编造资料名称。</span>
           </div>
         </section>
 
@@ -279,10 +282,10 @@ export default async function mount(root, ctx) {
   function renderOptions() {
     optionList.innerHTML = options.map((opt, index) => {
       const key = optionLetter(opt.key, index);
-      return `<div class="option-edit-row">
-        <span class="key">${esc(key)}</span>
-        <input type="text" data-opt-index="${index}" data-opt-field="text" value="${esc(opt.text || '')}" placeholder="选项文本，可用 $...$">
-        <button type="button" class="del" data-del-option="${index}" aria-label="删除选项 ${esc(key)}">×</button>
+      return `<div class="sub-edit-head option-edit-row">
+        <span class="review-name"><span class="mono">${esc(key)}</span></span>
+        <input type="text" data-opt-index="${index}" data-opt-field="text" value="${esc(opt.text || '')}" placeholder="这一行还是空的">
+        <button type="button" class="btn-link danger" data-del-option="${index}" aria-label="删除选项 ${esc(key)}">删除</button>
       </div>`;
     }).join('');
     renderAnswerKeys();
@@ -306,11 +309,11 @@ export default async function mount(root, ctx) {
     }
     subqList.innerHTML = subquestions.map((sub, index) => `<div class="sub-edit">
       <div class="sub-edit-head">
-        <span class="review-name">小问 <span class="mono">${index + 1}</span></span>
-        <button type="button" class="btn-link danger" data-del-subq="${index}">删除</button>
+        <span class="review-name"><span class="mono">${index + 1}</span></span>
+        <button type="button" class="btn-link danger" data-del-subq="${index}" aria-label="删除小问 ${index + 1}">删除</button>
       </div>
       <label class="field"><span>小问文字</span>
-        <textarea rows="2" data-sub-index="${index}" data-sub-field="text" placeholder="如：求方程有两个不相等正实根时 $a$ 的范围。">${esc(sub.text || '')}</textarea>
+        <textarea rows="2" data-sub-index="${index}" data-sub-field="text" placeholder="这一行还是空的">${esc(sub.text || '')}</textarea>
       </label>
       <div class="inline-fields two">
         <label class="field"><span>小问答案</span><input type="text" data-sub-index="${index}" data-sub-field="answer" value="${esc(sub.answer || '')}" placeholder="可留空，稍后补"></label>

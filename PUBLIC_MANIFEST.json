@@ -300,20 +300,20 @@
       "sha256": "b4e3960f02db1533be6a43dfb33d41edaf8bae9af20c5516eec4c7447eb80e4d"
     },
     "app/static/pages/layout.js": {
-      "bytes": 26257,
-      "sha256": "c7e0df7674ecd5b507e414df0768fd16f7959dca01847a0fd2cde06844455f1d"
+      "bytes": 27753,
+      "sha256": "98797ee34002f1b4178998fa8ccd9dac1b25bbfda298f037f9d84e42a4b80233"
     },
     "app/static/pages/question-new.js": {
-      "bytes": 36875,
-      "sha256": "08fd3f18159968d3bcc8fcaa6bd6eb4a6987b48c57dfa84423074424df82de4d"
+      "bytes": 37110,
+      "sha256": "be0908b484aaffb6725466f578f82c61cdff5dfcfcbd71393e6fc92bed9670ca"
     },
     "app/static/pages/question.js": {
       "bytes": 45598,
       "sha256": "3255c53891fa43eab01a21646706687608ce38255004cf11659d20e42778b5c7"
     },
     "app/static/pages/releases.js": {
-      "bytes": 11352,
-      "sha256": "71ccef941493ea0ec2bb02368ac4cb6801430c09280df6afd225e67efe07e582"
+      "bytes": 12094,
+      "sha256": "73abc024e70c355acc0f490ba87896c95bb8b217ca87f756422fd74c5ce1b3c7"
     },
     "app/static/pages/search.js": {
       "bytes": 38161,
@@ -344,8 +344,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 17797,
-      "sha256": "7cd4ae8ab7d31d55a1ca2c411823f6ed60d3ecf97f80c3b65730bef11722a8fd"
+      "bytes": 19533,
+      "sha256": "fbe2c8a6e341c7df6dbc7879716802cd4de68797137fc74fcd9a9524cc858a10"
     },
     "data/schema.sql": {
       "bytes": 21493,
@@ -408,8 +408,8 @@
       "sha256": "b6b968b533e696411135bc336c5ac4616f70a9d147eb21944ec1139e03ef9f26"
     },
     "docs/旧功能优化方案.md": {
-      "bytes": 21446,
-      "sha256": "6b0a4e562c188e3a1191ddeb86eb0a5246479c976abd97b8fa7dc946bbc9fa1f"
+      "bytes": 21871,
+      "sha256": "319e0e155346055bf0d2451328aaa6af18e98eeb36d4b8bb6b23df7b715e1cf5"
     },
     "docs/标签分类与选择说明.md": {
       "bytes": 3288,
@@ -461,7 +461,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "1903f7b909cfb7db67eef809476504a601d8bd4a9c266f3b5d060d0f93de4c85"
+      "sha256": "29776854b90a8f3b170c141ecb6f7d57b1b0b00b7b9d56a07fdac93b1b925ab8"
     },
     "README.md": {
       "bytes": 4696,

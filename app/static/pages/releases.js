@@ -30,7 +30,14 @@ export default async function mount(root, ctx) {
         <a class="btn btn-primary" href="#/collections">去题单生成</a>
       </div>
     </div>
-    <div class="results-head" style="margin-top:0;"><span class="total" id="release-total"></span></div>
+    <section class="card">
+      <div class="card-body">
+        <p class="hint"><b>预览</b>　排版页的「快速预览」与「PDF校样」只检查版式，不生成讲义，也不会出现在本页。</p>
+        <p class="hint"><b>导出</b>　题单页点「导出三版讲义」才生成可发放的学生版、解答版、解析版，并作为一条记录进入本页。</p>
+        <p class="hint"><b>补记一次使用</b>　讲义发出后在这里补记，属于事后记录，不代表本页完成了发放。</p>
+      </div>
+    </section>
+    <div class="results-head" style="margin-top:16px;"><span class="total" id="release-total"></span></div>
     <section class="card">
       <div id="release-list">${loading()}</div>
     </section>
@@ -82,9 +89,9 @@ export default async function mount(root, ctx) {
             </div></td>
             <td>
               <div class="row-actions">
-                <button type="button" class="btn btn-sm" data-detail="${esc(id)}">详情</button>
-                <button type="button" class="btn btn-sm" data-register="${esc(id)}" ${status === 'failed' ? 'disabled title="编译失败，不能登记使用"' : ''}>登记使用</button>
-                <a class="btn-link" href="/api/releases/${encodeURIComponent(id)}/snapshot" download>导出时的记录</a>
+                <button type="button" class="btn btn-sm" data-detail="${esc(id)}" title="看这次导出的检查结果与文件">看详情</button>
+                <button type="button" class="btn btn-sm" data-register="${esc(id)}" ${status === 'failed' ? 'disabled title="编译失败，不能补记使用"' : 'title="讲义已发出时，在这里补记一次使用"'}>补记一次使用</button>
+                <a class="btn-link" href="/api/releases/${encodeURIComponent(id)}/snapshot" download title="下载这次导出当时使用的题目内容">这次导出用的内容</a>
               </div>
             </td>
           </tr>`;

@@ -21,7 +21,7 @@ export default async function mount(root, ctx) {
   rememberCollection(cid, (snap.collection || {}).title, 'layout');
   snap.items = groupedItems(snap.items, snap.sections);
   let options = { ...snap.options }, overrides = structuredClone(data.layout.items || {});
-  let selected = snap.items[0]?.id || '', version = 'student', mode = 'quick', dirty = false, pdf = null, disposed = false, painting = 0;
+  let selected = snap.items[0]?.id || '', version = 'student', mode = 'quick', dirty = false, pdf = null, disposed = false, painting = 0, saveState = 'saved', exportedId = '';
   let interactionTimer;
   root.classList.add('layout-page');
   ctx.onCleanup(() => { disposed = true;clearTimeout(interactionTimer);root.classList.remove('layout-page'); });
@@ -29,7 +29,7 @@ export default async function mount(root, ctx) {
   const store = draftStore(data.draft_scope, `layout:${cid}`), recovered = store.read();
   const $ = s => root.querySelector(s);
   const effective = item => ({ ...item, ...(overrides[item.id] || {}) });
-  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-save>保存排版</button><button class="btn btn-primary" data-publish ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
+  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p><p class="page-sub" data-page-state role="status">改动已保存 · 当前是快速预览</p><p class="hint">这里只改版式，预览与PDF校样都不产生导出记录；要发放请点「导出三版讲义」，之后在「导出与归档」补记使用。</p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status" title="改动自动保存到题库">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-save title="立即保存排版与留白，不生成讲义">保存改动</button><button class="btn btn-primary" data-publish title="生成学生版、解答版、解析版，并记入导出与归档" ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
     <div data-recovery></div><div class="layout-workspace"><aside class="layout-controls">
       <section class="card"><h2>讲义设置</h2>
         <label class="field"><span>讲义标题</span><input data-option="title" value="${esc(options.title||'')}" maxlength="300"></label>
@@ -42,7 +42,7 @@ export default async function mount(root, ctx) {
         </div></details>
       </section>
       <section class="card"><h2>当前题目</h2><div class="layout-item-list" data-item-list></div><div data-item-settings></div></section>
-      <details class="card compact-card"><summary>常用讲义样式</summary><div data-templates class="compact-card-body"></div></details>
+      <details class="card compact-card"><summary>整套样式：套用到这份题单，或存为我的样式</summary><div class="compact-card-body"><p class="hint">「套用」只改这份题单的通用版式与每题留白；「保存当前样式」是把当前排版存成可复用样式，供以后套用。两者都不产生导出记录。</p><div data-templates></div></div></details>
       <details class="compact-fold layout-help"><summary>操作帮助</summary><div class="compact-fold-body"><p>拖动题目左侧把手排序，拖动作答区底边调整留白；也可使用方向键。Esc取消拖动。</p><p>修改自动保存，PDF校样不新增发布记录。快速预览估算分页，最终位置以PDF校样为准。</p></div></details>
     </aside><section class="layout-stage"><div class="layout-toolbar"><div class="layout-modes"><button class="btn btn-sm active" data-mode="quick">快速预览</button><button class="btn btn-sm" data-mode="pdf" data-compile ${snap.items.length ? '' : 'disabled'}>PDF校样</button></div><select data-version aria-label="预览版本">${selectOptions(VERSIONS, version)}</select><label class="layout-zoom">缩放<select data-zoom aria-label="预览缩放"><option value="0.65">65%</option><option value="0.8" selected>80%</option><option value="1">100%</option></select></label></div>
       <div class="layout-status"><span data-status role="status">分页为估算</span><span data-interaction role="status"></span></div><div class="layout-page-nav" data-page-nav aria-label="预览页码"></div><div class="layout-canvas" data-canvas><div data-pages></div><div data-pdf hidden></div></div><div data-export role="status"></div></section></div>`;
@@ -50,7 +50,7 @@ export default async function mount(root, ctx) {
   $('[data-option="theme"]').innerHTML = selectOptions({ blue: '青蓝', green: '松绿', purple: '浅紫', orange: '暖橙', ...(!COLORS[options.theme] ? { [options.theme]: options.theme } : {}) }, options.theme);
   const saver = autosaver({read:payload,store,base:data.revision,
     save:(value,base)=>api(`/api/collections/${encodeURIComponent(cid)}/layout`,{method:'PUT',body:{...value,base_revision:base}}),
-    onState:(state,error)=>{if(disposed)return;dirty=state!=='saved';$('[data-save-state]').textContent=({pending:'待保存',saving:'正在保存…',saved:'已保存',unprotected:'浏览器无法保留草稿，正在尝试保存到题库',error:`保存失败，修改仍保留在本页：${error?.message||''}`})[state];}
+    onState:(state,error)=>{if(disposed)return;dirty=state!=='saved';saveState=state;$('[data-save-state]').textContent=({pending:'待保存',saving:'正在保存…',saved:'已保存',unprotected:'浏览器无法保留草稿，正在尝试保存到题库',error:`保存失败，修改仍保留在本页：${error?.message||''}`})[state];updateHeadState();}
   });
   ctx.onCleanup(()=>saver.dispose());
   const beforeUnload=e=>{if(saver.dirty){e.preventDefault();e.returnValue='';}};
@@ -72,12 +72,19 @@ export default async function mount(root, ctx) {
   }
   mountLayoutTemplates($('[data-templates]'),{read:payload,current:()=>!disposed,apply:t=>{options={...options,...t.options};snap.items.forEach(i=>{overrides[i.id]={...(overrides[i.id]||{}),space_mm:t.space_mm};});markDirty();syncControls();}});
 
+  function updateHeadState() {
+    if (disposed) return;
+    const saveText = { saved: '改动已保存', pending: '有改动待保存', saving: '正在保存', unprotected: '草稿无法留在本机，正在写入题库', error: '保存失败，修改只在本页' }[saveState] || '改动已保存';
+    const outputText = exportedId ? `已导出，记录 ${exportedId}` : pdf ? '当前是PDF校样，尚未导出' : '当前是快速预览，尚未导出';
+    $('[data-page-state]').textContent = `${saveText} · ${outputText}`;
+  }
   function markDirty() {
-    dirty = true; pdf = null;
+    dirty = true; pdf = null; exportedId = '';
     saver.change();
     $('[data-recovery]').replaceChildren();
     $('[data-pdf]').innerHTML = '<div class="layout-empty">设置已变化，请重新生成PDF校样。</div>';
     $('[data-status]').textContent = mode === 'pdf' ? 'PDF校样已过期，请重新生成' : '快速预览，分页为估算';
+    updateHeadState();
   }
   function renderItemSettings() {
     $('[data-item-list]').innerHTML=snap.items.map((i,n)=>`<button class="btn btn-sm" data-pick="${esc(i.id)}" aria-label="定位第${n+1}题">${n+1}</button>`).join('');
@@ -165,7 +172,7 @@ export default async function mount(root, ctx) {
   }
   async function save() {
     await saver.flush();
-    dirty = false; if (disposed) return; $('[data-save-state]').textContent = '已保存';
+    dirty = false; saveState = 'saved'; if (disposed) return; $('[data-save-state]').textContent = '已保存'; updateHeadState();
   }
   function showMode(next) {
     mode = next; $('[data-pages]').hidden = mode !== 'quick'; $('[data-pdf]').hidden = mode !== 'pdf';
@@ -181,6 +188,7 @@ export default async function mount(root, ctx) {
       }
     }
     if (mode === 'quick') paint();
+    updateHeadState();
   }
   root.querySelectorAll('[data-option]').forEach(input => { const update = () => { options[input.dataset.option] = input.type === 'checkbox' ? input.checked : input.value; markDirty(); paint(); }; input.onchange = update; if (input.type === 'text') input.oninput = update; });
   function selectItem(id){selected=id;renderItemSettings();$('[data-pages]').querySelectorAll('[data-paper-item]').forEach(el=>el.classList.toggle('selected',el.dataset.paperItem===id));}
@@ -219,6 +227,8 @@ export default async function mount(root, ctx) {
       await save();
       const result = await api(`/api/collections/${encodeURIComponent(cid)}/build`, { method: 'POST', body: { ...payload().options, versions: ['student', 'answer', 'teacher'] } });
       if (disposed) return;
+      exportedId = result.release?.id || result.release_id || '';
+      updateHeadState();
       $('[data-export]').innerHTML = `<div class="card"><h3>${result.release?.status === 'failed' ? '导出未完成，请到归档查看诊断' : '三版讲义已导出'}</h3><div class="detail-actions">${Object.entries(result.files || {}).filter(([,f]) => f.url).map(([v,f]) => `<a class="btn" target="_blank" rel="noopener" href="${esc(f.url)}">${VERSIONS[v]}，${f.pages || '?'}页</a>`).join('')}<a class="btn" href="#/releases">查看归档</a></div></div>`;
       document.dispatchEvent(new Event('meta:refresh'));
     } catch(e) { flash(e.message); }
