@@ -243,7 +243,8 @@ export default async function mount(root, ctx) {
         <div class="detail-actions">
           <button type="button" class="btn" data-act="edit-collection">改题单信息</button>
           <a class="btn" href="#/releases">导出与归档</a>
-          <button type="button" class="btn btn-primary" data-act="build">生成讲义</button>
+          <a class="btn btn-primary" href="#/layout/${encodeURIComponent(cid)}">排版与预览</a>
+          <button type="button" class="btn" data-act="build">快速导出</button>
         </div>
       </div>
 
@@ -654,6 +655,12 @@ export default async function mount(root, ctx) {
     const errEl = modal.body.querySelector('.modal-error');
     const resultEl = modal.body.querySelector('[data-result]');
     const buildBtn = modal.foot.querySelector('[data-build]');
+    const savedLayout = collection.layout_options?.options || {};
+    for (const key of ['title','subtitle','pretitle','motto','theme','format']) {
+      const input = modal.body.querySelector('[data-' + key + ']');
+      if (input && savedLayout[key] != null) input.value = savedLayout[key];
+    }
+    if (savedLayout.toc != null) modal.body.querySelector('[data-toc]').checked = savedLayout.toc;
 
     buildBtn.addEventListener('click', async () => {
       const versions = [];

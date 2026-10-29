@@ -41,6 +41,8 @@ DEFAULT_OPTIONS = {
     "template": "exbook",
     "versions": ["student", "answer", "teacher"],
     "toc": False,
+    "cover": True,
+    "options_layout": "auto",
     "teacher_notes": True,
 }
 
@@ -120,8 +122,11 @@ def normalise_options(options: dict | None, collection: dict | None = None) -> d
     if collection.get("template"):
         opts["template"] = collection["template"]
 
+    saved = collection.get("layout_options") or {}
+    if isinstance(saved, dict):
+        opts.update(saved.get("options") or {})
     for key, value in (options or {}).items():
-        if value is None or value == "":
+        if value is None:
             continue
         opts[key] = value
 
@@ -197,7 +202,7 @@ def _stem_latex(version: dict) -> str:
     return stem
 
 
-def _options_latex(options) -> str | None:
+def _options_latex(options, layout="auto") -> str | None:
     """四个选项走 \\fourchoices，三个走 \\threechoices，其余逐行排。"""
     if not options:
         return None
@@ -206,6 +211,8 @@ def _options_latex(options) -> str | None:
         text = (opt.get("text") if isinstance(opt, dict) else opt) or ""
         texts.append(str(text).strip())
     texts = [t for t in texts if t != ""]
+    if layout == "vertical":
+        return "\\par " + "\\par ".join("%s.~%s" % (chr(65+i), text) for i, text in enumerate(texts))
     if len(texts) == 4:
         return "\\qbankfourchoices{%s}{%s}{%s}{%s}" % tuple(texts)
     if len(texts) == 3:
@@ -406,6 +413,8 @@ def _item_block(snapshot: dict, item: dict, version: str, number: int,
     source = entry.get('source_label') or (teaching.get('source_label') if isinstance(teaching, dict) else None)
     source_label = ("{\\footnotesize\\color{gray}[%s]}\\par " % plain(source)
                     if source and (snapshot.get('options') or {}).get('show_sources') else '')
+    if item.get("keep_together"):
+        parts.append("\\begin{samepage}")
     parts.append("\\qitem " + optional + source_label + _stem_latex(qversion) + score)
 
     for asset in entry.get("assets") or []:
@@ -419,7 +428,8 @@ def _item_block(snapshot: dict, item: dict, version: str, number: int,
             continue
         parts.append("\\imgin[0.5]{%s}{%s}" % ("", dest))
 
-    options = _options_latex(qversion.get("options"))
+    option_layout = item.get("options_layout", (snapshot.get("options") or {}).get("options_layout", "auto"))
+    options = _options_latex(qversion.get("options"), option_layout)
     if options:
         parts.append(options)
 
@@ -448,6 +458,8 @@ def _item_block(snapshot: dict, item: dict, version: str, number: int,
                                      snapshot.get("options"), mode))
 
     parts.append("\\par")
+    if item.get("keep_together"):
+        parts.append("\\end{samepage}")
     return "\n".join(parts)
 
 
@@ -481,6 +493,9 @@ def render_body(snapshot: dict, options: dict | None, version: str,
     out: list[str] = []
     counter = 0
     for section, items in _blocks(snapshot):
+        section_break = bool(items and items[0].get('page_break_before') and counter > 0)
+        if section_break:
+            out.append("\\clearpage")
         out.append("\\section{%s}" % plain(section.get("title") or "未命名分节"))
         intro = str(section.get("intro") or "").strip()
         if intro:
@@ -492,8 +507,10 @@ def render_body(snapshot: dict, options: dict | None, version: str,
         if version in ("answer", "teacher"):
             key += ",showanalysis"
         out.append("\\begin{qitems}[%s]" % key)
-        for item in items:
+        for index, item in enumerate(items):
             counter += 1
+            if index == 0 and section_break:
+                item = dict(item, page_break_before=False)
             out.append(_item_block(snapshot, item, version, counter, available))
         out.append("\\end{qitems}")
     body = "\n".join(out).rstrip() + "\n"
@@ -581,7 +598,7 @@ def render_document(snapshot: dict, options: dict | None, version: str,
     lines += [
         "\\begin{document}",
         "\\input{config}",
-        "\\maketitle",
+        "\\maketitle" if opts.get("cover", True) else "",
     ]
     if version == "student":
         lines.append("\\input{body}")

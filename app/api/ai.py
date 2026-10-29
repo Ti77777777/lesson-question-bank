@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from app import db
 from app.server import ApiError,get,post
-from app.ai import adopt,contracts,credentials,documents,provider,worker,identity
+from app.ai import adopt,contracts,credentials,documents,provider,worker,identity,settings
 
 def require(table, identity):
     row=db.one('SELECT * FROM '+table+' WHERE id=?',(identity,))
@@ -22,8 +22,9 @@ def error(exc):
 
 @get('/api/ai/status')
 def status(req):
-    return {'configured':credentials.configured(),'model':provider.MODEL,'provider':'DeepSeek',
-      'max_upload_mb':50,'pdf_max_pages':50,'credential_storage':'Windows DPAPI（当前用户加密）',
+    cfg = settings.current()
+    return {'configured':credentials.configured(cfg),'model':cfg['model'],'provider':settings.PRESETS[cfg['preset']]['label'],
+      'max_upload_mb':50,'pdf_max_pages':50,'credential_storage':('Windows DPAPI（当前用户加密）' if credentials.os.name == 'nt' else '环境变量（不写入配置）'),
       'processing':'后台队列；PDF本地转页图；解答与参考答案分开调用；AI自复核后待教师确认'}
 
 @post('/api/ai/credentials')
@@ -34,8 +35,24 @@ def save_credentials(req):
 
 @post('/api/ai/probe')
 def probe(req):
-    try:return provider.probe()
+    try:return provider.probe(req.json.get('mode', 'models'))
     except provider.ProviderError as exc:error(exc)
+
+@get('/api/ai/settings')
+def connection_settings(req):
+    cfg = settings.current()
+    return {'config': cfg, 'configured': credentials.configured(cfg),
+            'presets': [{'id': key, 'label': value['label'], 'config': settings.preset(key)} for key, value in settings.PRESETS.items()]}
+
+@post('/api/ai/settings')
+def save_connection_settings(req):
+    try:
+        cfg = settings.validate(req.json.get('config'), require_model=False)
+        key = req.json.get('key')
+        if key: credentials.save_key(key, cfg)
+        settings.save(cfg)
+    except ValueError as exc: error(exc)
+    return {'config': cfg, 'configured': credentials.configured(cfg)}
 
 @post('/api/ai/files')
 def upload(req):
@@ -93,7 +110,13 @@ def create_jobs(req):
     for fid in files:require('source_file',fid)
     pages=data.get('pages',[])
     if not isinstance(pages,list) or any(type(p)!=int or not 1<=p<=50 for p in pages):raise ApiError(400,'pages','页码应为1至50的整数数组')
-    config={'audience':str(data.get('audience','高一学生'))[:200],'pages':pages,'auto_accept':bool(data.get('auto_accept',True))}
+    try:
+        connection = settings.validate(settings.current())
+        settings.require_prices(connection)
+    except ValueError as exc: error(exc)
+    if files and not connection['vision']:
+        raise ApiError(400, 'vision_unsupported', '导入PDF或图片需要支持图片的模型，请先修改接口设置')
+    config={'audience':str(data.get('audience','高一学生'))[:200],'pages':pages,'auto_accept':bool(data.get('auto_accept',True)), 'connection': connection}
     jobs=[]
     with db.transaction() as conn:
         bid=db.next_id(conn,'AIB')

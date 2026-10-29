@@ -778,6 +778,7 @@ def collection_clone(req):
              source["objectives"], source["duration_min"], source["purpose"],
              source["coverage"], source["template"], "draft", source["note"], stamp, stamp),
         )
+        item_map = {}
         section_map: dict[str, str] = {}
         for section in sections:
             new_sid = db.next_id(conn, "SEC")
@@ -790,6 +791,7 @@ def collection_clone(req):
             )
         for item in items:
             new_iid = db.next_id(conn, "ITM")
+            item_map[item["id"]] = new_iid
             conn.execute(
                 "INSERT INTO collection_item(id, collection_id, section_id, question_id, "
                 "question_version_id, order_no, role, solution_id, hint_level, time_solve_min, "
@@ -801,6 +803,10 @@ def collection_clone(req):
                  item["space_mm"], item["page_break_before"], item["required"], item["points"],
                  db.dumps(item["subq_keys"]), item["note"], stamp),
             )
+        layout = source.get("layout_options") or {}
+        if layout:
+            cloned_layout = {"options": layout.get("options", {}), "items": {item_map[k]: v for k, v in layout.get("items", {}).items() if k in item_map}}
+            conn.execute("UPDATE collection SET layout_options=? WHERE id=?", (db.dumps(cloned_layout), new_cid))
         db.audit("collection.clone", "collection", new_cid,
                  {"from": cid, "items": len(items), "sections": len(sections)})
     return _collection_detail_payload(new_cid)
@@ -1088,6 +1094,8 @@ def item_update(req):
         assignments = ", ".join(f"{key} = ?" for key in data)
         conn.execute(f"UPDATE collection_item SET {assignments} WHERE id = ?",
                      list(data.values()) + [iid])
+        from app.layout import clear_item_override
+        clear_item_override(conn, item['collection_id'], iid, set(data) & {'space_mm', 'page_break_before'})
         _touch_collection(conn, item["collection_id"])
         db.audit("item.update", "collection_item", iid, data)
     return {"item": _public(_item_by_id(item["collection_id"], iid))}
@@ -1099,6 +1107,8 @@ def item_delete(req):
     item = _item_row(iid)
     with db.transaction() as conn:
         conn.execute("DELETE FROM collection_item WHERE id = ?", (iid,))
+        from app.layout import clear_item_override
+        clear_item_override(conn, item['collection_id'], iid)
         _touch_collection(conn, item["collection_id"])
         db.audit("item.delete", "collection_item", iid,
                  {"collection_id": item["collection_id"], "question_id": item["question_id"]})
@@ -1183,7 +1193,8 @@ def collection_build(req):
         raise ApiError(409, "empty_collection", "题单还没有任何题目，无法生成讲义")
 
     options = dict(BUILD_DEFAULTS)
-    options["title"] = collection["title"]
+    options.update((collection.get("layout_options") or {}).get("options") or {})
+    options["title"] = options.get("title") or collection["title"]
     options["template"] = collection["template"] or BUILD_DEFAULTS["template"]
     for key, value in body.items():
         options[key] = value

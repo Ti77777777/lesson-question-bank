@@ -381,3 +381,15 @@
 - 新发布物目录附 `ExBook.cls`、`img/`、实际配图 `assets/`（如有）和 `manifest.json`。重导优先使用该发布物的历史文件；旧档案缺少模板时明确提示使用当前模板。
 - `collection_item.required=0` 在双版本中显示选做，非空 `points` 显示分值。角色文字标记和独立答案版仍未接入。
 - `release.status=built` 表示编译成功；正式使用所需的统一审校/素材/来源资格检查尚未完成，详见项目检查报告。
+
+
+## 讲义排版与多模型配置（扩展）
+
+排版接口、请求结构与校样生命周期见 [讲义排版预览](讲义排版预览.md)。排版设置保存在 `collection.layout_options`，进入正式发布快照，不改变题目版本内容。
+
+- `GET /api/ai/settings`：返回不含密钥的连接配置、预设与密钥配置状态。
+- `POST /api/ai/settings`：`{config, key?}` 保存当前接口；密钥只写本机加密存储，不回显。
+- `POST /api/ai/probe`：`{mode: "models" | "text" | "vision"}`；生成验证可能计费。
+- AI批次的 `config_json.connection` 固定创建时的接口设置，后续继续任务不随全局设置改变。
+
+协议、能力验证及费用范围见 [多模型接口接入](多模型接口接入.md)。

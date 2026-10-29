@@ -83,6 +83,7 @@ def init_db() -> None:
     conn = db()
     with SCHEMA_PATH.open("r", encoding="utf-8") as fh:
         conn.executescript(fh.read())
+    _ensure_column("collection", "layout_options", "TEXT")
     _ensure_column("release", "answer_path", "TEXT")
     _ensure_column("release", "pages_answer", "INTEGER")
     _ensure_column("source", "exam_type", "TEXT")
@@ -125,7 +126,7 @@ def next_id(conn: sqlite3.Connection, prefix: str) -> str:
 # ------------------------------------------------------------------ 行转换
 JSON_COLUMNS = {
     "options", "answer_keys", "subquestions", "material_refs", "teaching",
-    "subq_keys", "items", "snapshot", "checks", "mapping", "stats", "errors",
+    "layout_options", "subq_keys", "items", "snapshot", "checks", "mapping", "stats", "errors",
 }
 
 

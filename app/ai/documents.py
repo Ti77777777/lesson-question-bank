@@ -17,7 +17,8 @@ def runtime():
 
 def tool(args):
     env=os.environ.copy()
-    env.pop('DEEPSEEK_API_KEY',None)
+    for key in list(env):
+        if key.endswith(('_API_KEY','_TOKEN')) or key=='QBANK_AI_KEY':env.pop(key,None)
     tmp=db.store_dir('build')/'_ai'/'temp';tmp.mkdir(parents=True,exist_ok=True)
     env['TEMP']=env['TMP']=str(tmp.resolve())
     run=subprocess.run([runtime(),str(Path(__file__).with_name('document_tool.py'))],

@@ -249,6 +249,7 @@ CREATE TABLE IF NOT EXISTS collection (
     purpose      TEXT NOT NULL DEFAULT 'handout'
                  CHECK (purpose IN ('handout','quiz','homework','diagnostic')),
     coverage     TEXT,                                    -- 知识/方法覆盖要求
+    layout_options TEXT,                                  -- JSON 题单排版选项与逐题覆盖
     template     TEXT NOT NULL DEFAULT 'exbook',
     status       TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','ready','archived')),
     note         TEXT,

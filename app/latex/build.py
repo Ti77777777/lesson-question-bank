@@ -91,6 +91,9 @@ def make_snapshot(collection_id: str, options: dict | None = None) -> dict:
         answers.setdefault(qid, str(version.get("answer") or ""))
 
     resolved = exbook.normalise_options(options, collection)
+    from app.layout import apply
+    layout = collection.get("layout_options") or {}
+    apply({"items": items}, layout)
     return {
         "collection": collection,
         "sections": sections,
@@ -389,7 +392,8 @@ def _build(snapshot: dict, options: dict, action: str, archive: Path | None = No
     collection_id = collection.get("id") or ""
     work = _build_dir(collection_id)
     env = os.environ.copy()
-    env.pop('DEEPSEEK_API_KEY', None)
+    for key in list(env):
+        if key.endswith(('_API_KEY', '_TOKEN')) or key == 'QBANK_AI_KEY': env.pop(key, None)
     env['openin_any'] = 'p'
     env['openout_any'] = 'p'
     env["TEMP"] = str(work / "tmp")
@@ -608,6 +612,43 @@ def build_release(collection_id: str, options: dict | None = None) -> dict:
     snapshot = make_snapshot(collection_id, options)
     resolved = snapshot.get("options") or exbook.normalise_options(options)
     return _build(snapshot, resolved, "release.build")
+
+
+def build_preview(snapshot: dict, version: str) -> dict:
+    """Compile one draft with the production renderer, without a release record."""
+    import uuid
+    from app.server import ApiError
+    tools = _tools()
+    if not all(tools.values()):
+        raise ApiError(503, 'latex_missing', '实际PDF校样需要安装配套的 XeLaTeX 与 xdvipdfmx；仍可使用快速预览')
+    token = uuid.uuid4().hex
+    parent = BUILD_ROOT / '_previews'
+    parent.mkdir(parents=True, exist_ok=True)
+    work = parent / token
+    work.mkdir()
+    (work / 'tmp').mkdir()
+    env = os.environ.copy()
+    for key in list(env):
+        if key.endswith(('_API_KEY', '_TOKEN')) or key == 'QBANK_AI_KEY': env.pop(key, None)
+    env.update(TEMP=str((work / 'tmp').resolve()), TMP=str((work / 'tmp').resolve()), openin_any='p', openout_any='p')
+    options = snapshot['options']
+    notes = _copy_template(work)
+    available, asset_notes = _copy_assets(snapshot, work)
+    notes += asset_notes
+    body = exbook.render_body(snapshot, options, version, available)
+    _write(work / 'body.tex', body)
+    _write(work / 'config.tex', exbook.render_config(options))
+    _write(work / (version + '.tex'), exbook.render_document(snapshot, options, version, body, available))
+    result = _compile_version(work, env, tools, version)
+    checks = _log_checks(work, version)
+    if not result['ok']:
+        raise ApiError(422, 'preview_failed', 'PDF校样编译失败，请检查公式或本机TeX环境',
+                       {'stage': result['stage'], 'output': result['output'][-1800:]})
+    for stale in sorted((p for p in parent.iterdir() if p.is_dir()), key=lambda p: p.stat().st_mtime, reverse=True)[8:]:
+        if stale.resolve().is_relative_to(parent.resolve()): shutil.rmtree(stale, ignore_errors=True)
+    return {'url': '/api/layout-previews/%s/%s' % (token, version), 'pages': result['pages'],
+            'version': version, 'checks': checks, 'warnings': notes,
+            'created_at': db.now(), 'release_created': False}
 
 
 def rebuild_release(release_id: str, options: dict | None = None) -> dict:

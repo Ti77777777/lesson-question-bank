@@ -309,7 +309,7 @@ def process_question(job,row):
     evidence_hashes={p:hashlib.sha256((db.ROOT/p).read_bytes()).hexdigest() for p in evidence_paths}
     content={'question':statement(source),'solve':solved,'review':review,'source':source,'evidence_hashes':evidence_hashes,
              'quality_state':quality,'manual_review':'pending','blind_input':'question_only',
-             'provider':provider.MODEL,'prompt_version':provider.PROMPT_VERSION}
+             'provider':provider.settings.for_job(job['id'])['model'],'prompt_version':provider.PROMPT_VERSION}
     with db.transaction() as conn:
         revision=current_revision(conn,row)
         if not conn.execute('SELECT 1 FROM ai_candidate WHERE ai_question_id=? AND revision=?',(row['id'],revision)).fetchone():

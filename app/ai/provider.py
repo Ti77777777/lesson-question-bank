@@ -1,4 +1,5 @@
 import base64
+import math
 import hashlib
 import http.client
 import json
@@ -12,9 +13,8 @@ import urllib.request
 from pathlib import Path
 from app import db
 from app.ai.credentials import get_key
+from app.ai import settings, protocols
 
-MODEL='deepseek-flash'
-BASE='https://api.deepseek.com'
 PROMPT_VERSION='qbank-ai-1.0'
 
 class ProviderError(Exception):
@@ -51,39 +51,98 @@ def _connection_error(reason):
         return ProviderError('network_timeout','等待模型响应超时，费用结果未知；可从失败步骤继续。',detail)
     return ProviderError('network_unknown','模型连接在请求过程中中断，费用结果未知；可从失败步骤继续。',detail)
 
-def _request(endpoint, payload=None):
-    key=get_key()
-    if not key:raise ProviderError('key_missing','请先配置 DeepSeek 密钥')
-    data=json.dumps(payload,ensure_ascii=False).encode() if payload is not None else None
-    request=urllib.request.Request(BASE+endpoint,data=data,headers={
-        'Authorization':'Bearer '+key,'Content-Type':'application/json','User-Agent':'QBank/AI-1.0'})
+def _request(endpoint, payload=None, config=None):
+    cfg = config or settings.current()
+    try: key = '' if cfg['auth_mode'] == 'none' else get_key(cfg)
+    except (ValueError, OSError):
+        raise ProviderError('key_missing', '当前地址的已存密钥无法读取，请重新配置或使用对应环境变量') from None
+    if not key and cfg['auth_mode'] != 'none':
+        raise ProviderError('key_missing', '请先为当前服务地址配置密钥，或设置 ' + cfg['key_env'])
+    data = json.dumps(payload, ensure_ascii=False).encode() if payload is not None else None
+    request = urllib.request.Request(cfg['base_url'] + endpoint, data=data, headers={
+        'Content-Type': 'application/json', 'User-Agent': 'QBank/AI-2.0'})
+    if cfg['protocol'] == 'anthropic': request.add_header('anthropic-version', '2023-06-01')
+    if key and cfg['auth_mode'] != 'none':
+        name = 'x-api-key' if cfg['protocol'] == 'anthropic' else 'x-goog-api-key' if cfg['protocol'] == 'gemini' else 'api-key' if cfg['auth_mode'] == 'api-key' else 'Authorization'
+        value = 'Bearer ' + key if name == 'Authorization' else key
+        # Credentials must never be copied by urllib to a redirected host.
+        request.add_unredirected_header(name, value)
     try:
-        with urllib.request.urlopen(request,timeout=240) as response:
-            raw=response.read()
-            try:result=json.loads(raw)
-            except (ValueError,TypeError):
-                raise ProviderError('invalid_response','模型接口返回的内容不是有效 JSON，费用结果未知；请检查服务或网络代理后继续。',{'response_bytes':len(raw)}) from None
-            if not isinstance(result,dict):
-                raise ProviderError('invalid_response','模型接口返回格式异常，费用结果未知；请检查服务或网络代理后继续。',{'response_bytes':len(raw)})
+        with urllib.request.urlopen(request, timeout=cfg['timeout']) as response:
+            raw = response.read()
+            try: result = json.loads(raw)
+            except (ValueError, TypeError):
+                raise ProviderError('invalid_response', '接口未返回有效JSON，费用结果未知；请检查地址与服务状态', {'response_bytes': len(raw)}) from None
+            if not isinstance(result, dict): raise ProviderError('invalid_response', '模型接口返回格式异常，费用结果未知')
             return result
     except urllib.error.HTTPError as exc:
-        # Do not echo provider response bodies, request headers, credentials or prompts.
-        messages={401:'DeepSeek 密钥无效，请重新配置',402:'DeepSeek 余额不足',403:'DeepSeek 拒绝访问',
-                  404:'当前账户或接口不支持所选模型',429:'DeepSeek 请求受限，请稍后重试'}
-        raise ProviderError('http_'+str(exc.code),messages.get(exc.code,'DeepSeek 服务返回错误（'+str(exc.code)+'）')) from None
-    except urllib.error.URLError as exc:
-        raise _connection_error(exc.reason) from None
-    except (OSError,http.client.HTTPException) as exc:
-        raise _connection_error(exc) from None
+        messages = {400: '当前模型不接受所选参数：请检查协议、JSON模式、输出长度参数与推理设置',
+                    401: '当前接口密钥无效，请检查服务地址、地区和密钥', 402: '当前接口余额不足',
+                    403: '当前接口拒绝访问，请检查模型权限', 404: '当前地址、模型或接口路径不存在',
+                    429: '当前接口请求受限，请稍后继续；不会自动重复发送'}
+        raise ProviderError('http_' + str(exc.code), messages.get(exc.code, '模型服务返回错误（' + str(exc.code) + '）')) from None
+    except urllib.error.URLError as exc: raise _connection_error(exc.reason) from None
+    except (OSError, http.client.HTTPException) as exc: raise _connection_error(exc) from None
 
-def probe():
-    result=_request('/models')
-    models=result.get('data')
-    if not isinstance(models,list) or any(not isinstance(m,dict) or not isinstance(m.get('id'),str) for m in models):
-        raise ProviderError('invalid_response','模型接口返回的模型列表格式异常')
-    names=[m['id'] for m in models]
-    return {'connected':True,'models':names,'selected_model':MODEL,
-            'model_listed':MODEL in names,'vision':'等待图片请求验证'}
+
+def probe(mode='models'):
+    cfg = settings.current()
+    if mode == 'models':
+        result = _request('/models', config=cfg)
+        rows = result.get('models' if cfg['protocol'] == 'gemini' else 'data')
+        key = 'name' if cfg['protocol'] == 'gemini' else 'id'
+        if not isinstance(rows, list) or any(not isinstance(m, dict) or not isinstance(m.get(key), str) for m in rows):
+            raise ProviderError('invalid_response', '接口未返回标准模型列表；可手动填写模型，再运行文字或图片验证')
+        names = [m[key].removeprefix('models/') for m in rows]
+        return {'connected': True, 'models': names, 'selected_model': cfg['model'],
+                'model_listed': cfg['model'] in names, 'vision': '尚未验证图片调用'}
+    if mode not in ('text', 'vision'): raise ProviderError('probe_mode', '验证类型无效')
+    if not cfg['model']: raise ProviderError('model_missing', '请先填写或选择模型，再验证生成能力')
+    if mode == 'vision' and not cfg['vision']: raise ProviderError('vision_unsupported', '当前接口设置为纯文字模型')
+    try: settings.require_prices(cfg)
+    except ValueError as exc: raise ProviderError('pricing_missing', str(exc)) from None
+    content = [{'type': 'text', 'text': 'Return JSON exactly: {"ok":true}.'}]
+    if mode == 'vision':
+        content[0]['text'] = 'Calculate the arithmetic expression in the image. Return only a JSON object with the integer field result.'
+        content.append({'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,' + base64.b64encode(probe_image()).decode()}})
+    reserve = (4096 if mode == 'text' else 8192) * cfg['input_price'] + 512 * cfg['output_price']
+    if reserve > 1000000: raise ProviderError('probe_budget', '该模型的测试预留超过1元，请降低测试单价配置或直接使用受预算控制的任务')
+    endpoint, payload = protocols.request(cfg, 'You validate API connectivity. Return JSON only.', content, 512, False)
+    response = _request(endpoint, payload, cfg)
+    try: raw, truncated = protocols.output(response, cfg['protocol'])
+    except (ValueError, TypeError, KeyError, AttributeError): raise ProviderError('invalid_response', '接口没有返回可解析的文字，请检查协议与输出设置') from None
+    if truncated: raise ProviderError('output_truncated', '接口测试输出被截断；请检查模型与推理配置')
+    result = parse_output(raw)
+    if (mode == 'text' and result.get('ok') is not True) or (mode == 'vision' and result.get('result') != 5):
+        raise ProviderError('invalid_output', '接口能返回内容，但未通过合成测试的JSON或图片算式验证')
+    usage = protocols.usage(response, cfg['protocol'])
+    estimate = math.ceil(usage['prompt_tokens']*cfg['input_price'] + usage['completion_tokens']*cfg['output_price']) / 1000000 if usage else None
+    return {'connected': True, 'selected_model': cfg['model'], 'mode': mode, 'json_valid': True,
+            'usage': usage, 'estimated_cny': estimate, 'vision': '合成图片算式识别正确，真实试卷效果仍需核对' if mode == 'vision' else '尚未验证图片调用'}
+
+
+def probe_image():
+    """A valid, synthetic PNG spelling 2+3. No user document or image library needed."""
+    import struct
+    import zlib
+    glyphs = [('11111','00001','00001','11111','10000','10000','11111'),
+              ('00000','00100','00100','11111','00100','00100','00000'),
+              ('11111','00001','00001','11111','00001','00001','11111')]
+    width, height, scale = 160, 64, 5
+    pixels = [bytearray([255] * (width * 3)) for _ in range(height)]
+    for index, glyph in enumerate(glyphs):
+        for y, line in enumerate(glyph):
+            for x, point in enumerate(line):
+                if point == '1':
+                    for yy in range(scale):
+                        row = pixels[12 + y*scale + yy]
+                        for xx in range(scale):
+                            at = (18 + index*40 + x*scale + xx) * 3
+                            row[at:at+3] = b'\0\0\0'
+    def chunk(name, raw):
+        return struct.pack('>I', len(raw)) + name + raw + struct.pack('>I', zlib.crc32(name + raw))
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(b''.join(b'\0'+row for row in pixels))) + chunk(b'IEND', b'')
+
 
 def image_content(path, data=None):
     p=Path(path)
@@ -155,10 +214,14 @@ def normalise(value):
     return value
 
 def call(job_id, question_id, stage, system, prompt, images=(), max_tokens=10000, thinking=True):
+    cfg = settings.for_job(job_id)
+    try: settings.require_prices(cfg)
+    except ValueError as exc: raise ProviderError('pricing_missing', str(exc)) from None
+    if images and not cfg['vision']: raise ProviderError('vision_unsupported', '当前模型设置为纯文字，无法处理题图；请选择支持图片的模型')
     try:snapshots=[(p,Path(p).read_bytes()) for p in images]
     except OSError:raise ProviderError('image_unavailable','无法读取题目配图，请检查原图后重试；本次请求未发出') from None
     cache_input={'system':system,'prompt':prompt,'images':[hashlib.sha256(raw).hexdigest() for _,raw in snapshots],
-        'model':MODEL,'version':PROMPT_VERSION,'thinking':thinking,'max_tokens':max_tokens}
+        'model':cfg['model'],'connection':cfg,'version':PROMPT_VERSION,'thinking':thinking,'max_tokens':max_tokens}
     if question_id:
         question=db.one('SELECT request_generation FROM ai_question WHERE id=?',(question_id,))
         if not question:raise ProviderError('question_missing','AI 题目记录已不存在')
@@ -172,10 +235,9 @@ def call(job_id, question_id, stage, system, prompt, images=(), max_tokens=10000
         return normalise(json.loads(previous['artifact_json'])['result'])
     try:content=[{'type':'text','text':prompt}]+[image_content(p,raw) for p,raw in snapshots]
     except OSError:raise ProviderError('image_unavailable','无法准备题目配图；本次请求未发出，请检查原图后重试') from None
-    # Upper-bound estimate at published peak rates (2 CNY/M input, 8 CNY/M output).
-    # Reserve byte-length*3 plus image allowance. Invoice may be lower off peak/cache.
+    # Reserve conservatively at user-configured CNY/M-token rates; never claim invoice accuracy.
     estimated_input=(len(system.encode())+len(prompt.encode()))*3+len(images)*4096+4096
-    reservation=estimated_input*2+max_tokens*8
+    reservation=math.ceil(estimated_input*cfg['input_price']+max_tokens*cfg['output_price'])
     with db.transaction() as conn:
         job=conn.execute('SELECT * FROM ai_job WHERE id=?',(job_id,)).fetchone()
         batch=conn.execute('SELECT * FROM ai_batch WHERE id=?',(job['batch_id'],)).fetchone()
@@ -184,30 +246,22 @@ def call(job_id, question_id, stage, system, prompt, images=(), max_tokens=10000
             raise BudgetPause('budget_paused','达到本批费用或调用上限，已保存进度；可增加预算后继续')
         run_id=db.next_id(conn,'AIR');attempt=conn.execute('SELECT count(*) FROM ai_step_run WHERE job_id=? AND stage=? AND ai_question_id IS ?',(job_id,stage,question_id)).fetchone()[0]+1
         conn.execute('INSERT INTO ai_step_run(id,job_id,ai_question_id,stage,attempt,idempotency_key,state,lease_owner,lease_until,input_hash,model,prompt_version,reserved_cost_micro,billing_state,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          (run_id,job_id,question_id,stage,attempt,fingerprint+':'+run_id,'running',str(os.getpid()),time.time()+900,fingerprint,MODEL,PROMPT_VERSION,reservation,'reserved',db.now()))
-    payload={'model':MODEL,'messages':[{'role':'system','content':system},{'role':'user','content':content}],
-             'response_format':{'type':'json_object'},'max_tokens':max_tokens,
-             'thinking':{'type':'enabled' if thinking else 'disabled'}}
-    if thinking:payload['reasoning_effort']='high'
+          (run_id,job_id,question_id,stage,attempt,fingerprint+':'+run_id,'running',str(os.getpid()),time.time()+900,fingerprint,cfg['model'],PROMPT_VERSION,reservation,'reserved',db.now()))
+    endpoint, payload = protocols.request(cfg, system, content, max_tokens, thinking)
     usage=actual=raw=None
     try:
-        response=_request('/chat/completions',payload)
+        response=_request(endpoint,payload,cfg)
         if not isinstance(response,dict):raise ProviderError('invalid_response','模型接口返回的结果结构异常')
-        usage=response.get('usage')
-        if not isinstance(usage,dict):usage=None
-        if usage and all(type(usage.get(k))==int and usage[k]>=0 for k in ('prompt_tokens','completion_tokens')):
-            actual=usage['prompt_tokens']*2+usage['completion_tokens']*8
-        choices=response.get('choices')
-        if not isinstance(choices,list) or not choices or not isinstance(choices[0],dict):
-            raise ProviderError('invalid_response','模型接口没有返回有效结果，已保留进度与费用记录')
-        message=choices[0]
-        body=message.get('message')
-        raw=body.get('content') if isinstance(body,dict) else None
-        if message.get('finish_reason')=='length':raise ProviderError('output_truncated','模型输出达到长度上限，请重试或缩小题目范围')
-        if not isinstance(raw,str):raise ProviderError('invalid_response','模型接口没有返回有效正文，已保留进度与费用记录')
+        usage=protocols.usage(response,cfg['protocol'])
+        if usage:
+            actual=math.ceil(usage['prompt_tokens']*cfg['input_price']+usage['completion_tokens']*cfg['output_price'])
+        try: raw,truncated=protocols.output(response,cfg['protocol'])
+        except (ValueError,TypeError,KeyError,AttributeError):
+            raise ProviderError('invalid_response','模型接口没有返回有效正文，已保留进度与费用记录') from None
+        if truncated:raise ProviderError('output_truncated','模型输出达到长度上限，请重试或缩小题目范围')
         result=parse_output(raw)
-        receipt={'result':result,'raw_content':raw,'model':response.get('model',MODEL),'usage':usage,
-                 'price_basis':'2026-10-27 官方 Flash 高峰价格上限估算，非账单：输入2元/M，输出8元/M'}
+        receipt={'result':result,'raw_content':raw,'model':response.get('model',cfg['model']),'connection':cfg,'usage':usage,
+                 'price_basis':'按任务保存的人民币/百万tokens单价估算；缓存、图像与推理计费以服务商账单为准'}
         with db.transaction() as conn:
             conn.execute("UPDATE ai_step_run SET state='completed',usage_json=?,actual_cost_micro=?,billing_state=?,output_hash=?,artifact_json=?,completed_at=? WHERE id=?",(db.dumps(usage),actual,'estimated_from_usage' if actual is not None else 'outcome_unknown',digest(result),db.dumps(receipt),db.now(),run_id))
         return result

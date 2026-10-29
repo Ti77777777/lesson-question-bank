@@ -50,9 +50,9 @@ def asset(conn, rel):
     return aid
 
 
-def write_auto_review(conn, version_id, candidate_id, note):
+def write_auto_review(conn, version_id, candidate_id, note, model):
     """AI 自复核通过后的入库记录；reviewer 明确标注来源，不冒充教师。"""
-    reviewer = 'AI 自复核（%s / %s）' % (provider.MODEL, provider.PROMPT_VERSION)
+    reviewer = 'AI 自复核（%s / %s）' % (model, provider.PROMPT_VERSION)
     items = [('question_version', version_id, 'stem'), ('question_version', version_id, 'answer')]
     for row in conn.execute('SELECT id FROM solution WHERE question_version_id=?', (version_id,)):
         items.append(('solution', row[0], 'solution'))
@@ -81,6 +81,7 @@ def accept_candidate(candidate, parts, auto=False, actor=None):
         c = provider.normalise(raw_content)
         format_normalized = c != raw_content
         source = c['source']; review = c['review']; solved = c['solve']
+        model = str(c.get('provider') or provider.settings.for_job(row['job_id'])['model'])
         for rel, sha in c.get('evidence_hashes', {}).items():
             p = (db.ROOT / rel).resolve()
             if not p.is_relative_to((db.ROOT / 'assets').resolve()) or not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest() != sha:
@@ -136,7 +137,7 @@ def accept_candidate(candidate, parts, auto=False, actor=None):
             fields.update(short_name=provenance.label(paper['name'],row['original_qno']), solutions=solved['solutions'],
                           occurrence={'source_id': f['source_id'], 'source_file_id': f['id'],
                                       'pdf_page': (source.get('pages') or [1])[0], 'qno': row['original_qno'],
-                                      'raw_text': source['stem'], 'ocr_tool': 'AI ' + provider.MODEL,
+                                      'raw_text': source['stem'], 'ocr_tool': 'AI ' + model,
                                       'ocr_at': db.now(), 'pending': 1, 'note': 'AI提取，待教师审校'})
             qid = _create_question(fields, conn)
             vid = conn.execute('SELECT current_version_id FROM question WHERE id=?', (qid,)).fetchone()[0]
@@ -179,7 +180,7 @@ def accept_candidate(candidate, parts, auto=False, actor=None):
                 tags.append({'tag_id': tid, 'source': 'ai', 'role': 'primary' if tag['dimension'] == 'knowledge' else 'secondary'})
             _insert_question_tags(conn, qid, tags, db.now())
         if auto:
-            write_auto_review(conn, vid, candidate['id'], 'AI 自复核未发现问题；候选 ' + candidate['id'])
+            write_auto_review(conn, vid, candidate['id'], 'AI 自复核未发现问题；候选 ' + candidate['id'], model)
         conn.execute('INSERT INTO ai_decision VALUES(?,?,?,?,?,?,?,?,?)',
                      (db.next_id(conn, 'AID'), candidate['id'], candidate['content_hash'], 'accept',
                       db.dumps({'parts': parts, 'format_normalized': format_normalized}), actor, vid, candidate['id'], db.now()))

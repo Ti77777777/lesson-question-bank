@@ -1,3 +1,4 @@
+import { mountProviderSettings } from '../lib/provider-settings.js';
 import { api, fileUrl, pdfUrl } from '../lib/api.js';
 import { esc } from '../lib/dom.js';
 import { flash } from '../lib/ui.js';
@@ -14,18 +15,18 @@ const json=t=>JSON.stringify(t,null,2);
 export default async function mount(root,ctx){
   let selected=ctx.query.job||'', detail=null, selectedQ='', files=[], busy=false, disposed=false;
   root.classList.add('ai-page');
-  ctx.onCleanup(()=>root.classList.remove('ai-page'));
+  ctx.onCleanup(()=>{disposed=true;root.classList.remove('ai-page');});
   root.innerHTML=`<div class="page-head ai-page-heading"><div><p class="ai-eyebrow">导入 · 识题 · 审核</p><h1 class="page-title">AI 题目工作台</h1><p class="page-sub">上传试卷，生成题面、解答与教学建议。核对后采纳到题库。</p></div></div>
-    <details class="card ai-settings"><summary>接口设置 <span id="ai-key-state"></span></summary><div class="ai-form-row"><label>DeepSeek API 密钥<input id="ai-key" type="password" autocomplete="off" placeholder="已配置时无需再次填写"></label><button class="btn" id="ai-save-key">加密保存</button><button class="btn" id="ai-probe">测试连接</button><span id="ai-probe-state" role="status"></span></div><p class="muted">密钥由 Windows 当前用户加密保存。原卷与题目会发送至 DeepSeek；PDF 先在本机转为页面图片。</p></details>
+    <details class="card ai-settings"><summary>模型与接口设置 <span id="ai-key-state"></span></summary><div data-provider-settings></div></details>
     <section class="card ai-create"><div class="ai-section-heading"><h2>新建处理任务</h2><span>PDF / 图片</span></div><div class="ai-form-row ai-create-fields"><label class="ai-upload">选择试卷或图片<input id="ai-upload" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp"></label><label>适用学生<input id="ai-audience" value="高一学生"></label><label>本批预算上限（元）<input id="ai-budget" type="number" value="10" min="0.1" max="500" step="0.1"></label><label class="ai-auto"><input type="checkbox" id="ai-auto" checked>AI 自复核通过即入库</label></div><div id="ai-files" class="muted"></div>
     <details><summary>处理题库已有题目 / 指定页码</summary><div class="ai-form-row"><label>题目编号（逗号或换行分隔）<textarea id="ai-qids" placeholder="Q000001,Q000002">${esc(ctx.query.qid||'')}</textarea></label><label>仅处理这些PDF页（留空为全部）<input id="ai-pages" placeholder="例如 1,2,3"></label></div></details>
     <div class="ai-create-footer"><div class="ai-form-row"><button class="btn btn-primary" id="ai-start">开始处理</button><span id="ai-start-state" role="status"></span></div><p class="muted">每份文件最多50页、50MB。费用按用量保守估算，实际以服务商账单为准。含参考答案的试卷，会先分离题面再独立解答。</p></div></section>
     <div class="ai-workspace"><aside class="card ai-job-list"><h2>处理记录</h2><div id="ai-jobs"></div></aside><section id="ai-detail"><div class="card muted">选择一项处理记录，查看进度与题目。</div></section></div>`;
   const $=s=>root.querySelector(s);
   const setBusy=(value,text='')=>{busy=value;$('#ai-start').disabled=value;$('#ai-start-state').textContent=text;};
-  async function refreshStatus(){const s=await api('/api/ai/status');$('#ai-key-state').textContent=s.configured?'· 已配置':'· 未配置';if(!s.configured)root.querySelector('.ai-settings').open=true;}
-  $('#ai-save-key').onclick=async()=>{try{await api('/api/ai/credentials',{method:'POST',body:{key:$('#ai-key').value}});$('#ai-key').value='';await refreshStatus();flash('密钥已加密保存。','ok');}catch(e){flash(e.message);}};
-  $('#ai-probe').onclick=async()=>{const b=$('#ai-probe');b.disabled=true;$('#ai-probe-state').textContent='连接中…';try{const r=await api('/api/ai/probe',{method:'POST',body:{}});$('#ai-probe-state').textContent=`连接成功 · ${r.selected_model}`;}catch(e){$('#ai-probe-state').textContent=e.message;}finally{b.disabled=false;}};
+  async function refreshStatus(){if(disposed||!ctx.current())return;const s=await api('/api/ai/status');if(disposed||!ctx.current())return;$('#ai-key-state').textContent=s.configured?'· 已配置':'· 未配置';if(!s.configured)root.querySelector('.ai-settings').open=true;}
+  await mountProviderSettings($('[data-provider-settings]'), refreshStatus);
+  if(disposed||!ctx.current())return;
   $('#ai-upload').onchange=()=>{files=Array.from($('#ai-upload').files);$('#ai-files').textContent=files.map(f=>`${f.name}（${Math.ceil(f.size/1024)} KB）`).join('；');};
   $('#ai-start').onclick=async()=>{if(busy)return;setBusy(true,'正在上传…');try{
     const ids=$('#ai-qids').value.split(/[\s,，;；]+/).filter(Boolean),fids=[];

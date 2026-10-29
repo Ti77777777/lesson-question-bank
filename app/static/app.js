@@ -16,6 +16,7 @@ import questionPage from './pages/question.js';
 import questionNewPage from './pages/question-new.js';
 import collectionsPage from './pages/collections.js';
 import collectionPage from './pages/collection.js';
+import layoutPage from './pages/layout.js';
 import releasesPage from './pages/releases.js';
 import usagePage from './pages/usage.js';
 import aiPage from './pages/ai.js';
@@ -28,6 +29,7 @@ const ROUTES = [
   { pattern: /^\/search\/?$/, page: searchPage, nav: 'search', title: '题库检索' },
   { pattern: /^\/question\/new\/?$/, page: questionNewPage, nav: 'search', title: '新建题目' },
   { pattern: /^\/question\/([^/]+)\/?$/, page: questionPage, nav: 'search', title: '题目详情', keys: ['id'] },
+  { pattern: /^\/layout\/([^/]+)\/?$/, page: layoutPage, nav: 'collections', title: '讲义排版预览', keys: ['id'] },
   { pattern: /^\/collections\/?$/, page: collectionsPage, nav: 'collections', title: '题单' },
   { pattern: /^\/collection\/([^/]+)\/?$/, page: collectionPage, nav: 'collections', title: '题单编辑', keys: ['id'] },
   { pattern: /^\/releases\/?$/, page: releasesPage, nav: 'releases', title: '导出与归档' },
