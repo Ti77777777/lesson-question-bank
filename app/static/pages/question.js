@@ -1,4 +1,4 @@
-/* 题目详情：左侧原始证据、中间当前内容、右侧逐项审校；底部标签、关系与使用历史。 */
+/* 题目详情：先看题面、答案与解析，再看审校；标签与版本、出处、关系、使用历史收在页面下方折叠区。 */
 
 import { enhanceMathFields } from '../lib/math-editor.js';
 import { parseOptionLines, formatOptionLines } from '../lib/option-text.js';
@@ -33,6 +33,7 @@ const FIELD_LABELS = {
   version_no: '版本号',
   created_at: '创建时间',
   review_state: '版本状态',
+  solution_count: '解法数',
 };
 
 function asArray(value) {
@@ -258,8 +259,8 @@ export default async function mount(root, ctx) {
         <div class="detail-actions">
             <a class="btn" href="#/ai?qid=${encodeURIComponent(question.id)}">AI 补全与复核</a>
           <button type="button" class="btn" data-act="new-version">新建版本</button>
+          <button type="button" class="btn" data-act="diff">查看差异</button>
           <button type="button" class="btn" data-act="corrections">纠错与处理记录</button>
-          <button type="button" class="btn" data-act="diff">版本对比</button>
           ${question.status === 'inactive'
             ? '<button type="button" class="btn" data-act="activate">恢复启用</button>'
             : '<button type="button" class="btn btn-danger" data-act="deactivate">停用</button>'}
@@ -267,17 +268,8 @@ export default async function mount(root, ctx) {
         </div>
       </div>
 
-      <div class="detail-grid">
-        <div class="evidence-col">
-          <section class="card">
-            <div class="card-head"><h2>原始证据</h2><span class="hint">${occurrences.length} 处出处</span></div>
-            ${occurrences.length
-              ? occurrences.map(renderOccurrence).join('')
-              : `<div class="card-body">${emptyState('暂无出处', '整理题目时应补一个出处；来源不明时标为「待确认」，不要编造。')}</div>`}
-          </section>
-        </div>
-
-        <div class="content-col">
+      <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;">
+        <div class="content-col" style="flex:1 1 560px;min-width:0;">
           <section class="card q-headline">
             <div class="badges">
               ${badge(QTYPES[current.qtype] || '题型待定', 'plain')}
@@ -339,7 +331,7 @@ export default async function mount(root, ctx) {
           </section>
         </div>
 
-        <div class="review-col">
+        <div class="review-col" style="flex:0 1 312px;min-width:280px;">
           <section class="card review-panel">
             <div class="card-head"><h2>审校</h2><span class="hint">逐项记录</span></div>
             <div class="card-body">
@@ -375,8 +367,33 @@ export default async function mount(root, ctx) {
           </div>
         </section>
 
-        <section class="card">
-          <div class="card-head"><h2>题目关系</h2><span class="hint">${relationRows.length} 条</span></div>
+        <details class="card compact-card">
+          <summary>版本历史（${versions.length}）</summary>
+          <div class="card-body tight">
+            ${versions.length ? `<div class="table-wrap"><table class="table">
+              <thead><tr><th>版本</th><th>时间</th><th>题型</th><th>修订说明</th><th>解法</th></tr></thead>
+              <tbody>${[...versions].sort((a, b) => Number(b.version_no) - Number(a.version_no)).map((ver) => `<tr>
+                <td class="mono">v${esc(ver.version_no)}${ver.id && ver.id === current.id ? ` ${badge('当前', 'pass')}` : ''}</td>
+                <td class="num">${esc(fmtDate(ver.created_at))}</td>
+                <td>${esc(QTYPES[ver.qtype] || ver.qtype || '未填写')}</td>
+                <td>${esc(ver.change_note || '未填写')}</td>
+                <td class="num">${esc(ver.solution_count ?? 0)}</td>
+              </tr>`).join('')}</tbody>
+            </table></div>` : '<div class="hint">还没有版本记录。</div>'}
+          </div>
+        </details>
+
+        <details class="card compact-card">
+          <summary>出处（${occurrences.length}）</summary>
+          <div class="card-body tight">
+            ${occurrences.length
+              ? occurrences.map(renderOccurrence).join('')
+              : `<div class="hint" style="padding:16px;">${emptyState('暂无出处', '整理题目时应补一个出处；来源不明时标为「待确认」，不要编造。')}</div>`}
+          </div>
+        </details>
+
+        <details class="card compact-card">
+          <summary>题目关系（${relationRows.length}）</summary>
           <div class="card-body">
             ${relationRows.length
               ? `<div class="rel-list">
@@ -401,10 +418,10 @@ export default async function mount(root, ctx) {
               </div>
             </form>
           </div>
-        </section>
+        </details>
 
-        <section class="card full">
-          <div class="card-head"><h2>使用历史</h2><span class="hint">${usage.length} 次</span></div>
+        <details class="card compact-card full">
+          <summary>使用历史（${usage.length}）</summary>
           ${usage.length ? `<div class="table-wrap"><table class="table">
             <thead><tr><th>讲义</th><th>题单</th><th>班级、小组或学生</th><th>日期</th><th>用途</th></tr></thead>
             <tbody>${usage.map((row) => `<tr>
@@ -415,7 +432,7 @@ export default async function mount(root, ctx) {
               <td>${esc(USAGE_PURPOSES[row.purpose] || row.purpose || '—')}</td>
             </tr>`).join('')}</tbody>
           </table></div>` : '<div class="card-body hint">还没有使用记录。登记讲义发给谁、何时使用后，可在这里查看。</div>'}
-        </section>
+        </details>
       </div>
     `;
 
@@ -571,6 +588,30 @@ export default async function mount(root, ctx) {
     return [];
   }
 
+  // 差异表格里的空值统一显示为「未填写」，选项与小问展开成可读文本。
+  function diffText(value, field = '') {
+    if (value === null || value === undefined) return '未填写';
+    if (typeof value === 'string' && !value.trim()) return '未填写';
+    if (Array.isArray(value) && !value.length) return '未填写';
+    if (typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length) return '未填写';
+    if (field === 'options') {
+      const options = asArray(value);
+      if (options.length) {
+        return options.map((opt, index) => `${optionLetter(opt.key, index)}：${opt.text || ''}`).join('\n');
+      }
+    }
+    if (field === 'subquestions') {
+      const subs = asArray(value);
+      if (subs.length) {
+        return subs.map((sub, index) => {
+          const key = sub.key || index + 1;
+          return `${key}　${sub.text || ''}${sub.answer ? `（答：${sub.answer}）` : ''}`;
+        }).join('\n');
+      }
+    }
+    return serialize(value);
+  }
+
   function openDiffModal() {
     if (!versions.length) {
       flash('还没有版本记录，无法对比。');
@@ -585,7 +626,7 @@ export default async function mount(root, ctx) {
     const prev = sorted[sorted.length - 2];
 
     const modal = openModal({
-      title: '版本对比',
+      title: '版本差异',
       width: 'modal-wide',
       body: `<div class="diff-picker">
           <label class="field" style="width:170px;"><span>旧版本</span>
@@ -596,6 +637,7 @@ export default async function mount(root, ctx) {
             <select data-to>${sorted.map((v) => `<option value="${esc(v.version_no)}" ${v.version_no === latest.version_no ? 'selected' : ''}>v${esc(v.version_no)}，${esc(fmtDate(v.created_at))}</option>`).join('')}</select>
           </label>
         </div>
+        <p class="hint">逐字段并排显示旧版与新版，未填写的字段标为「未填写」。本视图只读，不会改动版本数据。</p>
         <div data-diff-result>${loading('正在比较…')}</div>`,
     });
 
@@ -603,9 +645,20 @@ export default async function mount(root, ctx) {
     const toSel = modal.body.querySelector('[data-to]');
     const resultEl = modal.body.querySelector('[data-diff-result]');
 
-    const renderDiff = (rows) => {
+    // 后端不可用时退回页面已加载的版本摘要字段，只比较这些字段。
+    const loadedRows = () => {
+      const from = sorted.find((v) => String(v.version_no) === fromSel.value) || {};
+      const to = sorted.find((v) => String(v.version_no) === toSel.value) || {};
+      return ['qtype', 'change_note', 'review_state', 'solution_count', 'created_at']
+        .map((field) => ({ field, from: from[field], to: to[field] }));
+    };
+
+    const renderDiff = (rows, partial = false) => {
+      const note = partial
+        ? '<p class="hint">未能读取两版完整内容，仅比较已加载的字段：题型、修订说明、版本状态、解法数、创建时间。</p>'
+        : '';
       if (!rows.length) {
-        resultEl.innerHTML = '<div class="diff-empty">两个版本在这些字段上没有差异。</div>';
+        resultEl.innerHTML = `${note}<div class="diff-empty">两个版本在这些字段上没有差异。</div>`;
         return;
       }
       const view = rows.map((row) => {
@@ -614,11 +667,11 @@ export default async function mount(root, ctx) {
           : JSON.stringify(row.from ?? null) !== JSON.stringify(row.to ?? null);
         return `<tr class="${changed ? 'changed' : ''}">
           <td class="field-name">${esc(FIELD_LABELS[row.field] || row.field || '')}</td>
-          <td class="val">${esc(serialize(row.from))}</td>
-          <td class="val">${esc(serialize(row.to))}</td>
+          <td class="val">${esc(diffText(row.from, row.field))}</td>
+          <td class="val">${esc(diffText(row.to, row.field))}</td>
         </tr>`;
       }).join('');
-      resultEl.innerHTML = `<div class="table-wrap"><table class="table diff-table">
+      resultEl.innerHTML = `${note}<div class="table-wrap"><table class="table diff-table">
         <thead><tr><th>字段</th><th>v${esc(fromSel.value)}</th><th>v${esc(toSel.value)}</th></tr></thead>
         <tbody>${view}</tbody>
       </table></div>`;
@@ -633,7 +686,7 @@ export default async function mount(root, ctx) {
         renderDiff(normalizeDiff(data));
       } catch (err) {
         flash(err.message);
-        resultEl.innerHTML = `<div class="modal-error">${esc(err.message)}</div>`;
+        renderDiff(loadedRows(), true);
       }
     };
 

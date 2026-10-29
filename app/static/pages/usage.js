@@ -21,7 +21,7 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">使用与反馈</h1>
-        <p class="page-sub">管理班级和学生，记录练习安排、讲义使用情况和课堂反馈。</p>
+        <p class="page-sub">管理班级、小组与学生，记录练习安排、讲义使用情况和课堂反馈。</p>
       </div>
     </div>
 
@@ -84,7 +84,7 @@ export default async function mount(root, ctx) {
       <section>
         <div class="spread" style="margin-bottom:10px;">
           <h2 class="section-title">讲义使用与反馈</h2>
-          <span class="hint">讲义导出后，可登记使用情况并补充课堂反馈</span>
+          <span class="hint">讲义导出后，可登记使用情况并补充课堂反馈；使用记录按班级、小组或学生分别统计，不会互相继承</span>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="usage-list">${loading()}</div></section>
@@ -200,17 +200,19 @@ export default async function mount(root, ctx) {
   function updateAudienceForm() {
     const form = $('#audience-form', root), kind = form.elements.kind.value;
     const fields = {
-      class: ['添加班级', '班级名称', '如 高一（3）班'],
-      group: ['添加学习小组', '小组名称', '如 基础练习小组'],
-      student: ['添加学生', '学生代号', '如 学生A'],
+      class: ['添加班级', '班级名称', '如 高一(3)班'],
+      group: ['添加小组', '小组名称', '如 函数专题小组'],
+      student: ['添加学生', '学生姓名', '如 张同学'],
     };
     const [title, label, placeholder] = fields[kind] || fields.class;
     $('#audience-form-title', root).textContent = title;
     $('[data-audience-name-label]', form).innerHTML = `${label}<span class="req">*</span>`;
-    form.elements.name.placeholder = placeholder;
+    // 只在输入框为空时更新示例文案，已填写的内容不因切换类型而丢失。
+    if (!form.elements.name.value) form.elements.name.placeholder = placeholder;
     form.querySelector('button[type="submit"]').textContent = title;
   }
   $('#audience-form select[name="kind"]', root).addEventListener('change', updateAudienceForm);
+  updateAudienceForm();
 
   function renderAudiences() {
     if (!audiences.length) {
@@ -246,7 +248,7 @@ export default async function mount(root, ctx) {
     const data = new FormData(form);
     const name = String(data.get('name') || '').trim();
     if (!name) {
-      flash('请填写班级名称、小组名称或学生代号。');
+      flash('请填写班级名称、小组名称或学生姓名。');
       return;
     }
     const button = form.querySelector('button[type="submit"]');

@@ -160,16 +160,16 @@
       "sha256": "abf3135864f73239f71be20b64e8d02ef958d9f57da26488055f770f94c330ba"
     },
     "app/static/app.js": {
-      "bytes": 11637,
-      "sha256": "ef5b58cfe21057945c1f4755817cda5c7601e9dbe438c8a62139f329cacc76d3"
+      "bytes": 11781,
+      "sha256": "f316d4e5ed41dd08890d319304809c72276fe2d3a420dd655f08226a902444b6"
     },
     "app/static/experience.css": {
       "bytes": 5820,
       "sha256": "012ccaa3827e0d5701b2a6d883cfe8619efe65461b4fcd6208fdf9d453e8463d"
     },
     "app/static/index.html": {
-      "bytes": 1839,
-      "sha256": "78fc81acdac4fc1bea6634e676c1afb7bdc10f8091e146205114a23952582477"
+      "bytes": 1899,
+      "sha256": "497e10dca3aa25903c3e262022896715a9064ab3242345ddfa51dbb836b15d76"
     },
     "app/static/layout.css": {
       "bytes": 8873,
@@ -308,24 +308,28 @@
       "sha256": "08fd3f18159968d3bcc8fcaa6bd6eb4a6987b48c57dfa84423074424df82de4d"
     },
     "app/static/pages/question.js": {
-      "bytes": 42559,
-      "sha256": "52bffb3bd923a9cd5c2cfecd159d594df1ae399c256c3f9558c162874ed2886a"
+      "bytes": 45598,
+      "sha256": "3255c53891fa43eab01a21646706687608ce38255004cf11659d20e42778b5c7"
     },
     "app/static/pages/releases.js": {
       "bytes": 11352,
       "sha256": "71ccef941493ea0ec2bb02368ac4cb6801430c09280df6afd225e67efe07e582"
     },
     "app/static/pages/search.js": {
-      "bytes": 36939,
-      "sha256": "f0f900ca101a500f779b9c07ffbbdffe2ca5214fb12fa3bdb66dbf1d5c92fada"
+      "bytes": 38161,
+      "sha256": "d012b81018791c5b12857b122f2db79108ab646d050e395b286da1f5fc0a19f8"
+    },
+    "app/static/pages/settings.js": {
+      "bytes": 5220,
+      "sha256": "f8e79685e8cded44d48114f1e3071c6396d8f5338a0fb24cbdca75a8644316dc"
     },
     "app/static/pages/sources.js": {
       "bytes": 7776,
       "sha256": "ef83f2946e11b3a9de8753b5015daa34c94e91737444e0aa17fd75991f85ca73"
     },
     "app/static/pages/usage.js": {
-      "bytes": 31538,
-      "sha256": "001fd291ae58c2fc63b631b2b19372b6895250648f32136c9b0ab6dce76b9c7e"
+      "bytes": 31772,
+      "sha256": "d780c4154e598f3359f3d01127c4e29e45022d870580c8bfd9d0f901754fb031"
     },
     "app/static/polish.css": {
       "bytes": 11007,
@@ -340,8 +344,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 15895,
-      "sha256": "19a772e5ebc6b5947df1bd6eacbdb6fc5d5684e9d535bf8c19eca92ec6418d7b"
+      "bytes": 17797,
+      "sha256": "7cd4ae8ab7d31d55a1ca2c411823f6ed60d3ecf97f80c3b65730bef11722a8fd"
     },
     "data/schema.sql": {
       "bytes": 21493,
@@ -404,8 +408,8 @@
       "sha256": "b6b968b533e696411135bc336c5ac4616f70a9d147eb21944ec1139e03ef9f26"
     },
     "docs/旧功能优化方案.md": {
-      "bytes": 20429,
-      "sha256": "e4b28db3c80ae269c2cd170e1e8acd8e945fe80c92ea276a1e471692f725cf32"
+      "bytes": 21446,
+      "sha256": "6b0a4e562c188e3a1191ddeb86eb0a5246479c976abd97b8fa7dc946bbc9fa1f"
     },
     "docs/标签分类与选择说明.md": {
       "bytes": 3288,
@@ -457,7 +461,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "cf7de2b78c2a87eed5d93cc3397c0b8910293f04a4ce9dd7ddc861f94ce76fdd"
+      "sha256": "1903f7b909cfb7db67eef809476504a601d8bd4a9c266f3b5d060d0f93de4c85"
     },
     "README.md": {
       "bytes": 4696,

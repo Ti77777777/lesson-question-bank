@@ -21,6 +21,7 @@ import releasesPage from './pages/releases.js';
 import usagePage from './pages/usage.js';
 import aiPage from './pages/ai.js';
 import sourcesPage from './pages/sources.js';
+import settingsPage from './pages/settings.js';
 
 const ROUTES = [
   { pattern: /^\/sources\/?$/, page: sourcesPage, nav: 'search', title: '试卷信息管理' },
@@ -34,6 +35,7 @@ const ROUTES = [
   { pattern: /^\/collection\/([^/]+)\/?$/, page: collectionPage, nav: 'collections', title: '题单编辑', keys: ['id'] },
   { pattern: /^\/releases\/?$/, page: releasesPage, nav: 'releases', title: '导出与归档' },
   { pattern: /^\/usage\/?$/, page: usagePage, nav: 'usage', title: '使用与反馈' },
+  { pattern: /^\/settings\/?$/, page: settingsPage, nav: 'settings', title: '系统设置' },
 ];
 
 const view = document.getElementById('view');

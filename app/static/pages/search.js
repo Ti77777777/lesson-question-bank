@@ -95,6 +95,10 @@ export default async function mount(root, ctx) {
             <label class="field"><span>计算上限</span><select id="f-calc-max">${rangeOptions()}</select></label>
             <label class="field"><span>综合上限</span><select id="f-scope-max">${rangeOptions()}</select></label>
           </div>
+          <div class="row-actions">
+            <label class="check"><input type="checkbox" id="f-usable"> 仅看审校通过</label>
+            <label class="check"><input type="checkbox" id="f-corrections"> 仅看待纠错</label>
+          </div>
           <p class="hint">难度为题库中的 1–5 级标注；未标注的题目不会计入指定难度区间。</p>
         </div>
       </details>
@@ -112,8 +116,7 @@ export default async function mount(root, ctx) {
     <div class="results-head search-results-head">
       <div class="search-result-count" id="results-total" role="status" aria-live="polite"></div>
       <span class="hint" id="results-note"></span><span class="spacer"></span>
-      <label class="check"><input type="checkbox" id="f-usable"> 仅看审校通过</label>
-      <label class="check"><input type="checkbox" id="f-corrections"> 仅看待纠错</label>
+      <button type="button" class="btn-link" id="advanced-hint" aria-controls="f-advanced" aria-expanded="false" hidden></button>
       <select id="f-sort" aria-label="结果排序">${SORTS.map(([id, name]) => `<option value="${id}">${name}</option>`).join('')}</select>
     </div>
     <div class="q-list" id="results" aria-busy="false"></div><div class="pager" id="pager"></div>
@@ -208,8 +211,13 @@ export default async function mount(root, ctx) {
     for (const [key, id] of [['thinkMin', 'think-min'], ['thinkMax', 'think-max'], ['calcMax', 'calc-max'], ['scopeMax', 'scope-max'], ['sort', 'sort']]) $(`#f-${id}`, root).value = state[key];
     $('#f-usable', root).checked = state.onlyUsable;
     $('#f-corrections', root).checked = state.onlyCorrections;
-    const extra = [state.calcMax, state.scopeMax].filter(Boolean).length;
-    $('#advanced-count', root).textContent = extra ? `（${extra} 项）` : '';
+    // 常用/进阶分层：进阶区生效几条，头部提示与摘要计数就写几条，避免两处数字打架。
+    const advancedOn = [state.onlyUsable, state.onlyCorrections, state.calcMax, state.scopeMax,
+      !state.levels && (state.unrated || state.thinkMin || state.thinkMax)].filter(Boolean).length;
+    const hintBtn = $('#advanced-hint', root);
+    hintBtn.hidden = !advancedOn;
+    hintBtn.textContent = advancedOn ? `已启用 ${advancedOn} 个筛选` : '';
+    $('#advanced-count', root).textContent = advancedOn ? `（${advancedOn} 项）` : '';
     renderSourceOptions();
     const filters = activeConditions();
     $('#active-filters', root).innerHTML = filters.length ? `<span class="search-active-label">已选 ${filters.length} 项</span><div class="search-active-chips">${filters.map(f => `<button type="button" class="search-active-chip" data-remove="${esc(f.key)}" title="移除：${esc(f.name)}">${esc(f.name)}<span aria-hidden="true">×</span></button>`).join('')}</div><button type="button" class="btn-link" id="f-reset">清空条件</button>` : '<span class="hint">当前检索全部题目，可叠加多个条件。</span>';
@@ -539,6 +547,14 @@ export default async function mount(root, ctx) {
   }
   $('#f-usable', root).addEventListener('change', event => { state.onlyUsable = event.target.checked; changed(); });
   $('#f-corrections', root).addEventListener('change', event => { state.onlyCorrections = event.target.checked; changed(); });
+  // 头部提示只负责把进阶区展开，条件本身仍由上面的 change 事件驱动。
+  const advancedEl = $('#f-advanced', root), advancedHint = $('#advanced-hint', root);
+  advancedHint.addEventListener('click', () => {
+    advancedEl.open = true;
+    advancedEl.querySelector('summary')?.focus();
+    advancedEl.scrollIntoView?.({ block: 'nearest' });
+  });
+  advancedEl.addEventListener('toggle', () => advancedHint.setAttribute('aria-expanded', String(advancedEl.open)));
   $('#active-filters', root).addEventListener('click', event => {
     const btn = event.target.closest('[data-remove]');
     if (btn) {
@@ -583,7 +599,8 @@ export default async function mount(root, ctx) {
     renderControls();
   }
   renderControls(); syncBasketButtons();
-  if (state.calcMax || state.scopeMax || preset() === 'custom') $('#f-advanced', root).open = true;
+  if (state.calcMax || state.scopeMax || state.onlyUsable || state.onlyCorrections || preset() === 'custom') advancedEl.open = true;
+  advancedHint.setAttribute('aria-expanded', String(advancedEl.open));
   // 正文检索与筛选目录并行，目录迟到时不会重置用户刚选的条件。
   await Promise.all([loadTags(), loadCatalog(), search()]);
 }
