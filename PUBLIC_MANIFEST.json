@@ -231,9 +231,17 @@
       "bytes": 3483,
       "sha256": "c96a4e6a220366db769514161d46e93ed52ddc4e50afd091bf8021c7b0d4338b"
     },
+    "app/static/lib/math-editor.js": {
+      "bytes": 6781,
+      "sha256": "0e36785ac521cc21a94b612f0ce6d1de79cbcb581faf6f551e7b6318b3555d5f"
+    },
     "app/static/lib/math.js": {
       "bytes": 5741,
       "sha256": "287a2ce96f6ad28b8369bb5928211a650d125888d6d4df20ad1f6ebd276eb2a9"
+    },
+    "app/static/lib/option-text.js": {
+      "bytes": 1306,
+      "sha256": "32724e6291ed3970afeff4d363a8da9b7c0ef83d919a81592e68ad6214d2884c"
     },
     "app/static/lib/provider-settings.js": {
       "bytes": 7735,
@@ -296,12 +304,12 @@
       "sha256": "c7e0df7674ecd5b507e414df0768fd16f7959dca01847a0fd2cde06844455f1d"
     },
     "app/static/pages/question-new.js": {
-      "bytes": 36699,
-      "sha256": "eb1f8cee11552956abfdaca74995b143900076a45730246980c4bedd04ef73cc"
+      "bytes": 36875,
+      "sha256": "08fd3f18159968d3bcc8fcaa6bd6eb4a6987b48c57dfa84423074424df82de4d"
     },
     "app/static/pages/question.js": {
-      "bytes": 42656,
-      "sha256": "5c98c0eba12c5b7a380e8996e7096b5c63879f763d9ce5f0da8267300bf932ec"
+      "bytes": 42559,
+      "sha256": "52bffb3bd923a9cd5c2cfecd159d594df1ae399c256c3f9558c162874ed2886a"
     },
     "app/static/pages/releases.js": {
       "bytes": 11352,
@@ -320,8 +328,8 @@
       "sha256": "001fd291ae58c2fc63b631b2b19372b6895250648f32136c9b0ab6dce76b9c7e"
     },
     "app/static/polish.css": {
-      "bytes": 10270,
-      "sha256": "05cec98d712b47791240ad22ee776e2496ff05594d8a1c24eb1f79b8ecefe970"
+      "bytes": 11007,
+      "sha256": "78ed7a497d0c05b438a8ba50ab9d5beb9ff981b234b5633efb5402ac9f93e7dd"
     },
     "app/static/style.css": {
       "bytes": 88622,
@@ -332,8 +340,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 14467,
-      "sha256": "4d68f7935adc604060699248a32608f087e0059c9a8767f319522873070c858d"
+      "bytes": 15895,
+      "sha256": "19a772e5ebc6b5947df1bd6eacbdb6fc5d5684e9d535bf8c19eca92ec6418d7b"
     },
     "data/schema.sql": {
       "bytes": 21493,
@@ -392,8 +400,8 @@
       "sha256": "25a97be8c7c5c8fed10ee77c3ae395356997da33833d10efe1d02041a6419696"
     },
     "docs/新功能设计与实施规划.md": {
-      "bytes": 22840,
-      "sha256": "ca9cbe978f0b6f70385e1b10f7ed8f99b219db82fc4d5465b69aacacd7061bb0"
+      "bytes": 23107,
+      "sha256": "b6b968b533e696411135bc336c5ac4616f70a9d147eb21944ec1139e03ef9f26"
     },
     "docs/旧功能优化方案.md": {
       "bytes": 20429,
@@ -449,7 +457,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "39c63384063d917e479a9a4bf2fdb7a3c4afda11882da0a947a90482451ff300"
+      "sha256": "cf7de2b78c2a87eed5d93cc3397c0b8910293f04a4ce9dd7ddc861f94ce76fdd"
     },
     "README.md": {
       "bytes": 4696,
@@ -480,8 +488,8 @@
       "sha256": "300ab5c96451ef2e3438dceb1e076527a52f41c573a198989fa8ca235828491b"
     },
     "scripts/test_frontend.mjs": {
-      "bytes": 370,
-      "sha256": "9f856c119ed15036f80b296376b66a35b0aa45a2e71c2014481d53b7bc3bfc99"
+      "bytes": 425,
+      "sha256": "0aee70bef25c20bf67b1edcc40ccd82e121607c17a2d093a9a3e95da1f369a07"
     },
     "templates/exbook/ExBook.cls": {
       "bytes": 71042,
@@ -542,6 +550,10 @@
     "tests/test_layout_preview.mjs": {
       "bytes": 2312,
       "sha256": "b649aa83fcefe55fa56cae8125b585bb21449b5290f0a0c4ee93fb4803b89c22"
+    },
+    "tests/test_math_editor.mjs": {
+      "bytes": 2731,
+      "sha256": "124e82d18da78a9491cd14afcec865c225ea1419ad60a1cdafca13c8f0b276ae"
     },
     "tests/test_math_import.mjs": {
       "bytes": 1043,

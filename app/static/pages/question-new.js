@@ -1,5 +1,6 @@
 /* 新建题目：按题型切换选项、答案与小问区域；可多解、多出处、标签与三维难度。 */
 
+import { enhanceMathFields } from '../lib/math-editor.js';
 import { api, apiOptional } from '../lib/api.js';
 import { esc, $, $$, optionLetter } from '../lib/dom.js';
 import {
@@ -250,6 +251,8 @@ export default async function mount(root, ctx) {
   `;
 
   const form = $('#newq-form', root);
+  enhanceMathFields(form, ['textarea[name="stem"]', 'textarea[name="answer"]',
+    'textarea[name="analysis"]']);
   const draft = draftStore(metaRes.draft_scope, `new-question:${inboxId||'blank'}`), previousDraft=draft.read();
   let draftReady=false, submitted=false;
   const draftBar=document.createElement('div');draftBar.className='draft-banner';form.before(draftBar);

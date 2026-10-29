@@ -5,3 +5,4 @@ await import('../tests/test_workbench.mjs');
 await import('../tests/test_layout_preview.mjs');
 await import('../tests/test_experience.mjs');
 await import('../tests/test_search_selection.mjs');
+await import('../tests/test_math_editor.mjs');

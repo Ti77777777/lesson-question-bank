@@ -1,5 +1,7 @@
 /* 题目详情：左侧原始证据、中间当前内容、右侧逐项审校；底部标签、关系与使用历史。 */
 
+import { enhanceMathFields } from '../lib/math-editor.js';
+import { parseOptionLines, formatOptionLines } from '../lib/option-text.js';
 import { api, apiOptional, pdfUrl } from '../lib/api.js';
 import {
   esc, badge, fmtDate, fmtDateTime, $, emptyState, errorCard, loading,
@@ -424,9 +426,7 @@ export default async function mount(root, ctx) {
   // ------------------------------------------------------------ 新建版本
 
   function openVersionModal() {
-    const optionsText = asArray(current.options)
-      .map((opt, index) => `${optionLetter(opt.key, index)}: ${opt.text || ''}`)
-      .join('\n');
+    const optionsText = formatOptionLines(asArray(current.options));
     const keysText = asKeys(current.answer_keys).join(', ');
     const isChoice = current.qtype === 'single' || current.qtype === 'multi';
 
@@ -459,6 +459,9 @@ export default async function mount(root, ctx) {
                <button type="button" class="btn btn-primary" data-save>保存新版本</button>`,
     });
 
+    enhanceMathFields(modal.body, ['textarea[data-f="stem"]', 'textarea[data-f="answer-text"]',
+      'textarea[data-f="analysis"]']);
+
     const errEl = modal.body.querySelector('.modal-error');
     const qtypeSel = modal.body.querySelector('[data-f="qtype"]');
     const optWrap = modal.body.querySelector('[data-opt-wrap]');
@@ -484,12 +487,7 @@ export default async function mount(root, ctx) {
         if (!changeNote) throw new Error('请填写修订说明，便于以后回查改了什么。');
 
         const parsedOptions = choice
-          ? modal.body.querySelector('[data-f="options"]').value
-            .split('\n').map((line) => line.trim()).filter(Boolean)
-            .map((line, index) => {
-              const m = line.match(/^([A-Za-z])[:：]\s*(.*)$/);
-              return m ? { key: m[1].toUpperCase(), text: m[2] } : { key: String.fromCharCode(65 + index), text: line };
-            })
+          ? parseOptionLines(modal.body.querySelector('[data-f="options"]').value)
           : null;
         if (choice && parsedOptions.length < 2) throw new Error('选择题至少需要两个选项。');
         const keys = choice
