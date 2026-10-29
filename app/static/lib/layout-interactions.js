@@ -74,9 +74,9 @@ export function bindLayoutInteractions(canvas, {select, move, resize, announce})
       g.value=resizedSpace(g.initial,event.clientY-g.startY,g.pixelsPerMm);
       g.space.style.height=`${g.value}mm`;g.handle.setAttribute('aria-valuenow',String(g.value));
       g.handle.setAttribute('aria-valuetext',`${g.value}毫米`);
-      g.space.querySelector('[data-space-label]').textContent=`作答区 · ${g.value} mm`;
-      announce(`留白 ${g.value} mm · 松开后重新分页 · Esc 取消`);
-    }else {g.handle.closest('[data-paper-item]').classList.add('paper-moving');announce('拖到目标题目的上方或下方；靠近预览边缘可滚动 · Esc 取消');}
+      g.space.querySelector('[data-space-label]').textContent=`作答区：${g.value} mm`;
+      announce(`留白 ${g.value} mm，松开后重新分页，Esc 取消`);
+    }else {g.handle.closest('[data-paper-item]').classList.add('paper-moving');announce('拖到目标题目的上方或下方；靠近预览边缘可滚动，Esc 取消');}
   }
   function finish(event,cancel=false) {
     if(!gesture||(event?.pointerId!==undefined&&event.pointerId!==gesture.pointerId))return;
@@ -89,7 +89,7 @@ export function bindLayoutInteractions(canvas, {select, move, resize, announce})
     if(g.handle.hasPointerCapture?.(g.pointerId))g.handle.releasePointerCapture(g.pointerId);
     if(g.kind==='resize'){
       g.space.style.height=g.originalStyle;g.handle.setAttribute('aria-valuenow',String(g.initial));g.handle.setAttribute('aria-valuetext',`${g.initial}毫米`);
-      g.space.querySelector('[data-space-label]').textContent=`作答区 · ${g.initial} mm`;
+      g.space.querySelector('[data-space-label]').textContent=`作答区：${g.initial} mm`;
       if(!cancel&&g.active&&g.value!==g.initial)resize(g.id,g.value);
     }else if(!cancel&&g.active&&g.target)move(g.id,g.target.id,g.target.before);
     announce(cancel?'操作已取消':g.active?'调整完成，正在保存':'可拖动排序，或拖动作答区底边调整留白');

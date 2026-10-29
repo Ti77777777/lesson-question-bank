@@ -85,7 +85,7 @@ async function route() {
   closeModals();
   clearFlash();
   setActiveNav(match ? match.entry.nav : '');
-  document.title = match ? `习题课题库 · ${match.entry.title}` : '习题课题库';
+  document.title = match ? `习题课题库 - ${match.entry.title}` : '习题课题库';
 
   const token = ++renderToken;
   const pageRoot = document.createElement('div');
@@ -141,10 +141,10 @@ async function loadMeta() {
     ];
     el.innerHTML = parts
       .map(([label, value]) => `${esc(label)} <b>${esc(value)}</b>`)
-      .join('<span class="sep">·</span>');
-    el.title = `题目 ${counts.questions ?? 0} · 版本 ${counts.versions ?? 0} · 资料 ${counts.sources ?? 0} · 题单 ${counts.collections ?? 0} · 发布物 ${counts.releases ?? 0} · 待整理 ${counts.inbox_pending ?? 0} · 标签 ${counts.tags ?? 0}`;
+      .join('<span class="sep" aria-hidden="true"></span>');
+    el.title = `题目 ${counts.questions ?? 0}，版本 ${counts.versions ?? 0}，资料 ${counts.sources ?? 0}，题单 ${counts.collections ?? 0}，导出记录 ${counts.releases ?? 0}，待整理 ${counts.inbox_pending ?? 0}，标签 ${counts.tags ?? 0}`;
     if (foot) {
-      foot.textContent = `结构 v${meta.schema_version ?? '—'} · ${meta.today ?? ''}`;
+      foot.textContent = `${meta.today ?? ''}`;
       foot.title = meta.root ? `根目录：${meta.root}` : '';
     }
   } catch (err) {
@@ -229,8 +229,8 @@ async function openBasketModal() {
       const title = await textDialog({
         title: '建成新题单',
         label: '题单名称',
-        value: `选题篮 · ${new Date().toLocaleDateString('zh-CN')}`,
-        placeholder: '如 单调性 · 候选题',
+        value: `选题篮 ${new Date().toLocaleDateString('zh-CN')}`,
+        placeholder: '如 单调性练习候选题',
         confirmText: '建立',
         hint: `将把 ${currentIds.length} 道题按当前顺序放入新题单，教学角色默认「例题」。`,
       });

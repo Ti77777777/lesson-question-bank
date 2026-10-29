@@ -49,8 +49,8 @@ export default async function mount(root, ctx) {
 
   root.innerHTML = `
     <div class="page-head search-heading">
-      <div><p class="search-eyebrow">备课 · 选题</p><h1 class="page-title">题库检索</h1>
-        <p class="page-sub">从知识点到具体试卷，找到这节课需要的题。</p></div>
+      <div><h1 class="page-title">题库检索</h1>
+        <p class="page-sub">按知识点、题型或试卷查找题目。</p></div>
       <div class="row-actions"><a class="btn" href="#/sources">管理试卷信息</a><button type="button" class="btn" id="search-basket">查看选题篮</button></div>
     </div>
     <div class="search-layout">
@@ -198,7 +198,7 @@ export default async function mount(root, ctx) {
     $('#f-usable', root).checked = state.onlyUsable;
     $('#f-corrections', root).checked = state.onlyCorrections;
     const extra = [state.calcMax, state.scopeMax].filter(Boolean).length;
-    $('#advanced-count', root).textContent = extra ? `· ${extra} 项` : '';
+    $('#advanced-count', root).textContent = extra ? `（${extra} 项）` : '';
     renderSourceOptions();
     const filters = activeConditions();
     $('#active-filters', root).innerHTML = filters.length ? `<span class="search-active-label">已选 ${filters.length} 项</span><div class="search-active-chips">${filters.map(f => `<button type="button" class="search-active-chip" data-remove="${esc(f.key)}" title="移除：${esc(f.name)}">${esc(f.name)}<span aria-hidden="true">×</span></button>`).join('')}</div><button type="button" class="btn-link" id="f-reset">清空条件</button>` : '<span class="hint">当前检索全部题目，可叠加多个条件。</span>';
@@ -244,17 +244,24 @@ export default async function mount(root, ctx) {
     busy = true;
     const current = revision, request = buildQuery();
     resultsEl.setAttribute('aria-busy', 'true');
-    resultsEl.innerHTML = loading('正在检索…'); pagerEl.innerHTML = '';
-    totalEl.textContent = '检索中…'; noteEl.textContent = '';
+    resultsEl.inert = true;
+    if (appliedRevision < 0) {
+      resultsEl.innerHTML = loading('正在检索…');
+      totalEl.textContent = '检索中…';
+    }
+    noteEl.textContent = '正在更新…';
     try {
       const data = await api('/api/questions', {query: request});
       if (!ctx.current() || current !== revision) return;
       items = data.items || []; total = Number(data.total ?? items.length); appliedRevision = current;
       renderResults();
+      resultsEl.inert = false;
     } catch (err) {
       if (!ctx.current() || current !== revision) return;
       totalEl.textContent = '检索未完成';
+      noteEl.textContent = ''; pagerEl.innerHTML = '';
       resultsEl.replaceChildren(errorCard(err.message, search)); items = [];
+      resultsEl.inert = false;
     } finally {
       busy = false;
       if (ctx.current()) { resultsEl.setAttribute('aria-busy', 'false'); if (current !== revision) search(); }
@@ -313,7 +320,7 @@ export default async function mount(root, ctx) {
           <div class="q-tags">
             ${shownTags.map((tag) => badge(tag.name, 'neutral')).join('')}
             ${tags.length > shownTags.length ? badge(`+${tags.length - shownTags.length}`, 'plain') : ''}
-            ${shownMethods.map((tag) => badge(`方法 · ${tag.name}`, 'violet')).join('')}
+            ${shownMethods.map((tag) => badge(`方法：${tag.name}`, 'violet')).join('')}
             ${methods.length > shownMethods.length ? badge(`+${methods.length - shownMethods.length} 法`, 'plain') : ''}
           </div>
         </div>
@@ -328,7 +335,7 @@ export default async function mount(root, ctx) {
           <button type="button" class="btn btn-sm ${inBasketNow ? '' : 'btn-primary'}" data-add="${esc(item.id)}">
             ${inBasketNow ? '移出选题篮' : '加入选题篮'}
           </button>
-          <button type="button" class="btn btn-sm" data-correct="${esc(item.id)}" aria-label="纠错 ${esc(item.id)}">纠错${item.correction_count ? ` · ${item.correction_count}` : ''}</button>
+          <button type="button" class="btn btn-sm" data-correct="${esc(item.id)}" aria-label="纠错 ${esc(item.id)}">纠错${item.correction_count ? `（${item.correction_count}）` : ''}</button>
         </div>
       </article>`;
     }).join('');
@@ -363,6 +370,7 @@ export default async function mount(root, ctx) {
   }
 
   resultsEl.addEventListener('click', (event) => {
+    if (appliedRevision !== revision) { event.preventDefault(); return; }
     const preview=event.target.closest('[data-preview]');
     if(preview&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey){event.preventDefault();showPreview(preview.dataset.preview);return;}
     const correctionBtn = event.target.closest('[data-correct]');

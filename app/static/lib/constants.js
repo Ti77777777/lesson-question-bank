@@ -116,7 +116,7 @@ export const USAGE_PURPOSES = {
 
 export const AUDIENCE_KINDS = {
   class: '班级',
-  group: '分组',
+  group: '学习小组',
   student: '学生',
 };
 

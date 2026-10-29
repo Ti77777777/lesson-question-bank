@@ -153,7 +153,7 @@ export default async function mount(root, ctx) {
       <div class="solution-head">
         <span class="solution-label">${esc(sol.label || `解法${index + 1}`)}</span>
         ${sol.is_primary ? badge('选用解法', 'pass') : ''}
-        ${methodTags.map((name) => badge(`方法 · ${name}`, 'violet')).join('')}
+        ${methodTags.map((name) => badge(`方法：${name}`, 'violet')).join('')}
       </div>
       ${sol.approach ? `<div class="hint" style="margin-bottom:4px;">思路：<span data-rich>${esc(sol.approach)}</span></div>` : ''}
       <div class="steps" data-rich>${esc(sol.steps || '（步骤待补）')}</div>
@@ -177,7 +177,7 @@ export default async function mount(root, ctx) {
         <button type="button" class="btn btn-sm" data-review="${item}">提交</button>
       </div>
       <input type="text" class="review-note" data-review-note="${item}" placeholder="${last?.note ? esc(last.note) : '备注（可选）'}" aria-label="${esc(label)}审校备注">
-      <div class="review-last">${last ? `最近：${esc(last.reviewer || '教师')} · ${esc(fmtDateTime(last.created_at))}` : '尚无审校记录'}</div>
+      <div class="review-last">${last ? `最近：${esc(last.reviewer || '教师')}，${esc(fmtDateTime(last.created_at))}` : '尚无审校记录'}</div>
     </div>`;
   }
 
@@ -404,7 +404,7 @@ export default async function mount(root, ctx) {
         <section class="card full">
           <div class="card-head"><h2>使用历史</h2><span class="hint">${usage.length} 次</span></div>
           ${usage.length ? `<div class="table-wrap"><table class="table">
-            <thead><tr><th>发布物</th><th>题单</th><th>使用对象</th><th>日期</th><th>用途</th></tr></thead>
+            <thead><tr><th>讲义</th><th>题单</th><th>班级、小组或学生</th><th>日期</th><th>用途</th></tr></thead>
             <tbody>${usage.map((row) => `<tr>
               <td class="mono">${esc(row.release_id || '—')}</td>
               <td>${esc(row.collection_title || '—')}</td>
@@ -412,7 +412,7 @@ export default async function mount(root, ctx) {
               <td class="num">${esc(fmtDate(row.used_on))}</td>
               <td>${esc(USAGE_PURPOSES[row.purpose] || row.purpose || '—')}</td>
             </tr>`).join('')}</tbody>
-          </table></div>` : '<div class="card-body hint">还没有使用记录。讲义生成并登记使用对象后，这里会显示日期、用途与题目版本线索。</div>'}
+          </table></div>` : '<div class="card-body hint">还没有使用记录。登记讲义发给谁、何时使用后，可在这里查看。</div>'}
         </section>
       </div>
     `;
@@ -591,11 +591,11 @@ export default async function mount(root, ctx) {
       width: 'modal-wide',
       body: `<div class="diff-picker">
           <label class="field" style="width:170px;"><span>旧版本</span>
-            <select data-from>${sorted.map((v) => `<option value="${esc(v.version_no)}" ${v.version_no === prev.version_no ? 'selected' : ''}>v${esc(v.version_no)} · ${esc(fmtDate(v.created_at))}</option>`).join('')}</select>
+            <select data-from>${sorted.map((v) => `<option value="${esc(v.version_no)}" ${v.version_no === prev.version_no ? 'selected' : ''}>v${esc(v.version_no)}，${esc(fmtDate(v.created_at))}</option>`).join('')}</select>
           </label>
           <span class="faint" style="padding-bottom:7px;">→</span>
           <label class="field" style="width:170px;"><span>新版本</span>
-            <select data-to>${sorted.map((v) => `<option value="${esc(v.version_no)}" ${v.version_no === latest.version_no ? 'selected' : ''}>v${esc(v.version_no)} · ${esc(fmtDate(v.created_at))}</option>`).join('')}</select>
+            <select data-to>${sorted.map((v) => `<option value="${esc(v.version_no)}" ${v.version_no === latest.version_no ? 'selected' : ''}>v${esc(v.version_no)}，${esc(fmtDate(v.created_at))}</option>`).join('')}</select>
           </label>
         </div>
         <div data-diff-result>${loading('正在比较…')}</div>`,

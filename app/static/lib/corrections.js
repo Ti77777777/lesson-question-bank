@@ -9,8 +9,8 @@ const STATUS = {pending:'待处理', resolved:'已修正', dismissed:'无需修�
 export function openCorrections({questionId, versionId, onChanged, onEdit} = {}) {
   let data, closed = false, handlingModal;
   const modal = openModal({
-    title: `题目纠错 · ${questionId}`, width: 'modal-wide',
-    body: `<div class="correction-intro"><div><h3>发现问题，随手记录</h3><p class="hint">可先登记后核对，也可直接打开题目修改。修改内容会保留旧版本；登记纠错不会自动改动题目。</p></div><button type="button" class="btn" data-edit>打开题目修改</button></div>
+    title: `题目纠错：${questionId}`, width: 'modal-wide',
+    body: `<div class="correction-intro"><div><h3>登记题目问题</h3><p class="hint">可先登记后核对，也可直接打开题目修改。修改内容会保留旧版本；登记纠错不会自动改动题目。</p></div><button type="button" class="btn" data-edit>打开题目修改</button></div>
       <form class="correction-form"><div class="modal-error" hidden></div>
         <div class="inline-fields two">
           <label class="field"><span>问题类型</span><select name="category">${Object.entries(CATEGORIES).map(([id,name])=>`<option value="${id}">${name}</option>`).join('')}</select></label>
@@ -40,20 +40,20 @@ export function openCorrections({questionId, versionId, onChanged, onEdit} = {})
       data = await api(`/api/questions/${encodeURIComponent(questionId)}/corrections`);
       if (closed || !modal.mask.isConnected) return;
       const selected = versionSelect.value || versionId || data.question.current_version_id;
-      versionSelect.innerHTML = data.versions.map(v=>`<option value="${esc(v.id)}">v${esc(v.version_no)}${v.id===data.question.current_version_id?' · 当前版本':''}</option>`).join('');
+      versionSelect.innerHTML = data.versions.map(v=>`<option value="${esc(v.id)}">v${esc(v.version_no)}${v.id===data.question.current_version_id?'（当前版本）':''}</option>`).join('');
       versionSelect.value = selected;
       if (!versionSelect.value) versionSelect.value = data.question.current_version_id;
       versionSelect.disabled = false; submit.disabled = false;
       if (notify) onChanged?.({questionId, pendingCount:data.pending_count, totalCount:data.items.length});
-      modal.body.querySelector('[data-count]').textContent = `${data.items.length} 条 · ${data.pending_count} 条待处理`;
+      modal.body.querySelector('[data-count]').textContent = `${data.items.length} 条，${data.pending_count} 条待处理`;
       history.innerHTML = data.items.length ? data.items.map(item => `
         <article class="correction-record">
-          <div class="correction-record-head">${badge(STATUS[item.status], item.status==='pending'?'pending':item.status==='resolved'?'pass':'na')}<strong>${esc(CATEGORIES[item.category])}</strong><span class="hint">v${esc(item.version_no)} · ${esc(fmtDateTime(item.created_at))}</span></div>
+          <div class="correction-record-head">${badge(STATUS[item.status], item.status==='pending'?'pending':item.status==='resolved'?'pass':'na')}<strong>${esc(CATEGORIES[item.category])}</strong><span class="hint">v${esc(item.version_no)}，${esc(fmtDateTime(item.created_at))}</span></div>
           <p class="correction-text">${esc(item.description)}</p>
           ${item.suggestion?`<div class="correction-suggestion"><span class="hint">修改建议</span><p class="correction-text">${esc(item.suggestion)}</p></div>`:''}
           ${item.resolution_note?`<p class="correction-text"><b>处理说明：</b>${esc(item.resolution_note)}${item.fixed_version_no?`（关联 v${esc(item.fixed_version_no)}）`:''}</p>`:''}
           <div class="correction-record-actions">${item.status==='pending'?`<button class="btn btn-sm" type="button" data-handle="${esc(item.id)}" data-status="resolved">标记已修正</button><button class="btn btn-sm" type="button" data-handle="${esc(item.id)}" data-status="dismissed">无需修改</button>`:`<button class="btn btn-sm" type="button" data-handle="${esc(item.id)}" data-status="pending">重新打开</button>`}
-          <details><summary>处理过程（${item.events.length}）</summary><ol class="correction-events">${item.events.map(e=>`<li><span class="hint">${esc(fmtDateTime(e.created_at))} · ${esc(STATUS[e.status])}${e.fixed_version_no?` · v${esc(e.fixed_version_no)}`:''}</span><p class="correction-text">${esc(e.note)}</p></li>`).join('')}</ol></details></div>
+          <details><summary>处理过程（${item.events.length}）</summary><ol class="correction-events">${item.events.map(e=>`<li><span class="hint">${esc(fmtDateTime(e.created_at))}，${esc(STATUS[e.status])}${e.fixed_version_no?`，v${esc(e.fixed_version_no)}`:''}</span><p class="correction-text">${esc(e.note)}</p></li>`).join('')}</ol></details></div>
         </article>`).join('') : '<div class="correction-empty">这道题还没有纠错记录。</div>';
     } catch (err) {
       if (closed || !modal.mask.isConnected) return;
@@ -78,7 +78,7 @@ export function openCorrections({questionId, versionId, onChanged, onEdit} = {})
     if (!button) return;
     const item = data.items.find(item=>item.id===button.dataset.handle);
     const status = button.dataset.status;
-    const handleModal = openModal({title: `${STATUS[status]} · ${CATEGORIES[item.category]}`,
+    const handleModal = openModal({title: `${STATUS[status]}：${CATEGORIES[item.category]}`,
       body: `<div class="modal-error" hidden></div><p class="correction-text">${esc(item.description)}</p><p class="hint">请先完成核对或修改，再记录处理结果。</p>
         <label class="field"><span>处理说明 <span class="req">*</span></span><textarea name="note" rows="3" maxlength="5000" placeholder="填写修改位置或判断依据。"></textarea></label>
         ${status==='resolved'?`<label class="field"><span>关联修订版本（选填）</span><select name="fixed_version_id"><option value="">不关联（如调整来源、标签或难度）</option>${data.versions.map(v=>`<option value="${esc(v.id)}">v${esc(v.version_no)}</option>`).join('')}</select></label>`:''}`,

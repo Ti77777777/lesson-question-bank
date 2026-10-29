@@ -18,7 +18,7 @@ export function mountSavedSearches(root,getQuery) {
     const select=root.querySelector('[data-presets]');select.onchange=()=>{selected=select.value;};
     root.querySelector('[data-load]').onclick=()=>{const item=items.find(x=>x.id===selected);if(item)location.hash=savedSearchUrl(item.query);else flash('请先选择一个检索方案。');};
     root.querySelector('[data-save]').onclick=async()=>{
-      const name=await textDialog({title:'保存常用检索',label:'方案名称',placeholder:'例如 高三导数·中档模拟题',confirmText:'保存'});if(name===null||disposed)return;
+      const name=await textDialog({title:'保存常用检索',label:'方案名称',placeholder:'例如 高三导数中档模拟题',confirmText:'保存'});if(name===null||disposed)return;
       try{const item=await api('/api/search/presets',{method:'POST',body:{name,query:searchConditions(getQuery())}});selected=item.id;await load();flash('检索方案已保存。','ok');}catch(e){flash(e.message);}
     };
     for(const action of ['update','rename','delete'])root.querySelector(`[data-${action}]`).onclick=async()=>{

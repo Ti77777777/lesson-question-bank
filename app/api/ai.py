@@ -126,7 +126,7 @@ def create_jobs(req):
             conn.execute('INSERT INTO ai_job(id,batch_id,source_file_id,title,state,stage,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',(jid,bid,fid,f['filename'],'queued','prepare',db.now(),db.now()));jobs.append(jid)
         if versions:
             jid=db.next_id(conn,'AIJ')
-            conn.execute('INSERT INTO ai_job(id,batch_id,title,state,stage,document_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',(jid,bid,'已有题目补全 · '+str(len(versions))+'题','queued','solve','{"prepared":true}',db.now(),db.now()));jobs.append(jid)
+            conn.execute('INSERT INTO ai_job(id,batch_id,title,state,stage,document_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',(jid,bid,'补全已有题目（'+str(len(versions))+'题）','queued','solve','{"prepared":true}',db.now(),db.now()));jobs.append(jid)
             for vid,source in versions:
                 conn.execute('INSERT INTO ai_question(id,job_id,question_key,original_qno,qtype,state,base_version_id,source_json) VALUES(?,?,?,?,?,?,?,?)',(db.next_id(conn,'AIQ'),jid,vid,source['qno'],source['qtype'],'recognized',vid,db.dumps(source)))
         db.audit('ai_start','ai_batch',bid,{'jobs':jobs,'budget_cny':budget})

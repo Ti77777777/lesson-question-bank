@@ -1870,7 +1870,6 @@ body.modal-open { overflow: hidden; }
 .ai-page { --ai-accent: #355f68; --ai-tint: #edf4f3; --ai-border: #c9dcda; }
 .ai-page .card { padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px #22393603; }
 .ai-page .page-head { padding: 4px 0 20px; margin-bottom: 24px; }
-.ai-eyebrow { color: var(--ai-accent); font-size: 11px; letter-spacing: .18em; margin-bottom: 7px; }
 .ai-page .page-title { font-size: 28px; }
 .ai-page h2 { font-size: 19px; line-height: 1.55; }
 .ai-page .card > p { margin-top: 12px; }
@@ -1994,7 +1993,6 @@ body.modal-open { overflow: hidden; }
 /* 检索工作台：常用筛选、试卷定位与可撤销的已选条件。 */
 .search-workbench { --search-accent: #355f68; --search-tint: #edf4f3; }
 .search-heading { align-items: center; margin-bottom: 20px; }
-.search-eyebrow { color: var(--search-accent); font-size: 11px; letter-spacing: .2em; margin-bottom: 5px; }
 .search-heading .page-title { font-size: 28px; }
 .search-heading .page-sub { margin-top: 6px; }
 .search-query-bar { display: flex; align-items: center; gap: 14px; padding: 7px 8px 7px 18px; background: #fff; border: 1px solid #bccbce; border-radius: 9px; margin-bottom: 16px; box-shadow: 0 3px 12px #263f4505; }

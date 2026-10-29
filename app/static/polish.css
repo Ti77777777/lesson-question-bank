@@ -50,7 +50,6 @@ input[type=checkbox],input[type=radio] { accent-color:var(--indigo); }
 /* Search: align selection controls and keep the question text prominent. */
 .search-workbench { --search-accent:var(--indigo); --search-tint:var(--indigo-soft); }
 .search-heading .page-title { font-size:26px; }
-.search-heading .search-eyebrow { font-size:11px; letter-spacing:.12em; }
 .search-query-bar { border-color:#d8e4dd; border-radius:9px; box-shadow:0 2px 8px #244d3d05; }
 .search-query-bar input { font-size:14px; }
 .saved-searches { padding:11px 14px; background:transparent; border:0; gap:9px; }

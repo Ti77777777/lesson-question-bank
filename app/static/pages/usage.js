@@ -1,4 +1,4 @@
-/* 使用与反馈：使用对象、出题任务、使用记录与反馈，以及按班级回查近期用过的题。 */
+/* 使用与反馈：班级、小组或学生、练习安排、使用记录与反馈，以及查询已用题目。 */
 
 import { api } from '../lib/api.js';
 import {
@@ -21,33 +21,30 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">使用与反馈</h1>
-        <p class="page-sub">生成 PDF 只形成发布物；确认发给某个班、课堂实际讲了哪些题，再分别登记。反馈用于下一次选题与讲评，不改写题目的永久属性。</p>
-      </div>
-      <div class="page-head-actions">
-        <span class="hint">对象、日期、用途与题目版本都可回查</span>
+        <p class="page-sub">管理班级和学生，记录练习安排、讲义使用情况和课堂反馈。</p>
       </div>
     </div>
 
     <div style="display:grid;gap:28px;">
       <section>
         <div class="spread" style="margin-bottom:10px;">
-          <h2 class="section-title">使用对象管理</h2>
-          <span class="hint">班级、分组或学生代号；名称可改，ID 保持稳定</span>
+          <h2 class="section-title">班级、小组与学生</h2>
+          <span class="hint">登记授课班级、学习小组或学生代号</span>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="audience-list">${loading()}</div></section>
           <aside class="card panel-form">
-            <div class="card-head"><h3>新建使用对象</h3></div>
+            <div class="card-head"><h3 id="audience-form-title">添加班级</h3></div>
             <form id="audience-form" class="card-body">
-              <label class="field"><span>类型</span>
+              <label class="field"><span>添加类型</span>
                 <select name="kind">${Object.entries(AUDIENCE_KINDS).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select>
               </label>
-              <label class="field"><span>名称<span class="req">*</span></span>
+              <label class="field"><span data-audience-name-label>班级名称<span class="req">*</span></span>
                 <input type="text" name="name" placeholder="如 高一（3）班">
               </label>
               <label class="field"><span>代号</span><input type="text" name="code" placeholder="如 G1-3"></label>
               <label class="field"><span>备注</span><textarea name="note" rows="2" placeholder="如 分层 B 组，每周一次"></textarea></label>
-              <button type="submit" class="btn btn-primary">保存对象</button>
+              <button type="submit" class="btn btn-primary">添加班级</button>
             </form>
           </aside>
         </div>
@@ -55,21 +52,21 @@ export default async function mount(root, ctx) {
 
       <section>
         <div class="spread" style="margin-bottom:10px;">
-          <h2 class="section-title">出题任务</h2>
-          <span class="hint">计划与实际发放分开记录</span>
+          <h2 class="section-title">练习安排</h2>
+          <span class="hint">记录发给谁、用哪份题单以及计划日期</span>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="assignment-list">${loading()}</div></section>
           <aside class="card panel-form">
-            <div class="card-head"><h3>新建出题任务</h3></div>
+            <div class="card-head"><h3>新建练习安排</h3></div>
             <form id="assignment-form" class="card-body">
-              <label class="field"><span>任务名称<span class="req">*</span></span>
+              <label class="field"><span>练习名称<span class="req">*</span></span>
                 <input type="text" name="title" placeholder="如 单调性课后巩固">
               </label>
               <label class="field"><span>题单</span>
                 <select name="collection_id" data-collection-select></select>
               </label>
-              <label class="field"><span>使用对象</span>
+              <label class="field"><span>班级、小组或学生</span>
                 <select name="audience_id" data-audience-select></select>
               </label>
               <label class="field"><span>计划日期</span>
@@ -78,7 +75,7 @@ export default async function mount(root, ctx) {
               <label class="field"><span>完成要求</span>
                 <textarea name="requirements" rows="2" placeholder="如 必做 1–5 题，6、7 选做"></textarea>
               </label>
-              <button type="submit" class="btn btn-primary">保存任务</button>
+              <button type="submit" class="btn btn-primary">保存安排</button>
             </form>
           </aside>
         </div>
@@ -86,18 +83,18 @@ export default async function mount(root, ctx) {
 
       <section>
         <div class="spread" style="margin-bottom:10px;">
-          <h2 class="section-title">使用记录</h2>
-          <span class="hint">只有已生成的发布物才能登记实际使用</span>
+          <h2 class="section-title">讲义使用与反馈</h2>
+          <span class="hint">讲义导出后，可登记使用情况并补充课堂反馈</span>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="usage-list">${loading()}</div></section>
           <aside class="card panel-form">
-            <div class="card-head"><h3>登记一次使用</h3></div>
+            <div class="card-head"><h3>登记讲义使用</h3></div>
             <form id="usage-form" class="card-body">
-              <label class="field"><span>使用对象<span class="req">*</span></span>
+              <label class="field"><span>班级、小组或学生<span class="req">*</span></span>
                 <select name="audience_id" data-audience-select></select>
               </label>
-              <label class="field"><span>发布物<span class="req">*</span></span>
+              <label class="field"><span>已生成讲义<span class="req">*</span></span>
                 <select name="release_id" id="usage-release"></select>
               </label>
               <div class="inline-fields two">
@@ -109,8 +106,8 @@ export default async function mount(root, ctx) {
                 </label>
               </div>
               <div>
-                <span class="field-label">实际使用的条目</span>
-                <div id="usage-items" class="stack-sm"><span class="hint">选择发布物后列出该题单的条目。</span></div>
+                <span class="field-label">实际使用的题目</span>
+                <div id="usage-items" class="stack-sm"><span class="hint">选择已生成讲义后列出该题单的题目。</span></div>
               </div>
               <label class="field"><span>备注</span><textarea name="note" rows="2" placeholder="如 只讲了例题，练习留作作业"></textarea></label>
               <button type="submit" class="btn btn-primary">登记使用</button>
@@ -121,8 +118,8 @@ export default async function mount(root, ctx) {
 
       <section>
         <div class="spread" style="margin-bottom:10px;">
-          <h2 class="section-title">按班级回查近期用过的题</h2>
-          <span class="hint">用于避免无意重复；有记录才显示，历史缺失显示无记录</span>
+          <h2 class="section-title">查询已用题目</h2>
+          <span class="hint">按班级、小组或学生查看近期使用记录</span>
         </div>
         <section class="card">
           <div class="card-head">
@@ -133,11 +130,11 @@ export default async function mount(root, ctx) {
                 <option value="30" selected>近 30 天</option>
                 <option value="90">近 90 天</option>
               </select>
-              <button type="submit" class="btn btn-sm">回查</button>
+              <button type="submit" class="btn btn-sm">查询</button>
             </form>
           </div>
           <div class="card-body" id="recent-result">
-            <div class="hint">选择一个使用对象，查看近期用过的题目与题单。</div>
+            <div class="hint">选择一个班级、小组或学生，查看近期用过的题目与题单。</div>
           </div>
         </section>
       </section>
@@ -166,7 +163,7 @@ export default async function mount(root, ctx) {
   function syncSelects() {
     $$('select[data-audience-select]', root).forEach((select) => {
       const previous = select.value;
-      const options = ['<option value="">选择使用对象</option>', ...audiences.map((row) => (
+      const options = ['<option value="">选择班级、小组或学生</option>', ...audiences.map((row) => (
         `<option value="${esc(row.id)}">${esc(row.name)}（${esc(AUDIENCE_KINDS[row.kind] || row.kind || '')}）</option>`
       ))];
       select.innerHTML = options.join('');
@@ -186,11 +183,11 @@ export default async function mount(root, ctx) {
         const release = row.release || row;
         return (release.status || row.status || 'built') !== 'failed';
       });
-      releaseSelect.innerHTML = ['<option value="">选择发布物</option>', ...usable.map((row) => {
+      releaseSelect.innerHTML = ['<option value="">选择已生成讲义</option>', ...usable.map((row) => {
         const release = row.release || row;
         const id = release.id || row.id;
         const title = release.collection_title || row.collection_title || collectionTitle(release.collection_id || row.collection_id);
-        return `<option value="${esc(id)}">${esc(id)} · ${esc(title)}</option>`;
+        return `<option value="${esc(id)}">${esc(id)}，${esc(title)}</option>`;
       })].join('');
       if (previous && usable.some((row) => (row.release || row).id === previous || row.id === previous)) {
         releaseSelect.value = previous;
@@ -198,11 +195,26 @@ export default async function mount(root, ctx) {
     }
   }
 
-  // ------------------------------------------------------------ 使用对象
+  // ------------------------------------------------------------ 班级、小组或学生
+
+  function updateAudienceForm() {
+    const form = $('#audience-form', root), kind = form.elements.kind.value;
+    const fields = {
+      class: ['添加班级', '班级名称', '如 高一（3）班'],
+      group: ['添加学习小组', '小组名称', '如 基础练习小组'],
+      student: ['添加学生', '学生代号', '如 学生A'],
+    };
+    const [title, label, placeholder] = fields[kind] || fields.class;
+    $('#audience-form-title', root).textContent = title;
+    $('[data-audience-name-label]', form).innerHTML = `${label}<span class="req">*</span>`;
+    form.elements.name.placeholder = placeholder;
+    form.querySelector('button[type="submit"]').textContent = title;
+  }
+  $('#audience-form select[name="kind"]', root).addEventListener('change', updateAudienceForm);
 
   function renderAudiences() {
     if (!audiences.length) {
-      audienceList.innerHTML = `<div class="card-body">${emptyState('还没有使用对象', '先建班级或分组，之后出题任务与使用记录都挂在它下面。')}</div>`;
+      audienceList.innerHTML = `<div class="card-body">${emptyState('还未添加班级或学生', '先添加一个班级、小组或学生，再记录练习安排和讲义使用情况。')}</div>`;
       return;
     }
     audienceList.innerHTML = `<div class="table-wrap"><table class="table">
@@ -234,7 +246,7 @@ export default async function mount(root, ctx) {
     const data = new FormData(form);
     const name = String(data.get('name') || '').trim();
     if (!name) {
-      flash('请填写对象名称。');
+      flash('请填写班级名称、小组名称或学生代号。');
       return;
     }
     const button = form.querySelector('button[type="submit"]');
@@ -251,26 +263,26 @@ export default async function mount(root, ctx) {
         },
       });
       form.reset();
-      flash('使用对象已保存。', 'ok');
+      flash('已添加。', 'ok');
       await loadAudiences();
       refreshMeta();
     } catch (err) {
       flash(err.message);
     } finally {
       button.disabled = false;
-      button.textContent = '保存对象';
+      updateAudienceForm();
     }
   });
 
-  // ------------------------------------------------------------ 出题任务
+  // ------------------------------------------------------------ 练习安排
 
   function renderAssignments() {
     if (!assignments.length) {
-      assignmentList.innerHTML = `<div class="card-body">${emptyState('还没有出题任务', '任务用来记录计划：给哪个班、用哪份题单、计划哪天发。实际使用另记。')}</div>`;
+      assignmentList.innerHTML = `<div class="card-body">${emptyState('还没有练习安排', '选择题单、班级或学生，记录计划发放日期。')}</div>`;
       return;
     }
     assignmentList.innerHTML = `<div class="table-wrap"><table class="table">
-      <thead><tr><th>编号</th><th>任务</th><th>题单</th><th>对象</th><th>计划日期</th><th>状态</th><th>操作</th></tr></thead>
+      <thead><tr><th>编号</th><th>练习</th><th>题单</th><th>班级、小组或学生</th><th>计划日期</th><th>状态</th><th>操作</th></tr></thead>
       <tbody>${assignments.map((row) => {
         const status = row.status || 'planned';
         return `<tr>
@@ -311,7 +323,7 @@ export default async function mount(root, ctx) {
         method: 'PATCH',
         body: { status: btn.dataset.status },
       });
-      flash('任务状态已更新。', 'ok');
+      flash('练习安排已更新。', 'ok');
       await loadAssignments();
     } catch (err) {
       flash(err.message);
@@ -325,7 +337,7 @@ export default async function mount(root, ctx) {
     const data = new FormData(form);
     const title = String(data.get('title') || '').trim();
     if (!title) {
-      flash('请填写任务名称。');
+      flash('请填写练习名称。');
       return;
     }
     const button = form.querySelector('button[type="submit"]');
@@ -343,7 +355,7 @@ export default async function mount(root, ctx) {
         },
       });
       form.reset();
-      flash('出题任务已保存。', 'ok');
+      flash('练习安排已保存。', 'ok');
       syncSelects();
       await loadAssignments();
       refreshMeta();
@@ -351,7 +363,7 @@ export default async function mount(root, ctx) {
       flash(err.message);
     } finally {
       button.disabled = false;
-      button.textContent = '保存任务';
+      button.textContent = '保存安排';
     }
   });
 
@@ -359,17 +371,17 @@ export default async function mount(root, ctx) {
 
   function usageItemsText(row) {
     const list = Array.isArray(row.items) ? row.items : [];
-    if (!list.length) return '<span class="hint">未记录条目（按全部处理）</span>';
+    if (!list.length) return '<span class="hint">未单独选择题目（按全部使用记录）</span>';
     return `<span class="mono" style="font-size:11px;">${esc(list.join('、'))}</span>`;
   }
 
   function renderUsages() {
     if (!usages.length) {
-      usageList.innerHTML = `<div class="card-body">${emptyState('还没有使用记录', '生成发布物并发给学生后，在这里登记日期、对象与本次实际使用的条目。')}</div>`;
+      usageList.innerHTML = `<div class="card-body">${emptyState('还没有讲义使用记录', '讲义导出后，在这里登记发给谁、使用日期和实际用到的题目。')}</div>`;
       return;
     }
     usageList.innerHTML = `<div class="table-wrap"><table class="table">
-      <thead><tr><th>编号</th><th>对象</th><th>日期</th><th>用途</th><th>发布物</th><th>实际条目</th><th>反馈</th></tr></thead>
+      <thead><tr><th>编号</th><th>班级、小组或学生</th><th>日期</th><th>用途</th><th>已生成讲义</th><th>实际题目</th><th>反馈</th></tr></thead>
       <tbody>${usages.map((row) => `<tr class="usage-row">
         <td class="mono">${esc(row.id)}</td>
         <td>${esc(audienceName(row))}</td>
@@ -424,7 +436,7 @@ export default async function mount(root, ctx) {
           ${fb.actual_minutes !== null && fb.actual_minutes !== undefined ? `<div>实际用时：<span class="mono">${esc(num(fb.actual_minutes))}</span> 分钟</div>` : ''}
           ${fb.effect ? `<div>效果：${esc(fb.effect)}</div>` : ''}
           ${fb.suggestion ? `<div>下次建议：${esc(fb.suggestion)}</div>` : ''}
-          <div class="meta">${esc(fmtDate(fb.created_at))}${fb.sample_size ? ` · 参与 ${esc(fb.sample_size)} 人` : ''}</div>
+          <div class="meta">${esc(fmtDate(fb.created_at))}${fb.sample_size ? `，参与 ${esc(fb.sample_size)} 人` : ''}</div>
         </div>`).join('')}</div>` : '<div class="hint" style="margin-bottom:8px;">还没有反馈记录。</div>'}
         <div class="row-actions" style="margin-top:8px;">
           <button type="button" class="btn btn-sm" data-add-feedback="${esc(usageId)}">登记反馈</button>
@@ -440,7 +452,7 @@ export default async function mount(root, ctx) {
     if (!btn) return;
     const usageId = btn.dataset.addFeedback;
     const modal = openModal({
-      title: `登记反馈 · ${usageId}`,
+      title: `登记反馈：${usageId}`,
       body: `<div class="modal-error" hidden></div>
         <label class="field"><span>常见错误</span>
           <textarea data-errors rows="3" placeholder="如 只检查判别式，漏掉两根为正的条件"></textarea>
@@ -485,12 +497,12 @@ export default async function mount(root, ctx) {
     });
   });
 
-  // 发布物切换 → 读取题单条目
+  // 已生成讲义切换 → 读取题单条目
   $('#usage-release', root).addEventListener('change', async (event) => {
     const releaseId = event.target.value;
-    usageItemsEl.innerHTML = '<span class="hint">正在读取题单条目…</span>';
+    usageItemsEl.innerHTML = '<span class="hint">正在读取题目…</span>';
     if (!releaseId) {
-      usageItemsEl.innerHTML = '<span class="hint">选择发布物后列出该题单的条目。</span>';
+      usageItemsEl.innerHTML = '<span class="hint">选择已生成讲义后列出该题单的题目。</span>';
       return;
     }
     try {
@@ -501,16 +513,16 @@ export default async function mount(root, ctx) {
         release = detail.release || detail;
         collectionId = release.collection_id || detail.collection_id;
       }
-      if (!collectionId) throw new Error('该发布物没有关联题单。');
+      if (!collectionId) throw new Error('这份讲义没有关联题单。');
       const data = await api(`/api/collections/${encodeURIComponent(collectionId)}`);
       const list = Array.isArray(data.items) ? data.items : [];
       if (!list.length) {
-        usageItemsEl.innerHTML = '<span class="hint">该题单没有条目。</span>';
+        usageItemsEl.innerHTML = '<span class="hint">该题单没有题目。</span>';
         return;
       }
       usageItemsEl.innerHTML = list.map((item) => `<label class="check" style="display:flex;">
         <input type="checkbox" data-usage-item value="${esc(item.id)}" checked>
-        <span>${esc(item.question?.id || item.question_id || '')} · ${esc(truncate(item.question?.short_name || item.question?.stem_preview || '', 40))}</span>
+        <span>${esc(item.question?.id || item.question_id || '')}，${esc(truncate(item.question?.short_name || item.question?.stem_preview || '', 40))}</span>
       </label>`).join('');
     } catch (err) {
       usageItemsEl.innerHTML = `<div class="modal-error">${esc(err.message)}</div>`;
@@ -522,11 +534,11 @@ export default async function mount(root, ctx) {
     const form = event.currentTarget;
     const data = new FormData(form);
     if (!data.get('audience_id')) {
-      flash('请选择使用对象。');
+      flash('请选择班级、小组或学生。');
       return;
     }
     if (!data.get('release_id')) {
-      flash('请选择发布物。已生成 PDF 后才能登记实际使用。');
+      flash('请选择已生成讲义。已生成 PDF 后才能登记实际使用。');
       return;
     }
     if (!data.get('used_on')) {
@@ -570,7 +582,7 @@ export default async function mount(root, ctx) {
     const days = data.get('days') || 30;
     const result = $('#recent-result', root);
     if (!audienceId) {
-      flash('请选择要回查的使用对象。');
+      flash('请选择要查询的班级、小组或学生。');
       return;
     }
     result.innerHTML = loading('正在回查…');
@@ -630,7 +642,7 @@ export default async function mount(root, ctx) {
           return `<li>
             ${qid ? `<a href="#/question/${esc(qid)}" class="mono" style="font-size:11.5px;">${esc(qid)}</a>` : ''}
             ${esc(q.short_name || truncate(q.stem_preview || row.stem_preview, 48) || '')}
-            <div class="meta">${used ? `最近 ${esc(fmtDate(used))}` : '日期未记录'}${count ? ` · 使用 ${esc(count)} 次` : ''}${row.collection_title ? ` · ${esc(row.collection_title)}` : ''}${row.purpose ? ` · ${esc(USAGE_PURPOSES[row.purpose] || row.purpose)}` : ''}</div>
+            <div class="meta">${used ? `最近 ${esc(fmtDate(used))}` : '日期未记录'}${count ? `，使用 ${esc(count)} 次` : ''}${row.collection_title ? `，${esc(row.collection_title)}` : ''}${row.purpose ? `，${esc(USAGE_PURPOSES[row.purpose] || row.purpose)}` : ''}</div>
           </li>`;
         }).join('')}</ul>` : `<div class="check-empty">近 ${esc(days)} 天没有题目使用记录。</div>`}
       </div>
@@ -643,7 +655,7 @@ export default async function mount(root, ctx) {
           const used = row.last_used || row.used_on;
           return `<li>
             ${cid ? `<a href="#/collection/${esc(cid)}">${esc(c.title || cid)}</a>` : esc(c.title || '')}
-            <div class="meta">${used ? `最近 ${esc(fmtDate(used))}` : ''}${row.use_count ? ` · ${esc(row.use_count)} 题` : ''}</div>
+            <div class="meta">${used ? `最近 ${esc(fmtDate(used))}` : ''}${row.use_count ? `，${esc(row.use_count)} 题` : ''}</div>
           </li>`;
         }).join('')}</ul>` : `<div class="check-empty">近 ${esc(days)} 天没有题单使用记录。</div>`}
       </div>

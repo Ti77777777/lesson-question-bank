@@ -14,7 +14,7 @@ export function setEditorValue(data, path, value) {
 export function editorPreview(data, kind) {
   const rich=value=>`<div class="editor-preview-text">${richToHtml(value||'')}</div>`;
   if(kind==='source')return `<h3>题面预览</h3>${rich(data.stem)}${(data.options||[]).map(o=>`<p><b>${esc(o.key)}.</b> ${rich(o.text)}</p>`).join('')}${(data.subquestions||[]).map(s=>`<p>（${esc(s.key)}）${rich(s.text)}</p>`).join('')}`;
-  if(kind==='review')return `<h3>分类与评分预览</h3>${rich(data.review.reason)}<p>运算 ${esc(data.review.difficulty.calc)}/5 · 思维 ${esc(data.review.difficulty.think)}/5 · 跨度 ${esc(data.review.difficulty.scope)}/5</p><div class="q-tags">${data.review.tags.map(t=>`<span class="badge badge-neutral">${esc(DIMENSIONS[t.dimension]||t.dimension)} · ${esc(t.name)}</span>`).join('')}</div>${rich(data.review.difficulty.note)}`;
+  if(kind==='review')return `<h3>分类与评分预览</h3>${rich(data.review.reason)}<p>运算 ${esc(data.review.difficulty.calc)}/5，思维 ${esc(data.review.difficulty.think)}/5，跨度 ${esc(data.review.difficulty.scope)}/5</p><div class="q-tags">${data.review.tags.map(t=>`<span class="badge badge-neutral">${esc(DIMENSIONS[t.dimension]||t.dimension)}：${esc(t.name)}</span>`).join('')}</div>${rich(data.review.difficulty.note)}`;
   return `<h3>答案与解析预览</h3>${rich(data.solve.answer)}${(data.solve.subanswers||[]).map(s=>`<p>（${esc(s.key)}）${rich(s.answer)}</p>`).join('')}${(data.solve.solutions||[]).map(s=>`<h4>${esc(s.label)}</h4>${rich(s.approach)}${rich(s.steps)}${rich(s.conditions)}`).join('')}`;
 }
 

@@ -301,7 +301,7 @@ export function pickTags({
       const currentCategory = categories.find(c => c[0] === dimension);
       modal.body.querySelector('[data-category-title]').textContent = currentCategory?.[1] || '全部标签';
       modal.body.querySelector('[data-category-hint]').textContent = currentCategory?.[2] || '可按分类与主题浏览，也可在全部标签中搜索';
-      modal.body.querySelector('[data-visible-count]').textContent = `当前显示 ${visible.length} 个${selectedOnly ? '已选' : ''}标签${keyword.trim() ? ` · 关键词「${keyword.trim()}」` : ''}`;
+      modal.body.querySelector('[data-visible-count]').textContent = `当前显示 ${visible.length} 个${selectedOnly ? '已选' : ''}标签${keyword.trim() ? `，关键词「${keyword.trim()}」` : ''}`;
       modal.body.querySelector('[data-search]').placeholder = dimension ? `在${currentCategory?.[1] || '当前分类'}中搜索名称、说明或主题` : '搜索全部分类的标签名称、说明或主题';
       modal.body.querySelectorAll('[data-dimension]').forEach(btn => {
         const on = btn.dataset.dimension === dimension;
@@ -322,7 +322,7 @@ export function pickTags({
           <span class="tag-library-option-text"><span class="tag-library-name" data-rich>${esc(tag.name)}</span>${tag.definition ? `<span class="tag-library-description" data-rich>${esc(tag.definition)}</span>` : ''}</span>
         </label>`).join('')}</div></section>`).join('') : `<div class="tag-library-empty"><strong>${directory.length ? '当前范围没有匹配标签' : '标签库为空'}</strong><p>${selectedOnly ? '可切换到其他分类，或关闭“只看已选”。' : '可切换到“全部标签”搜索，或清除当前主题和关键词。'}</p>${directory.length ? '<button type="button" class="btn" data-reset-filter>清除当前筛选</button>' : ''}</div>`;
       const selectedEntries = directory.filter(e => chosen.has(e.tag.id));
-      modal.body.querySelector('[data-selection-title]').textContent = `已选标签 · ${chosen.size}`;
+      modal.body.querySelector('[data-selection-title]').textContent = `已选标签，${chosen.size}`;
       modal.body.querySelector('[data-selected-tags]').innerHTML = selectedEntries.length ? selectedEntries.map(e => `<button type="button" class="tag-selection-chip" data-remove-tag="${esc(e.tag.id)}" aria-label="移除：${esc(e.tag.name)}"><small>${esc(categories.find(c => c[0] === e.dimension)?.[1] || '其他')}</small><span data-rich>${esc(e.tag.name)}</span><span aria-hidden="true">×</span></button>`).join('') : '<span class="hint">可跨分类选择；切换主题或搜索时，已选标签会保留。</span>';
       modal.body.querySelector('[data-clear-selected]').disabled = !chosen.size;
       modal.body.querySelector('[data-selected-only]').setAttribute('aria-pressed', String(selectedOnly));

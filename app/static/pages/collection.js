@@ -1,4 +1,4 @@
-/* 题单编辑：分节与条目排序、跨节移动、教学角色与留白设置；右侧组题检查；顶部生成讲义。 */
+/* 题单编辑：题目与分节排序、跨节移动、教学角色与留白设置；右侧组题检查；顶部生成讲义。 */
 
 import { api, fileUrl } from '../lib/api.js';
 import {
@@ -77,7 +77,7 @@ export default async function mount(root, ctx) {
     const q = item.question || {};
     const role = ROLES[item.role] || item.role || '未设角色';
     const warnings = Array.isArray(item.warnings) ? item.warnings : [];
-    const timeText = `作答 ${num(item.time_solve_min)} 分 · 讲解 ${num(item.time_explain_min)} 分`;
+    const timeText = `作答 ${num(item.time_solve_min)} 分，讲解 ${num(item.time_explain_min)} 分`;
     return `<li class="item-row" data-item="${esc(item.id)}">
       <div class="item-index">${String(itemNumbers.get(item.id) ?? index + 1).padStart(2, '0')}</div>
       <div class="item-main">
@@ -250,7 +250,7 @@ export default async function mount(root, ctx) {
       <div class="collection-grid">
         <section class="card">
           <div class="card-head">
-            <h2>分节与条目</h2>
+            <h2>题目与分节</h2>
             <div class="row-actions">
               <button type="button" class="btn btn-sm" data-act="add-question">从题库加题</button>
               <button type="button" class="btn btn-sm" data-act="add-section">新增分节</button>
@@ -259,7 +259,7 @@ export default async function mount(root, ctx) {
           ${groups.length ? `<div class="sections">
             ${sortedSections().map((section, index) => renderSection(section, index)).join('')}
             ${loose.length ? `<div class="section-block">
-              <div class="unsectioned-label">未分节 · ${loose.length} 题</div>
+              <div class="unsectioned-label">未分节，${loose.length} 题</div>
               <ol class="item-list">${loose.map((item, idx) => renderItem(item, idx, loose.length)).join('')}</ol>
             </div>` : ''}
           </div>` : `<div class="card-body">${emptyState('题单还是空的', '先新增分节，再用「从题库加题」把题目放进来；也可以到题库检索，用选题篮一键成单。')}</div>`}
@@ -339,7 +339,7 @@ export default async function mount(root, ctx) {
     ].join('');
 
     const modal = openModal({
-      title: `条目设置 · ${item.question?.id || item.question_id || ''}`,
+      title: `题目设置： ${item.question?.id || item.question_id || ''}`,
       body: `<div class="modal-error" hidden></div>
         <p class="hint">${esc(item.question?.short_name || truncate(item.question?.stem_preview, 60) || '')}</p>
         <div class="inline-fields two">
@@ -581,7 +581,7 @@ export default async function mount(root, ctx) {
           <label class="field"><span>课时（分钟）</span><input type="number" min="1" step="5" data-duration value="${collection.duration_min ?? ''}"></label>
           <label class="field"><span>学生层次</span><input type="text" data-level value="${esc(collection.level || '')}" placeholder="如 高一提高"></label>
         </div>
-        <label class="field"><span>主题</span><input type="text" data-topic value="${esc(collection.topic || '')}" placeholder="如 函数性质 · 单调性"></label>
+        <label class="field"><span>主题</span><input type="text" data-topic value="${esc(collection.topic || '')}" placeholder="如 函数单调性"></label>
         <label class="field"><span>前置知识</span><input type="text" data-prereqs value="${esc(collection.prereqs || '')}" placeholder="如 函数定义、不等式变形"></label>
         <label class="field"><span>学习目标</span><textarea rows="3" data-objectives>${esc(collection.objectives || '')}</textarea></label>
         <label class="field"><span>备注</span><textarea rows="2" data-note>${esc(collection.note || '')}</textarea></label>`,
@@ -627,7 +627,7 @@ export default async function mount(root, ctx) {
           <label class="field"><span>副标题</span><input type="text" data-subtitle value="习题课讲义"></label>
         </div>
         <div class="inline-fields three">
-          <label class="field"><span>前置语</span><input type="text" data-pretitle value="${esc(collection.topic || '高一数学 · 专题')}"></label>
+          <label class="field"><span>前置语</span><input type="text" data-pretitle value="${esc(collection.topic || '高一数学专题')}"></label>
           <label class="field"><span>主题色</span>
             <select data-theme>${BUILD_THEMES.map(([value, label]) => `<option value="${value}" ${value === 'blue' ? 'selected' : ''}>${label}</option>`).join('')}</select>
           </label>
@@ -697,7 +697,7 @@ export default async function mount(root, ctx) {
           },
         });
         resultEl.innerHTML = buildResultHtml(data);
-        flash(`已生成 ${data?.release?.id || '发布物'}。`, data?.release?.status === 'failed' ? 'error' : 'ok');
+        flash(`已生成 ${data?.release?.id || '讲义'}。`, data?.release?.status === 'failed' ? 'error' : 'ok');
         refreshMeta();
       } catch (err) {
         errEl.hidden = false;
@@ -735,7 +735,7 @@ export default async function mount(root, ctx) {
 
     return `<div class="build-result">
       <div class="spread" style="margin-bottom:8px;">
-        <h3 style="margin:0;">${esc(release.id || '发布物')}</h3>
+        <h3 style="margin:0;">${esc(release.id || '讲义')}</h3>
         ${badge(RELEASE_STATUS[release.status] || release.status || '已生成', RELEASE_TONE[release.status] || (failed ? 'fail' : 'pass'))}
       </div>
       <div class="release-files" style="margin-bottom:8px;">
@@ -751,7 +751,7 @@ export default async function mount(root, ctx) {
         ${pill('缺字', checks.missing_char, Number(checks.missing_char) > 0)}
         <span class="check-pill ${leakBad ? 'bad' : 'good'}">答案泄露 ${esc(leak === 'clean' ? '未发现' : leak)}</span>
       </div>
-      ${tex.student || tex.teacher ? `<div class="hint" style="margin-top:8px;">TeX 源文件：<span class="mono">${esc(tex.student || '')}</span>${tex.answer ? ` · <span class="mono">${esc(tex.answer)}</span>` : ''}${tex.teacher ? ` · <span class="mono">${esc(tex.teacher)}</span>` : ''}</div>` : ''}
+      ${tex.student || tex.teacher ? `<div class="hint" style="margin-top:8px;">TeX 源文件：<span class="mono">${esc(tex.student || '')}</span>${tex.answer ? `，<span class="mono">${esc(tex.answer)}</span>` : ''}${tex.teacher ? `，<span class="mono">${esc(tex.teacher)}</span>` : ''}</div>` : ''}
       ${warnings ? `<div class="build-warn">${esc(warnings)}</div>` : ''}
       ${failed ? '<div class="hint" style="margin-top:8px;color:var(--ochre);">构建失败。上面是编译器输出尾部，请据此检查缺项或环境。</div>' : ''}
       <div class="row-actions" style="margin-top:10px;">

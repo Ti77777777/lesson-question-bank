@@ -14,7 +14,7 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">题单</h1>
-        <p class="page-sub">同一道题可以在不同题单里承担不同角色；题单只调整顺序、教学角色、时间与留白，不改公共题面。</p>
+        <p class="page-sub">把题目整理成题单，调整顺序、分节和作答留白。</p>
       </div>
       <div class="page-head-actions">
         <button type="button" class="btn btn-primary" id="new-collection">新建题单</button>
@@ -52,7 +52,7 @@ export default async function mount(root, ctx) {
             ${row.status && row.status !== 'draft' ? badge(row.status === 'ready' ? '已就绪' : '已归档', row.status === 'ready' ? 'pass' : 'na') : ''}
           </div>
         </div>
-        <div class="collection-stat"><span class="k">条目</span><span class="v">${esc(num(count))}</span></div>
+        <div class="collection-stat"><span class="k">题量</span><span class="v">${esc(num(count))}</span></div>
         <div class="collection-stat"><span class="k">发布</span><span class="v">${esc(num(releaseCount))}</span></div>
         <div class="updated muted" style="font-size:12px;">更新 ${esc(fmtDate(row.updated_at))}</div>
         <div style="text-align:right;"><a class="btn btn-sm" href="#/collection/${esc(row.id)}">编辑题单</a></div>
@@ -92,7 +92,7 @@ export default async function mount(root, ctx) {
           </label>
         </div>
         <label class="field"><span>主题</span>
-          <input type="text" data-topic placeholder="如 函数性质 · 单调性">
+          <input type="text" data-topic placeholder="如 函数单调性">
         </label>
         <label class="field"><span>备注</span>
           <textarea rows="2" data-note placeholder="如 面向高一（3）班，需保留概念回顾"></textarea>

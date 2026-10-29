@@ -5,7 +5,7 @@ from app import db
 def label(name, qno=None):
     name=str(name or '').strip()
     if not name:return ''
-    return name + (' · 第'+str(qno)+'题' if qno else '')
+    return name + ('，第'+str(qno)+'题' if qno else '')
 
 
 def for_questions(question_ids):

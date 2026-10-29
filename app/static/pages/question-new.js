@@ -86,7 +86,7 @@ export default async function mount(root, ctx) {
       <div class="page-head">
         <div>
           <h1 class="page-title">新建题目</h1>
-          <p class="page-sub">整理稿与原始资料分开保存。题干、答案、解析先按数学内容如实录入，排版交给题单与模板。</p>
+          <p class="page-sub">录入题面、答案、解析和来源，保存后可检索与组题。</p>
         </div>
         <div class="page-head-actions">
           <a class="btn" href="${inboxId ? '#/inbox' : '#/search'}">取消</a>
@@ -258,7 +258,7 @@ export default async function mount(root, ctx) {
     if(!draftReady||submitted)return;
     const fields=Object.fromEntries([...form.querySelectorAll('[name]')].map(el=>[el.name,el.type==='checkbox'?el.checked:el.value]));
     const ok=draft.write({fields,qtype,answerKeys:[...answerKeys],tags,options,subquestions,solutions,occurrences});
-    draftBar.querySelector('[data-draft-status]').textContent=ok?'草稿已保留在本机 · 尚未录入题库':'浏览器无法保留草稿，请及时保存题目';
+    draftBar.querySelector('[data-draft-status]').textContent=ok?'草稿已保留在本机，尚未录入题库':'浏览器无法保留草稿，请及时保存题目';
   }
   const optionList = $('#option-list', root);
   const keyList = $('#answer-key-list', root);

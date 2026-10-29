@@ -26,7 +26,7 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">收题箱</h1>
-        <p class="page-sub">先存下来，再慢慢整理。原始文字、文件名与来源线索按原样保留；来源不清楚时明确记为「待确认」。</p>
+        <p class="page-sub">暂存待整理的题目和资料，补充来源后再录入题库。</p>
       </div>
       <div class="page-head-actions">
         <span class="hint" id="inbox-total"></span>
@@ -36,7 +36,7 @@ export default async function mount(root, ctx) {
     <div class="inbox-grid">
       <section class="card">
         <div class="card-head">
-          <h2>收题条目</h2>
+          <h2>待整理资料</h2>
           <div class="tabs tabs-sm status-tabs" id="status-tabs">
             ${FILTERS.map(([value, label]) => `<button type="button" data-status="${value}" class="${value === '' ? 'active' : ''}">${label}</button>`).join('')}
           </div>
@@ -62,7 +62,7 @@ export default async function mount(root, ctx) {
             </label>
             <label class="field">
               <span>来源线索</span>
-              <input type="text" name="source_hint" placeholder="如 2024 学年期末 · 第 12 题">
+              <input type="text" name="source_hint" placeholder="如 2024 学年期末，第 12 题">
               <span class="field-hint">不清楚时留空，系统会记为「待确认」。</span>
             </label>
             <label class="field">

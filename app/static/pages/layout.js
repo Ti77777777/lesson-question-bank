@@ -27,7 +27,7 @@ export default async function mount(root, ctx) {
   const store = draftStore(data.draft_scope, `layout:${cid}`), recovered = store.read();
   const $ = s => root.querySelector(s);
   const effective = item => ({ ...item, ...(overrides[item.id] || {}) });
-  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)} · ${snap.items.length}道题</p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-save>保存排版</button><button class="btn btn-primary" data-publish ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
+  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-save>保存排版</button><button class="btn btn-primary" data-publish ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
     <div data-recovery></div><div class="layout-workspace"><aside class="layout-controls">
       <section class="card"><h2>讲义设置</h2>
         <label class="field"><span>讲义标题</span><input data-option="title" value="${esc(options.title||'')}" maxlength="300"></label>
@@ -75,7 +75,7 @@ export default async function mount(root, ctx) {
     saver.change();
     $('[data-recovery]').replaceChildren();
     $('[data-pdf]').innerHTML = '<div class="layout-empty">设置已变化，请重新生成PDF校样。</div>';
-    $('[data-status]').textContent = mode === 'pdf' ? 'PDF校样已过期，请重新生成' : '快速预览 · 分页为估算';
+    $('[data-status]').textContent = mode === 'pdf' ? 'PDF校样已过期，请重新生成' : '快速预览，分页为估算';
   }
   function renderItemSettings() {
     $('[data-item-list]').innerHTML=snap.items.map((i,n)=>`<button class="btn btn-sm" data-pick="${esc(i.id)}" aria-label="定位第${n+1}题">${n+1}</button>`).join('');
@@ -109,7 +109,7 @@ export default async function mount(root, ctx) {
     if (version === 'student') {
       const hint = q.teaching || {};
       if (i.hint_level !== 'none' && (hint.key_step || hint.probe)) html += `<p class="paper-hint">提示：${richToHtml(i.hint_level === 'full' ? hint.probe : hint.key_step)}</p>`;
-      html += `<div class="paper-space ${i.space_mm?'':'paper-space-empty'}" style="height:${Number(i.space_mm||0)}mm"><span data-space-label>作答区 · ${Number(i.space_mm||0)} mm</span><button type="button" class="paper-space-handle" data-space-resize role="slider" aria-label="调整第${number}题作答留白" aria-valuemin="0" aria-valuemax="200" aria-valuenow="${Number(i.space_mm||0)}" aria-valuetext="${Number(i.space_mm||0)}毫米" title="拖动调整留白；上下方向键每次调整5毫米">↕</button></div>`;
+      html += `<div class="paper-space ${i.space_mm?'':'paper-space-empty'}" style="height:${Number(i.space_mm||0)}mm"><span data-space-label>作答区：${Number(i.space_mm||0)} mm</span><button type="button" class="paper-space-handle" data-space-resize role="slider" aria-label="调整第${number}题作答留白" aria-valuemin="0" aria-valuemax="200" aria-valuenow="${Number(i.space_mm||0)}" aria-valuetext="${Number(i.space_mm||0)}毫米" title="拖动调整留白；上下方向键每次调整5毫米">↕</button></div>`;
     } else {
       const selectedSolutions = (entry.solutions || []).filter(s => !i.solution_id || s.id === i.solution_id);
       const answer = q.answer || (q.answer_keys || []).join('、') || subs.map(s => s.answer ? `（${s.key}）${s.answer}` : '').filter(Boolean).join('；') || '（略）';
@@ -136,7 +136,7 @@ export default async function mount(root, ctx) {
       blocks.push({ heading: true, html: `<header class="paper-section"><h2>${esc(section.title)}</h2>${section.intro ? richToHtml(section.intro) : ''}</header>` });
       for (const item of items) blocks.push({ html: itemHtml(item, ++number), breakBefore: Boolean(effective(item).page_break_before) });
     }
-    const cover = options.cover ? `<div class="layout-paper paper-cover"><div>${esc(options.pretitle || '')}</div><h1>${esc(options.title)}</h1><h2>${esc(options.subtitle || '')} · ${VERSIONS[version]}</h2><footer>${esc(options.creator || '')}</footer></div>` : '';
+    const cover = options.cover ? `<div class="layout-paper paper-cover"><div>${esc(options.pretitle || '')}</div><h1>${esc(options.title)}</h1><h2>${esc(options.subtitle || '')}（${VERSIONS[version]}）</h2><footer>${esc(options.creator || '')}</footer></div>` : '';
     const measurement=document.createElement('div');measurement.className='paper-measure';measurement.innerHTML=blocks.map(b=>`<div>${b.html}</div>`).join('');stage.appendChild(measurement);
     measurement.querySelectorAll('.paper-choices.auto').forEach(c => {
       const widths = [...c.children].map(el => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect().width / Number($('[data-zoom]').value); });
@@ -146,10 +146,10 @@ export default async function mount(root, ctx) {
     const pages = paginateBlocks(blocks, 920);
     if (run !== painting) return;
     const label = `<span>${esc(options.title)}</span><span>${VERSIONS[version]}</span>`;
-    stage.innerHTML = cover + pages.map((page,n) => `<div class="layout-paper"><div class="paper-header">${label}</div><div class="paper-body">${page.map(b => b.html).join('')}</div><div class="paper-footer">第 ${n+1} 页 · 快速预览</div></div>`).join('');
+    stage.innerHTML = cover + pages.map((page,n) => `<div class="layout-paper"><div class="paper-header">${label}</div><div class="paper-body">${page.map(b => b.html).join('')}</div><div class="paper-footer">第 ${n+1} 页（快速预览）</div></div>`).join('');
     canvas.scrollTop=scrollTop;canvas.scrollLeft=scrollLeft;
     if (!blocks.length) stage.innerHTML = '<div class="layout-empty">题单中还没有题目，请返回题单添加。</div>';
-    if (mode === 'quick') $('[data-status]').textContent = `约${pages.length + (options.cover ? 1 : 0)}页 · 最终分页以PDF校样为准`;
+    if (mode === 'quick') $('[data-status]').textContent = `约${pages.length + (options.cover ? 1 : 0)}页，最终分页以PDF校样为准`;
     const papers=[...stage.querySelectorAll('.layout-paper')];
     $('[data-page-nav]').innerHTML=papers.map((paper,n)=>`<button class="layout-page-thumb ${paper.querySelector('.paper-question.selected')?'active':''}" data-page-index="${n}" aria-label="跳到${paper.classList.contains('paper-cover')?'封面':'第'+(n+(options.cover?0:1))+'页'}"><span aria-hidden="true">▤</span>${paper.classList.contains('paper-cover')?'封面':'第'+(n+(options.cover?0:1))+'页'}</button>`).join('');
     $('[data-page-nav]').hidden=mode!=='quick'||papers.length<2;
@@ -175,7 +175,7 @@ export default async function mount(root, ctx) {
         $('[data-status]').textContent = '当前版本尚未生成PDF校样';
       } else {
         const warnings = Number(pdf.checks?.overfull || 0) + Number(pdf.checks?.missing_char || 0);
-        $('[data-status]').textContent = warnings ? `PDF校样已生成 · 有${warnings}项溢出或缺字提示，请检查` : `PDF校样已生成 · ${pdf.pages || '?'}页 · 与正式导出共用排版引擎`;
+        $('[data-status]').textContent = warnings ? `PDF校样已生成，有${warnings}项溢出或缺字提示，请检查` : `PDF校样已生成，${pdf.pages || '?'}页，与正式导出共用排版引擎`;
       }
     }
     if (mode === 'quick') paint();
@@ -205,7 +205,7 @@ export default async function mount(root, ctx) {
       if (disposed) return;
       if (requestedVersion !== version || signature !== JSON.stringify(payload())) { $('[data-status]').textContent = '设置已变化，请重新生成校样'; return; }
       pdf = result; showMode('pdf');
-      $('[data-pdf]').innerHTML = `<div class="layout-pdf-link"><a class="btn" href="${esc(pdf.url)}" target="_blank" rel="noopener">打开 / 下载PDF</a><button class="btn btn-sm" data-pdf-refresh>重新生成</button><span>${VERSIONS[version]} · ${pdf.pages || '?'}页</span></div><iframe title="讲义实际PDF校样" src="${esc(pdf.url)}#toolbar=1&view=FitH"></iframe>`;
+      $('[data-pdf]').innerHTML = `<div class="layout-pdf-link"><a class="btn" href="${esc(pdf.url)}" target="_blank" rel="noopener">打开 / 下载PDF</a><button class="btn btn-sm" data-pdf-refresh>重新生成</button><span>${VERSIONS[version]}，${pdf.pages || '?'}页</span></div><iframe title="讲义实际PDF校样" src="${esc(pdf.url)}#toolbar=1&view=FitH"></iframe>`;
     } catch(e) { if (!disposed) { $('[data-status]').textContent = e.message; flash(e.message); } }
     finally { if (!disposed) { button.disabled = false; button.textContent = 'PDF校样'; } }
   }
@@ -217,7 +217,7 @@ export default async function mount(root, ctx) {
       await save();
       const result = await api(`/api/collections/${encodeURIComponent(cid)}/build`, { method: 'POST', body: { ...payload().options, versions: ['student', 'answer', 'teacher'] } });
       if (disposed) return;
-      $('[data-export]').innerHTML = `<div class="card"><h3>${result.release?.status === 'failed' ? '导出未完成，请到归档查看诊断' : '三版讲义已导出'}</h3><div class="detail-actions">${Object.entries(result.files || {}).filter(([,f]) => f.url).map(([v,f]) => `<a class="btn" target="_blank" rel="noopener" href="${esc(f.url)}">${VERSIONS[v]} · ${f.pages || '?'}页</a>`).join('')}<a class="btn" href="#/releases">查看归档</a></div></div>`;
+      $('[data-export]').innerHTML = `<div class="card"><h3>${result.release?.status === 'failed' ? '导出未完成，请到归档查看诊断' : '三版讲义已导出'}</h3><div class="detail-actions">${Object.entries(result.files || {}).filter(([,f]) => f.url).map(([v,f]) => `<a class="btn" target="_blank" rel="noopener" href="${esc(f.url)}">${VERSIONS[v]}，${f.pages || '?'}页</a>`).join('')}<a class="btn" href="#/releases">查看归档</a></div></div>`;
       document.dispatchEvent(new Event('meta:refresh'));
     } catch(e) { flash(e.message); }
     finally { if (!disposed) { b.disabled = false; b.textContent = '导出三版讲义'; } }

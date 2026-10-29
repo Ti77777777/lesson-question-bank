@@ -12,7 +12,7 @@ export function mountTagSidebar(container, {onChange, onModeChange, onRetry} = {
   let tagsRef, selectionKey = '', loading = true, error = '', destroyed = false, navMarkup = '';
   const expanded = new Map();
   container.innerHTML = `<details class="card tag-side-panel">
-    <summary class="tag-side-heading"><span><strong>知识点与方法</strong><small>按类别选标签 · 勾选即筛选</small></span><span class="tag-side-count" data-side-count>0</span><span class="tag-side-disclosure" aria-hidden="true"></span></summary>
+    <summary class="tag-side-heading"><span><strong>知识点与方法</strong></span><span class="tag-side-count" data-side-count>0</span><span class="tag-side-disclosure" aria-hidden="true"></span></summary>
     <div class="tag-side-body">
       <label class="tag-side-search"><span class="sr-only">搜索侧栏标签</span><input type="search" data-side-search placeholder="搜索标签名称或说明" autocomplete="off"></label>
       <nav class="tag-side-categories" data-side-categories aria-label="标签类别"></nav>
@@ -54,7 +54,7 @@ export function mountTagSidebar(container, {onChange, onModeChange, onRetry} = {
     const topics = [...new Set(available.map(e => e.topic))];
     if (topic && !topics.includes(topic)) topics.push(topic);
     const theme = container.querySelector('[data-side-topic]');
-    theme.innerHTML = '<option value="">全部主题</option>' + topics.map(name => `<option value="${esc(name)}">${esc(name)} · ${available.filter(e => e.topic === name).length}</option>`).join('');
+    theme.innerHTML = '<option value="">全部主题</option>' + topics.map(name => `<option value="${esc(name)}">${esc(name)}（${available.filter(e => e.topic === name).length}）</option>`).join('');
     theme.value = topic;
     const visible = filterTagDirectory(directory, {...criteria, topic});
     const byId = new Map(directory.map(e => [e.tag.id, e]));
@@ -62,7 +62,7 @@ export function mountTagSidebar(container, {onChange, onModeChange, onRetry} = {
     container.querySelector('[data-side-selection-title]').textContent = `已选 ${chosen.size} 个`;
     container.querySelector('[data-side-chips]').innerHTML = [...chosen].map(id => `<button type="button" data-side-remove="${esc(id)}" aria-label="移除标签：${esc(byId.get(id)?.tag.name || id)}"><span data-rich>${esc(byId.get(id)?.tag.name || id)}</span><span aria-hidden="true">×</span></button>`).join('');
     container.querySelector('[data-side-only]').setAttribute('aria-pressed', String(selectedOnly));
-    container.querySelector('[data-side-status]').textContent = loading ? '正在读取标签…' : error ? '标签暂不可用，仍可使用其他筛选条件' : `当前显示 ${visible.length} 个标签${selectedOnly ? ' · 只看已选' : ''}`;
+    container.querySelector('[data-side-status]').textContent = loading ? '正在读取标签…' : error ? '标签暂不可用，仍可使用其他筛选条件' : `当前显示 ${visible.length} 个标签${selectedOnly ? '，只看已选' : ''}`;
 
     const scroll = list.scrollTop;
     list.querySelectorAll('[data-side-group]').forEach(group => expanded.set(group.dataset.sideGroup, group.open));

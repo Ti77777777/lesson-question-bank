@@ -10,7 +10,7 @@ export function drawerContent(detail) {
   const q=detail.current_version, rich=t=>richToHtml(t||'');
   return `<div class="drawer-meta"><span>${esc(QTYPES[q.qtype]||q.qtype)}</span><span>${detail.eligibility?.usable?'审校通过':'待核对'}</span></div><section><h3>题面</h3>${rich(q.stem)}${(q.options||[]).map(o=>`<p><b>${esc(o.key)}.</b> ${rich(o.text)}</p>`).join('')}${(q.subquestions||[]).map(s=>`<p>（${esc(s.key)}）${rich(s.text)}</p>`).join('')}</section>
     <details class="drawer-answer"><summary>查看答案与解析</summary><h3>答案</h3>${rich(q.answer||(q.answer_keys||[]).join('、'))}${(q.subquestions||[]).filter(s=>s.answer).map(s=>`<p>（${esc(s.key)}）${rich(s.answer)}</p>`).join('')}${(q.solutions||[]).map(s=>`<h3>${esc(s.label||'解析')}</h3>${rich(s.approach)}${rich(s.steps)}${s.conditions?`<p>条件：${rich(s.conditions)}</p>`:''}`).join('')}${q.analysis && !(q.solutions||[]).some(s=>(s.steps||"").trim()===q.analysis.trim())?`<h3>分析</h3>${rich(q.analysis)}`:''}</details>
-    <section><h3>分类标签</h3><div class="q-tags">${(q.tags||[]).map(t=>`<span class="badge">${esc(t.name)}</span>`).join('')||'未标注'}</div></section><section><h3>来源</h3>${(detail.occurrences||[]).map(o=>`<p>${esc(o.source_name||'待确认')}${o.qno?` · 第${esc(o.qno)}题`:''}${o.pdf_page?` · PDF第${Number(o.pdf_page)}页`:''}${o.file?` <a target="_blank" rel="noopener" href="${esc(pdfUrl(o.file,o.pdf_page))}">查看原卷</a>`:''}</p>`).join('')||'<p>待补充</p>'}</section>`;
+    <section><h3>分类标签</h3><div class="q-tags">${(q.tags||[]).map(t=>`<span class="badge">${esc(t.name)}</span>`).join('')||'未标注'}</div></section><section><h3>来源</h3>${(detail.occurrences||[]).map(o=>`<p>${esc(o.source_name||'待确认')}${o.qno?`，第${esc(o.qno)}题`:''}${o.pdf_page?`，PDF第${Number(o.pdf_page)}页`:''}${o.file?` <a target="_blank" rel="noopener" href="${esc(pdfUrl(o.file,o.pdf_page))}">查看原卷</a>`:''}</p>`).join('')||'<p>待补充</p>'}</section>`;
 }
 
 export function openQuestionDrawer({id, ids, onCorrection, onClosed=()=>{}}) {
@@ -25,7 +25,7 @@ export function openQuestionDrawer({id, ids, onCorrection, onClosed=()=>{}}) {
     const index=ids.indexOf(current);$('[data-prev]').disabled=index<=0;$('[data-next]').disabled=index<0||index>=ids.length-1;
     $('[data-full]').href=`#/question/${encodeURIComponent(current)}`;
     $('[data-drawer-correct]').disabled=true;$('[data-drawer-basket]').disabled=true;syncBasket();
-    modal.modal.querySelector('.modal-head h2').textContent=`${current} · ${index+1}/${ids.length}`;
+    modal.modal.querySelector('.modal-head h2').textContent=`${current}（${index+1}/${ids.length}）`;
     modal.body.textContent='正在读取题目…';modal.body.scrollTop=0;
     try {
       const data=await api(`/api/questions/${encodeURIComponent(current)}`);

@@ -12,7 +12,7 @@ export async function openRegionEditor({job,question,onSaved}) {
   const q=question,s=q.source||{},readonly=q.state==='adopted'||['running','queued'].includes(job.state);
   let regions=(s.manual_regions||q.evidence?.filter(e=>e.role==='statement'&&(s.statement_images||[]).some(i=>i.path===e.rel_path)).map(e=>({page:e.page_no,bbox:JSON.parse(e.bbox_json)}))||[]).map(r=>({page:r.page,bbox:[...r.bbox]}));
   let pages=[],page=s.pages?.[0]||1,start=null,drag=null,loaded=false;
-  const modal=openModal({title:`第${q.original_qno}题 · 原卷对照与题面区域`,width:'modal-region',body:'正在读取原卷页面…',footer:`<span class="hint">${readonly?'查看原卷与识别结果':'保存不会发起 AI 请求；继续任务时按原预算处理'}</span><button class="btn" data-close>关闭</button>${readonly?'':'<button class="btn btn-primary" data-save>保存修订</button>'}`});
+  const modal=openModal({title:`第${q.original_qno}题：原卷对照与题面区域`,width:'modal-region',body:'正在读取原卷页面…',footer:`<span class="hint">${readonly?'查看原卷与识别结果':'保存不会发起 AI 请求；继续任务时按原预算处理'}</span><button class="btn" data-close>关闭</button>${readonly?'':'<button class="btn btn-primary" data-save>保存修订</button>'}`});
   try{pages=(await api(`/api/ai/jobs/${job.id}/pages`)).pages;}catch(e){modal.body.textContent=e.message;return modal;}
   if(!modal.mask.isConnected)return modal;
   if(!pages.some(p=>p.page===page))page=pages[0].page;
@@ -23,7 +23,7 @@ export async function openRegionEditor({job,question,onSaved}) {
   function paint(){
     svg.innerHTML=regions.map((r,i)=>r.page===page?`<g><rect x="${r.bbox[0]*1000}" y="${r.bbox[1]*1000}" width="${(r.bbox[2]-r.bbox[0])*1000}" height="${(r.bbox[3]-r.bbox[1])*1000}"/><text x="${r.bbox[0]*1000+5}" y="${r.bbox[1]*1000+25}">${i+1}</text></g>`:'').join('');
     if(drag)svg.innerHTML+=`<rect class="region-draft" x="${drag[0]*1000}" y="${drag[1]*1000}" width="${(drag[2]-drag[0])*1000}" height="${(drag[3]-drag[1])*1000}"/>`;
-    $('[data-regions]').innerHTML=regions.length?regions.map((r,i)=>`<li>区域 ${i+1} · 第 ${r.page} 页 <button class="btn-link" data-jump="${i}">定位</button>${readonly?'':` <button class="btn-link" data-up="${i}" ${i?'':'disabled'}>上移</button> <button class="btn-link danger" data-remove="${i}">删除</button>`}</li>`).join(''):'<li class="hint">尚未框选题面。</li>';
+    $('[data-regions]').innerHTML=regions.length?regions.map((r,i)=>`<li>区域 ${i+1}（第 ${r.page} 页） <button class="btn-link" data-jump="${i}">定位</button>${readonly?'':` <button class="btn-link" data-up="${i}" ${i?'':'disabled'}>上移</button> <button class="btn-link danger" data-remove="${i}">删除</button>`}</li>`).join(''):'<li class="hint">尚未框选题面。</li>';
   }
   function show(){loaded=false;svg.style.visibility='hidden';img.src=pages.find(p=>p.page===page).url;paint();}
   img.onload=()=>{loaded=true;svg.style.visibility='visible';};img.onerror=()=>{$('[data-message]').textContent='页面图片读取失败，请切换页码重试。';};

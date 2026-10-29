@@ -42,12 +42,12 @@ export default async function mount(root, ctx) {
 
   function render() {
     if (!items.length) {
-      listEl.innerHTML = `<div class="card-body">${emptyState('还没有发布物', '从题单进入「排版与导出」，生成的三版讲义会归档到这里，并保留当时使用的题目版本。')}</div>`;
+      listEl.innerHTML = `<div class="card-body">${emptyState('还没有导出记录', '从题单进入「排版与导出」，生成的三版讲义会归档到这里，并保留当时使用的题目版本。')}</div>`;
       return;
     }
     listEl.innerHTML = `<div class="table-wrap"><table class="table">
       <thead><tr>
-        <th>发布物</th><th>题单</th><th>生成时间</th><th>页数（学生/解答/解析）</th><th>状态</th><th>文件</th><th>快照</th>
+        <th>导出编号</th><th>题单</th><th>生成时间</th><th>页数（学生/解答/解析）</th><th>状态</th><th>文件</th><th>导出时的记录</th>
       </tr></thead>
       <tbody>
         ${items.map((row) => {
@@ -82,7 +82,7 @@ export default async function mount(root, ctx) {
             <td>
               <div class="row-actions">
                 <button type="button" class="btn btn-sm" data-detail="${esc(id)}">详情</button>
-                <a class="btn-link" href="/api/releases/${encodeURIComponent(id)}/snapshot" download>快照</a>
+                <a class="btn-link" href="/api/releases/${encodeURIComponent(id)}/snapshot" download>导出时的记录</a>
               </div>
             </td>
           </tr>`;
@@ -97,7 +97,7 @@ export default async function mount(root, ctx) {
       const data = await api('/api/releases');
       items = Array.isArray(data.items) ? data.items : [];
       total = Number(data.total ?? items.length);
-      totalEl.innerHTML = `共 <b>${esc(total)}</b> 个发布物`;
+      totalEl.innerHTML = `共 <b>${esc(total)}</b> 条导出记录`;
       render();
     } catch (err) {
       if (!ctx.current()) return;
@@ -109,9 +109,9 @@ export default async function mount(root, ctx) {
 
   async function openDetail(id) {
     const modal = openModal({
-      title: `发布物 ${id}`,
+      title: `讲义导出记录 ${id}`,
       width: 'modal-wide',
-      body: loading('正在读取发布物…'),
+      body: loading('正在读取导出记录…'),
       footer: `<button type="button" class="btn" data-close>关闭</button>
                <button type="button" class="btn" data-rebuild>用原快照重导</button>`,
     });
@@ -167,7 +167,7 @@ export default async function mount(root, ctx) {
           <span class="check-pill ${Number(checks.missing_char) > 0 ? 'bad' : 'good'}">缺字 ${esc(checks.missing_char ?? 0)}</span>
           <span class="check-pill ${checks.leak && checks.leak !== 'clean' ? 'bad' : 'good'}">答案泄露 ${esc(checks.leak === 'clean' || !checks.leak ? '未发现' : checks.leak)}</span>
         </div>
-        ${snapshotTitle || itemCount ? `<div class="hint">快照：${esc(snapshotTitle)}${itemCount ? ` · ${esc(itemCount)} 个条目` : ''}</div>` : ''}
+        ${snapshotTitle || itemCount ? `<div class="hint">快照：${esc(snapshotTitle)}${itemCount ? `，${esc(itemCount)} 道题` : ''}</div>` : ''}
         ${release.note ? `<div class="hint">备注：${esc(release.note)}</div>` : ''}
         ${warnings ? `<div class="build-warn">${esc(warnings)}</div>` : ''}
         <div class="row-actions">
