@@ -153,3 +153,11 @@ input[type=checkbox],input[type=radio] { accent-color:var(--indigo); }
 .recent-item b { font-weight: 600; }
 .recent-item span { color: #6b7280; font-size: 12px; }
 .recent-item:hover { border-color: var(--accent, #2f7d7a); }
+
+/* N04 按教学对象查看已用 */
+.usage-scope { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 10px 0 6px; }
+.usage-scope .check { display: inline-flex; align-items: center; gap: 6px; }
+.usage-scope select { max-width: 220px; }
+.usage-days { width: 5em; }
+.usage-items { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow: auto; padding: 6px 2px; }
+.usage-item { align-items: flex-start; }

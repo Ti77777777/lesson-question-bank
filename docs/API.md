@@ -379,6 +379,7 @@
 | POST | `/api/assignments` | 新建任务 |
 | PATCH | `/api/assignments/{aid}` | 改任务（含登记已发放） |
 | GET | `/api/usages?audience_id=&days=` | 使用记录 |
+| GET | `/api/usage-summary` | 按对象批量查已用：`audience_id`、`days`、`question_ids`（逗号分隔，上限 200）；返回 `items: {题目: {used_on, usage_id, collection_title}}` |
 | POST | `/api/usages` | 登记实际使用 |
 | POST | `/api/feedback` | 登记教学反馈 |
 | GET | `/api/feedback?usage_id=` | 反馈列表 |

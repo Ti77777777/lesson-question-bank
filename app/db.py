@@ -90,6 +90,10 @@ def init_db() -> None:
     _ensure_column("source", "grade", "TEXT")
     _ensure_column("source", "school", "TEXT")
     _ensure_column("source", "year", "TEXT")
+    # N05：快捷登记使用带操作编号，重试不重复写记录
+    _ensure_column("usage_log", "op_key", "TEXT")
+    db().execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_usage_op ON usage_log(op_key) "
+                 "WHERE op_key IS NOT NULL")
     conn.execute(
         "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
         "ON CONFLICT(key) DO UPDATE SET value = excluded.value",

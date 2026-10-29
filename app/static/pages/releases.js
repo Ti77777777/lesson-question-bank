@@ -1,5 +1,6 @@
 /* 导出与归档：发布物列表、双版本 PDF 链接、检查结果与快照下载。 */
 
+import { openRegisterUsage } from '../lib/register-usage.js';
 import { api, fileUrl } from '../lib/api.js';
 import { esc, badge, fmtDateTime, $, emptyState, errorCard, loading, num } from '../lib/dom.js';
 import { RELEASE_STATUS, RELEASE_TONE } from '../lib/constants.js';
@@ -82,6 +83,7 @@ export default async function mount(root, ctx) {
             <td>
               <div class="row-actions">
                 <button type="button" class="btn btn-sm" data-detail="${esc(id)}">详情</button>
+                <button type="button" class="btn btn-sm" data-register="${esc(id)}" ${status === 'failed' ? 'disabled title="编译失败，不能登记使用"' : ''}>登记使用</button>
                 <a class="btn-link" href="/api/releases/${encodeURIComponent(id)}/snapshot" download>导出时的记录</a>
               </div>
             </td>
@@ -204,6 +206,12 @@ export default async function mount(root, ctx) {
   }
 
   listEl.addEventListener('click', (event) => {
+    const reg = event.target.closest('[data-register]');
+    if (reg && !reg.disabled) {
+      openRegisterUsage(reg.dataset.register, { onDone: () => load() });
+      return;
+    }
+
     const btn = event.target.closest('[data-detail]');
     if (btn) openDetail(btn.dataset.detail);
   });

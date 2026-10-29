@@ -31,6 +31,8 @@ export default async function mount(root, ctx) {
     thinkMin: validScore(query.think_min), thinkMax: validScore(query.think_max),
     calcMax: validScore(query.calc_max), scopeMax: validScore(query.scope_max),
     unrated: query.think_unrated === '1', onlyUsable: query.review === 'pass',
+    audience: query.audience || '', usedDays: query.used_days || '30',
+    onlyUnused: query.only_unused === '1',
     onlyCorrections: query.correction === 'pending',
     sort: SORTS.some(x => x[0] === query.sort) ? query.sort : 'recent',
   };
@@ -99,6 +101,14 @@ export default async function mount(root, ctx) {
       <div class="search-active" id="active-filters" aria-label="已选条件"></div>
       <p class="search-validation" id="filter-error" role="alert" hidden></p>
     </section>
+    <div class="usage-scope" id="usage-scope">
+      <label class="check">教学对象
+        <select id="f-audience" aria-label="按教学对象查看已用情况"><option value="">不限</option></select>
+      </label>
+      <label class="check">近 <input type="number" id="f-used-days" min="0" max="3650" step="1" value="${esc(state.usedDays)}" aria-label="观察天数" class="usage-days"> 天</label>
+      <label class="check"><input type="checkbox" id="f-only-unused" ${state.onlyUnused ? 'checked' : ''}> 仅看未用过</label>
+      <span class="hint" id="usage-scope-note">只统计实际使用记录；计划与导出不算。</span>
+    </div>
     <div class="results-head search-results-head">
       <div class="search-result-count" id="results-total" role="status" aria-live="polite"></div>
       <span class="hint" id="results-note"></span><span class="spacer"></span>
@@ -216,6 +226,11 @@ export default async function mount(root, ctx) {
       think_unrated: state.unrated ? '1' : undefined, calc_max: state.calcMax || undefined, scope_max: state.scopeMax || undefined,
       review: state.onlyUsable ? 'pass' : undefined, sort: state.sort === 'recent' ? undefined : state.sort,
       correction: state.onlyCorrections ? 'pending' : undefined,
+      // N04：只有确实选了对象并勾选「仅看未用过」才过滤；单纯选对象只做标注
+      exclude_audience: (state.audience && state.onlyUnused) ? state.audience : undefined,
+      exclude_days: (state.audience && state.onlyUnused) ? Number(state.usedDays || 30) : undefined,
+      audience: state.audience || undefined, used_days: state.usedDays || undefined,
+      only_unused: state.onlyUnused ? '1' : undefined,
       status: 'active', limit: 30, offset,
     };
   }
@@ -284,6 +299,49 @@ export default async function mount(root, ctx) {
       if (ctx.current() && current !== revision) search();
     }
   }
+  async function loadAudiences() {
+    const select = $('#f-audience', root);
+    if (!select) return;
+    try {
+      const data = await api('/api/audiences?limit=100');
+      const list = data.items || [];
+      select.innerHTML = '<option value="">不限</option>' + list.map((row) =>
+        `<option value="${esc(row.id)}" ${row.id === state.audience ? 'selected' : ''}>${esc(row.name || row.id)}</option>`).join('');
+      select.disabled = false;
+    } catch {
+      // 读不到对象列表时不禁用检索，只是没有可选对象
+    }
+  }
+
+  async function annotateUsage(list) {
+    if (!state.audience || !Array.isArray(list) || !list.length) return;
+    const note = $('#usage-scope-note', root);
+    try {
+      const data = await api('/api/usage-summary', { query: {
+        audience_id: state.audience,
+        days: Number(state.usedDays || 30),
+        question_ids: list.map((item) => item.id).join(','),
+      } });
+      const hits = data.items || {};
+      const name = (data.audience || {}).name || '该对象';
+      list.forEach((item) => {
+        const cell = root.querySelector(`[data-used="${item.id}"]`);
+        if (!cell) return;
+        const hit = hits[item.id];
+        cell.innerHTML = hit
+          ? `${esc(name)}最近用过：<b>${esc(hit.used_on)}</b>`
+          : `${esc(name)}：<b>未记录使用</b>`;
+      });
+      if (note) {
+        note.textContent = state.onlyUnused
+          ? `已隐藏${name}近 ${state.usedDays} 天用过的题。`
+          : `只统计实际使用记录；计划使用与导出不算。近 ${state.usedDays} 天。`;
+      }
+    } catch {
+      if (note) note.textContent = '已用情况读取失败，不影响检索结果。';
+    }
+  }
+
   function renderResults() {
     totalEl.innerHTML = `共 <b>${esc(total)}</b> 道`;
     noteEl.textContent = '';
@@ -331,7 +389,7 @@ export default async function mount(root, ctx) {
             ${diffCell('思维', dif.think)}
             ${diffCell('综合', dif.scope)}
           </div>
-          <div class="used">最近使用：<b>${item.used_on ? esc(item.used_on.slice(0, 10)) : '无记录'}</b></div>
+          <div class="used" data-used="${esc(item.id)}">最近使用：<b>${item.used_on ? esc(item.used_on.slice(0, 10)) : '无记录'}</b></div>
           <button type="button" class="btn btn-sm" data-preview="${esc(item.id)}">查看题目</button>
           <button type="button" class="btn btn-sm ${inBasketNow ? '' : 'btn-primary'}" data-add="${esc(item.id)}">
             ${inBasketNow ? '移出选题篮' : '加入选题篮'}
@@ -342,6 +400,7 @@ export default async function mount(root, ctx) {
     }).join('');
 
     upgradeMath(resultsEl);
+    annotateUsage(list);
 
     const loaded = items.length;
     noteEl.textContent = loaded < total ? `已显示 ${loaded} / ${total}` : '';
@@ -417,6 +476,27 @@ export default async function mount(root, ctx) {
 
   $('#search-basket', root).addEventListener('click', openBasket);
   $('#search-add-collection', root).addEventListener('click', () => openAddToCollection(readBasket()));
+
+  // N04 按教学对象查看已用：选对象只做标注，勾上「仅看未用过」才过滤
+  $('#f-audience', root).addEventListener('change', (event) => {
+    state.audience = event.target.value;
+    changed();
+  });
+  $('#f-used-days', root).addEventListener('change', (event) => {
+    state.usedDays = event.target.value || '30';
+    changed();
+  });
+  $('#f-only-unused', root).addEventListener('change', (event) => {
+    state.onlyUnused = event.target.checked;
+    if (state.onlyUnused && !state.audience) {
+      flash('先选一个教学对象，才能只看未用过的题');
+      event.target.checked = false;
+      state.onlyUnused = false;
+      return;
+    }
+    changed();
+  });
+  loadAudiences();
   document.addEventListener('basket:change', syncBasketButtons);
   if (ctx.onCleanup) ctx.onCleanup(() => document.removeEventListener('basket:change', syncBasketButtons));
 

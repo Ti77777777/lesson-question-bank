@@ -1817,6 +1817,49 @@ def assignment_update(req):
 # ---------------------------------------------------------------- §11 使用记录
 
 
+@get("/api/usage-summary")
+def usage_summary(req):
+    """N04 按教学对象批量查已用：一次问清当前这页题在该对象下的最近使用日期。
+
+    口径与「仅未用过」筛选一致：只认实际使用记录，计划使用与导出不算；
+    只登记了部分题目时只统计那部分。没有记录时返回空，界面应写「未记录使用」，
+    不能推断成「学生没见过」。
+    """
+    from datetime import datetime, timedelta
+    from app import history
+
+    audience_id = req.arg("audience_id")
+    if not audience_id:
+        raise ApiError(400, "missing_field", "缺少 audience_id")
+    audience = db.one("SELECT * FROM audience WHERE id = ?", (audience_id,))
+    if audience is None:
+        raise ApiError(404, "not_found", "没有这个教学对象：%s" % audience_id)
+    days = req.arg("days", 30, int)
+    if days < 0:
+        raise ApiError(400, "bad_query", "days 不能为负")
+    raw_ids = [x for x in (req.arg("question_ids") or "").split(",") if x.strip()]
+    wanted = list(dict.fromkeys(raw_ids))[:200]
+
+    cutoff = (datetime.now(db.TZ).date() - timedelta(days=days)).isoformat()
+    summary: dict[str, dict] = {}
+    for row in history.question_history(audience_id, cutoff):
+        qid = row.get("question_id")
+        if not qid or (wanted and qid not in wanted):
+            continue
+        current = summary.get(qid)
+        if current is None or row["used_on"] > current["used_on"]:
+            summary[qid] = {"used_on": row["used_on"], "usage_id": row["usage_id"],
+                            "collection_title": row.get("collection_title") or ""}
+    return {
+        "audience": {"id": audience["id"], "name": audience.get("name"),
+                     "kind": audience.get("kind")},
+        "days": days,
+        "cutoff": cutoff,
+        "checked": len(wanted),
+        "items": summary,
+    }
+
+
 @get("/api/usages")
 def usage_list(req):
     audience_id = req.arg("audience_id")
@@ -1893,14 +1936,22 @@ def usage_create(req):
     items = body.get("items")
     _validate_usage_selection(release, items)
 
+    # N05：快捷登记会给每次提交一个操作编号，双击或超时重试不会写两条使用记录。
+    op_key = _text(body.get("operation_id")).strip() or None
+    if op_key:
+        existing = db.one("SELECT id FROM usage_log WHERE op_key = ?", (op_key,))
+        if existing is not None:
+            row = db.one("SELECT * FROM usage_log WHERE id = ?", (existing["id"],))
+            return {"usage": row, "notice": "这次登记已经保存过，未重复添加", "replayed": True}
+
     with db.transaction() as conn:
         uid = db.next_id(conn, "USG")
         conn.execute(
             "INSERT INTO usage_log(id, assignment_id, release_id, audience_id, used_on, "
-            "purpose, items, note, created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            "purpose, items, note, created_at, op_key) VALUES(?,?,?,?,?,?,?,?,?,?)",
             (uid, assignment_id, release_id, audience_id, used_on, purpose,
              db.dumps(items), None if body.get("note") is None else _text(body.get("note")),
-             db.now()),
+             db.now(), op_key),
         )
         db.audit("usage.create", "usage_log", uid,
                  {"release_id": release_id, "audience_id": audience_id, "used_on": used_on,
