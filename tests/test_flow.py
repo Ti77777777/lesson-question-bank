@@ -310,8 +310,7 @@ def run() -> None:
     check("无 LaTeX 警告", not checks.get("warnings"), str(checks.get("warnings"))[:80])
     rid = built.get("release", {}).get("id")
     release_folder = db.store_dir('releases') / rid
-    check('源码归档包含实际模板和封面素材',
-          (release_folder/'ExBook.cls').is_file() and (release_folder/'img/cover.jpg').is_file())
+    check('源码归档包含实际使用的模板', (release_folder/'ExBook.cls').is_file())
     check('归档包含文件校验清单', (release_folder/'manifest.json').is_file())
     student = built.get("files", {}).get("student", {})
     check("学生版 PDF 可下载", bool(student.get("path")) and (ROOT / student["path"]).is_file())

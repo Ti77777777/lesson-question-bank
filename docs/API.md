@@ -1,11 +1,11 @@
 # 接口契约 v1
 
-> 本文件是所有后端模块与前端页面共同遵守的唯一约定。字段名以 `data/schema.sql` 为准，本文件不另立名称。
+> 本文件记录主要接口契约和增量接口。字段名以 `data/schema.sql` 为准，本文件不另立名称。
 
 ## 0 通用约定
 
-- 服务地址 `http://127.0.0.1:8760`，仅监听本机。
-- 请求与响应一律 UTF-8 JSON；上传文件走 base64 内联，不使用 multipart。
+- 默认服务地址 `http://127.0.0.1:8761`，演示模式使用 8760；仅监听本机。
+- 普通请求与响应使用 UTF-8 JSON。来源文件等接口使用 base64；AI 文件上传和完整备份导入使用原始二进制，下载返回相应文件类型。
 - 时间一律 ISO 8601 带时区，如 `2026-10-27T00:30:00+08:00`。日期字段用 `2026-10-27`。
 - 列表接口统一返回 `{"items": [...], "total": 123}`；`total` 为符合条件的总数（不受 `limit` 限制）。
 - 出错返回 `{"error": {"code": "...", "message": "..."}}`，HTTP 状态码同时生效。`message` 用中文，可直接展示给教师。
@@ -450,3 +450,50 @@
 ## 直接排版扩展（v0.4）
 
 排版保存及PDF校样的layout对象可包含order数组，每项为{id, section_id}，须完整覆盖当前题单全部条目且不重复。section_id可为本题单分节编号或null；保存时与排版设置在同一事务中更新。order不作为永久覆盖写入layout_options，而是更新collection_item。base_revision同时检查题单、条目及分节变更，冲突返回409。
+
+
+## 18 教师归属与班级名单（0.8.0）
+
+教师选择不是认证信息，不改变接口访问权限。接口保留全部教师与名单数据，前端按当前教师筛选。
+
+| 方法与路径 | 请求 / 返回 |
+|---|---|
+| `GET /api/teachers` | `{items,total}`，教师按名称、编号排序 |
+| `POST /api/teachers` | `{name,note?}` → `{teacher}`；名称 1–80 字，备注最多 500 字 |
+| `PATCH /api/teachers/{tid}` | `{name?,note?}` → `{teacher}` |
+| `GET /api/audiences?teacher_id=...` | 可用具体教师编号或 `_unassigned`；空值返回全部。保留 `kind` 等既有条件 |
+| `POST /api/audiences` | 既有字段可附 `teacher_ids:[]`，一次事务创建并关联；未指定时不分配 |
+| `GET /api/audiences/{aid}/teachers` | `{audience,revision}`，含直接与继承教师 |
+| `PUT /api/audiences/{aid}/teachers` | `{teacher_ids:[],base_revision}` 替换直接关联 → 同 GET 包装 |
+| `GET /api/audiences/{aid}/members` | 班级/小组 → `{audience,items,total,revision}` |
+| `PUT /api/audiences/{aid}/members` | `{student_ids:[],base_revision}` 替换名单 → 同 GET 包装；空列表移出所有成员，不删除学生 |
+| `POST /api/audiences/{aid}/members` | `{name,code?}` → `{student}`，一次事务创建学生并加入本班 |
+
+列表中的 audience 增加 `direct_teachers`、`teachers`、`classes`、`member_count`。`teachers` 是直接教师与所在班级/小组教师的并集。名单只接受学生；有名单关联的记录不能直接改变类型。编号列表最多 1000 项且不能重复。名单/归属 GET 返回的 `revision` 必须原样随 PUT 提交；过期或缺失返回 409，不写入。不存在的教师/对象返回 404，无效类型或名称返回 400。
+
+## 19 已有功能的增量接口补记
+
+### 换题与更新版本
+
+- `POST /api/items/{iid}/swap`：提交 `question_id`、可选 `question_version_id`、`operation_id` 和 `base_revision`。原位换题，保留条目位置与角色；专属设置清空项见返回的 `dropped`。
+- `GET /api/collections/{cid}/version-updates`：查询题单的新版候选；`POST /api/collections/{cid}/version-updates/apply` 提交 `updates:[{item_id,question_version_id?}]`（1–100 条）及操作编号、修订号，逐条结果见 `results`，成功数量见 `updated`。前端必须展示每条结果，不能只按 HTTP 200 判断全部成功。
+- `POST /api/collections/{cid}/commands`：题单操作入口。换题、换版及相关题单修改由操作编号防重复、修订号防覆盖；具体操作参数沿用各接口实现与测试，冲突时重新读取题单。
+
+### 逐题反馈
+
+`GET /api/usages/{uid}/item-feedback` 返回本次实际使用的条目范围与观察记录；`POST` 提交 `{item_id,error_note,error_tags?,sample_scope?,suggestion?}`。`error_note` 必填。同次使用同一条目重复提交更新现有观察；超出使用范围返回 409 `not_in_use_scope`。该接口与整次使用反馈独立，目前逐题反馈网页入口尚未接入。
+
+### 完整备份
+
+- `GET /api/backups` 列出本题库的完整备份，`POST /api/backups` 创建。
+- `POST /api/backups/import` 上传原始 ZIP（二进制，最多 512 MB），`GET /api/backups/{bid}/download` 下载 ZIP。
+- `POST /api/backups/{bid}/check` 校验清单与文件；`POST /api/backups/{bid}/restore` 要求 `{confirmed:true}`，创建独立恢复副本，不覆盖当前题库。
+- 旧 `POST /api/backup` 仍为数据库备份；数据库备份不能替代包含附件的完整备份。
+
+### 检索方案、来源批改与纠错
+
+- `GET/POST /api/search/presets`、`PATCH/DELETE /api/search/presets/{pid}`：保存或更新使用 `{name,query}`，query 的值均为字符串；删除不存在方案返回 404。
+- `POST /api/sources/batch-preview`：`{items:[{id,changes:{...}}]}`，1–100 份，返回修改前后与 `preview_hash`。`POST /api/sources/batch-apply` 提交相同 items 和 hash，数据变化返回 409。可修改 `name,school,year,region,exam_type,grade`。
+- `GET /api/source-changes` 查最近 30 次；`POST /api/source-changes/{cid}/undo` 撤销。来源已再次变化时拒绝覆盖。
+- `GET/POST /api/questions/{qid}/corrections`：登记 `{version_id,category,description,suggestion?}`；category 为 `stem,answer,solution,figure,tags,source,difficulty,other`。
+- `PATCH /api/corrections/{cid}`：`{status,expected_status,note,fixed_version_id?}`；status 为 `pending,resolved,dismissed`。处理说明必填，旧状态不匹配返回 409；只有 resolved 可以关联修订版本。登记纠错本身不修改题目。

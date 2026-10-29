@@ -6,4 +6,4 @@ from __future__ import annotations
 
 
 def register_all() -> None:
-    from app.api import workspace, content, teaching, system, ai, corrections, layout  # noqa: F401
+    from app.api import workspace, content, teaching, system, ai, corrections, layout, roster  # noqa: F401

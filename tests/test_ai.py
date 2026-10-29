@@ -600,4 +600,26 @@ class AITest(unittest.TestCase):
         self.assertIsNone(row2['adopted_version_id'])
         self.assertEqual(db.scalar('SELECT count(*) FROM question_version WHERE question_id=?',(q2,)),1)
 
+    def test_auto_adopt_unexpected_failure_is_visible_and_next_question_continues(self):
+        from app.ai import adopt
+        qids=[self.call('/api/questions',{'qtype':'blank','stem':'计算 $2+2$。','answer':'4','occurrence':{'pending':1}})['question']['id'] for _ in range(2)]
+        jid=self.call('/api/ai/jobs',{'question_ids':qids,'budget_cny':2})['job_ids'][0]
+        with db.transaction() as conn:conn.execute("UPDATE ai_job SET state='running' WHERE id=?",(jid,))
+        real=adopt.accept_candidate;seen=[]
+        def accept(candidate,*args,**kwargs):
+            seen.append(candidate['id'])
+            if len(seen)==1:raise KeyError('synthetic failure')
+            return real(candidate,*args,**kwargs)
+        def fake(_j,_q,stage,_s,_p,images=(),**kw):return copy.deepcopy(SOLVE if stage=='solve' else REVIEW)
+        with patch.object(provider,'call',side_effect=fake),patch.object(adopt,'accept_candidate',side_effect=accept):
+            worker.run_job(db.one('SELECT * FROM ai_job WHERE id=?',(jid,)))
+        rows=db.all_('SELECT * FROM ai_question WHERE job_id=? ORDER BY id',(jid,))
+        self.assertEqual(sorted(r['state'] for r in rows),['adopted','ready'])
+        failed=next(r for r in rows if r['state']=='ready')
+        self.assertEqual(json.loads(failed['error_json'])['error_type'],'KeyError')
+        self.assertEqual(db.scalar("SELECT count(*) FROM audit_log WHERE action='ai_auto_adopt_failed' AND target_id=?",(failed['id'],)),1)
+        candidate=db.one('SELECT * FROM ai_candidate WHERE ai_question_id=? AND revision=?',(failed['id'],failed['current_revision']))
+        real(candidate,list(adopt.PARTS),auto=True)
+        self.assertIsNone(db.one('SELECT error_json FROM ai_question WHERE id=?',(failed['id'],))['error_json'])
+
 if __name__=='__main__':unittest.main()

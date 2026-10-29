@@ -58,6 +58,8 @@ def update_preset(req):
 @delete('/api/search/presets/{pid}')
 def delete_preset(req):
     with db.transaction() as conn:
+        if not db.one('SELECT id FROM search_preset WHERE id=?',(req.params['pid'],)):
+            raise ApiError(404,'not_found','检索方案不存在')
         conn.execute('DELETE FROM search_preset WHERE id=?',(req.params['pid'],))
         db.audit('delete_search','search_preset',req.params['pid'])
     return {'ok':True}

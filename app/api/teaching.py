@@ -1803,7 +1803,8 @@ def audience_list(req):
         sql += " AND a.kind = ?"
         params.append(kind)
     sql += " ORDER BY a.kind, a.name"
-    items = db.all_(sql, params)
+    from app.api import roster
+    items = roster.filter_rows(roster.decorate(db.all_(sql, params)), req.arg('teacher_id'))
     return {"items": items, "total": len(items)}
 
 
@@ -1812,11 +1813,12 @@ AUDIENCE_FIELDS = ("kind", "name", "code", "note")
 
 @post("/api/audiences")
 def audience_create(req):
+    from app.api import roster
     body = req.json or {}
     kind = _enum(body.get("kind"), AUDIENCE_KINDS, "kind")
     if not kind:
         raise ApiError(400, "missing_field", "缺少必填字段：kind（class 班级、group 小组、student 个人）")
-    name = _text(body.get("name")).strip()
+    name = roster.text(body.get('name'), '名称')
     if not name:
         raise ApiError(400, "missing_field", "缺少必填字段：name（名称）")
     with db.transaction() as conn:
@@ -1826,6 +1828,7 @@ def audience_create(req):
             (aid, kind, name, None if body.get("code") is None else _text(body.get("code")),
              None if body.get("note") is None else _text(body.get("note")), db.now()),
         )
+        if 'teacher_ids' in body:roster.assign(conn, aid, body['teacher_ids'])
         db.audit("audience.create", "audience", aid, {"kind": kind, "name": name})
     return {"audience": db.one("SELECT * FROM audience WHERE id = ?", (aid,))}
 
@@ -1841,18 +1844,21 @@ def audience_update(req):
         raise ApiError(400, "bad_field", f"使用对象不接受这些字段：{'、'.join(unknown)}")
     data: dict = {}
     if "kind" in body:
+        if body["kind"] not in AUDIENCE_KINDS:
+            raise ApiError(400, "bad_field", "请选择有效的班级、小组或学生类型")
         data["kind"] = _enum(body["kind"], AUDIENCE_KINDS, "kind")
     if "name" in body:
-        name = _text(body["name"]).strip()
-        if not name:
-            raise ApiError(400, "bad_field", "名称不能为空")
-        data["name"] = name
+        from app.api.roster import text
+        data["name"] = text(body["name"], "名称")
     for field in ("code", "note"):
         if field in body:
             data[field] = None if body[field] is None else _text(body[field])
     if not data:
         raise ApiError(400, "empty_body", "没有需要修改的字段")
     with db.transaction() as conn:
+        if 'kind' in data and data['kind'] != db.one('SELECT kind FROM audience WHERE id=?',(aid,))['kind']:
+            linked = db.scalar('SELECT count(*) FROM roster_member WHERE container_id=? OR student_id=?',(aid,aid))
+            if linked:raise ApiError(409,'linked_roster','已有班级名单关联，不能直接改变类型')
         assignments = ", ".join(f"{key} = ?" for key in data)
         conn.execute(f"UPDATE audience SET {assignments} WHERE id = ?",
                      list(data.values()) + [aid])
@@ -2074,9 +2080,9 @@ def usage_item_feedback_create(req):
         raise ApiError(400, "missing_field", "缺少 error_note（具体错在哪）")
     tags = body.get("error_tags")
     tags = [str(t) for t in tags if str(t).strip()] if isinstance(tags, list) else None
-    existing = db.one("SELECT id FROM usage_item_feedback WHERE usage_id = ? AND item_id = ?",
-                      (uid, item_id))
     with db.transaction() as conn:
+        existing = db.one("SELECT id FROM usage_item_feedback WHERE usage_id = ? AND item_id = ?",
+                          (uid, item_id))
         if existing:
             conn.execute(
                 "UPDATE usage_item_feedback SET error_note = ?, error_tags = ?, sample_scope = ?, "

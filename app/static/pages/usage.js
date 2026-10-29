@@ -9,6 +9,7 @@ import {
 } from '../lib/constants.js';
 import { flash, openModal, runSubmit } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
+import { mountRoster } from '../lib/roster.js';
 
 export default async function mount(root, ctx) {
   let audiences = [];
@@ -16,6 +17,7 @@ export default async function mount(root, ctx) {
   let usages = [];
   let collections = [];
   let releases = [];
+  let rosterPanel, selectedTeacher="", teacherContext, recentRun=0;
 
   root.innerHTML = `
     <div class="page-head">
@@ -42,6 +44,7 @@ export default async function mount(root, ctx) {
               <label class="field"><span data-audience-name-label>班级名称<span class="req">*</span></span>
                 <input type="text" name="name" placeholder="如 高一（3）班">
               </label>
+              <label class="field"><span>负责教师</span><select id="audience-teacher"><option value="">暂不分配</option></select></label>
               <label class="field"><span>代号</span><input type="text" name="code" placeholder="如 G1-3"></label>
               <label class="field"><span>备注</span><textarea name="note" rows="2" placeholder="如 分层 B 组，每周一次"></textarea></label>
               <button type="submit" class="btn btn-primary">添加班级</button>
@@ -214,22 +217,7 @@ export default async function mount(root, ctx) {
   $('#audience-form select[name="kind"]', root).addEventListener('change', updateAudienceForm);
   updateAudienceForm();
 
-  function renderAudiences() {
-    if (!audiences.length) {
-      audienceList.innerHTML = `<div class="card-body">${emptyState('还未添加班级或学生', '先添加一个班级、小组或学生，再记录练习安排和讲义使用情况。')}</div>`;
-      return;
-    }
-    audienceList.innerHTML = `<div class="table-wrap"><table class="table">
-      <thead><tr><th>编号</th><th>类型</th><th>名称</th><th>代号</th><th>备注</th></tr></thead>
-      <tbody>${audiences.map((row) => `<tr>
-        <td class="mono">${esc(row.id)}</td>
-        <td>${esc(AUDIENCE_KINDS[row.kind] || row.kind || '—')}</td>
-        <td>${esc(row.name)}</td>
-        <td class="mono">${esc(row.code || '—')}</td>
-        <td class="hint">${esc(row.note || '')}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
-  }
+  function renderAudiences() { rosterPanel.setData(audiences); }
 
   async function loadAudiences() {
     try {
@@ -259,12 +247,14 @@ export default async function mount(root, ctx) {
         method: 'POST',
         body: {
           kind: data.get('kind'),
+          teacher_ids: $('#audience-teacher',root).value ? [$('#audience-teacher',root).value] : [],
           name,
           code: String(data.get('code') || '').trim() || null,
           note: String(data.get('note') || '').trim() || null,
         },
       });
       form.reset();
+      $('#audience-teacher',root).value=selectedTeacher==='_unassigned'?'':selectedTeacher;
       flash('已添加。', 'ok');
       await loadAudiences();
       refreshMeta();
@@ -279,13 +269,14 @@ export default async function mount(root, ctx) {
   // ------------------------------------------------------------ 练习安排
 
   function renderAssignments() {
-    if (!assignments.length) {
+    const shownAssignments=assignments.filter(row=>!selectedTeacher||audiences.some(a=>a.id===row.audience_id));
+    if (!shownAssignments.length) {
       assignmentList.innerHTML = `<div class="card-body">${emptyState('还没有练习安排', '选择题单、班级或学生，记录计划发放日期。')}</div>`;
       return;
     }
     assignmentList.innerHTML = `<div class="table-wrap"><table class="table">
       <thead><tr><th>编号</th><th>练习</th><th>题单</th><th>班级、小组或学生</th><th>计划日期</th><th>状态</th><th>操作</th></tr></thead>
-      <tbody>${assignments.map((row) => {
+      <tbody>${shownAssignments.map((row) => {
         const status = row.status || 'planned';
         return `<tr>
           <td class="mono">${esc(row.id)}</td>
@@ -378,13 +369,14 @@ export default async function mount(root, ctx) {
   }
 
   function renderUsages() {
-    if (!usages.length) {
+    const shownUsages=usages.filter(row=>!selectedTeacher||audiences.some(a=>a.id===row.audience_id));
+    if (!shownUsages.length) {
       usageList.innerHTML = `<div class="card-body">${emptyState('还没有讲义使用记录', '讲义导出后，在这里登记发给谁、使用日期和实际用到的题目。')}</div>`;
       return;
     }
     usageList.innerHTML = `<div class="table-wrap"><table class="table">
       <thead><tr><th>编号</th><th>班级、小组或学生</th><th>日期</th><th>用途</th><th>已生成讲义</th><th>实际题目</th><th>反馈</th></tr></thead>
-      <tbody>${usages.map((row) => `<tr class="usage-row">
+      <tbody>${shownUsages.map((row) => `<tr class="usage-row">
         <td class="mono">${esc(row.id)}</td>
         <td>${esc(audienceName(row))}</td>
         <td class="num">${esc(fmtDate(row.used_on))}</td>
@@ -588,12 +580,14 @@ export default async function mount(root, ctx) {
       return;
     }
     result.innerHTML = loading('正在回查…');
+    const ticket=++recentRun;
     try {
       const payload = await api(`/api/audiences/${encodeURIComponent(audienceId)}/recent`, {
         query: { days },
       });
-      renderRecent(result, payload, days);
+      if(ctx.current()&&ticket===recentRun)renderRecent(result, payload, days);
     } catch (err) {
+      if(!ctx.current()||ticket!==recentRun)return;
       flash(err.message);
       result.innerHTML = `<div class="modal-error">${esc(err.message)}</div>`;
     }
@@ -694,5 +688,17 @@ export default async function mount(root, ctx) {
     await Promise.all([loadAssignments(), loadUsages()]);
   }
 
+  const meta=await api('/api/meta');if(!ctx.current())return;
+  rosterPanel=mountRoster(audienceList,{scope:meta.draft_scope,current:()=>ctx.current(),onChange:({items,teacherId,teachers})=>{
+    const changedScope=selectedTeacher!==teacherId;
+    audiences=items;selectedTeacher=teacherId;syncSelects();renderAssignments();renderUsages();
+    const owner=$('#audience-teacher',root),previous=owner.value;
+    owner.innerHTML='<option value="">暂不分配</option>'+teachers.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+    owner.value=teacherContext!==teacherId?(teachers.some(t=>t.id===teacherId)?teacherId:''):previous;
+    teacherContext=teacherId;
+    if(changedScope){recentRun++;$('#recent-result',root).innerHTML='<p class="hint">请重新选择班级、小组或学生进行查询。</p>';}
+  }});
+  ctx.onCleanup(()=>rosterPanel.destroy());
+  try{await rosterPanel.refresh();}catch(e){flash(e.message);}
   await loadBase();
 }

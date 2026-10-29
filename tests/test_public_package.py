@@ -1,6 +1,8 @@
 import contextlib,shutil,uuid
 import contextlib,hashlib,io,json,tempfile,unittest,zipfile
 from pathlib import Path
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from scripts.package_public import allowed,build,candidates,scan
 
 @contextlib.contextmanager
@@ -47,3 +49,6 @@ class PublicPackageTest(unittest.TestCase):
             root=Path(tmp);(root/'README.md').write_text('public');output=root/'archive.zip';output.write_bytes(b'keep')
             with self.assertRaises(ValueError):build(root,output)
             self.assertEqual(output.read_bytes(),b'keep')
+
+if __name__ == '__main__':
+    unittest.main()

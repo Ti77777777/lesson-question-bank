@@ -184,7 +184,7 @@ def accept_candidate(candidate, parts, auto=False, actor=None):
         conn.execute('INSERT INTO ai_decision VALUES(?,?,?,?,?,?,?,?,?)',
                      (db.next_id(conn, 'AID'), candidate['id'], candidate['content_hash'], 'accept',
                       db.dumps({'parts': parts, 'format_normalized': format_normalized}), actor, vid, candidate['id'], db.now()))
-        conn.execute("UPDATE ai_question SET state='adopted',adopted_version_id=? WHERE id=?", (vid, row['id']))
+        conn.execute("UPDATE ai_question SET state='adopted',adopted_version_id=?,error_json=NULL WHERE id=?", (vid, row['id']))
         db.audit('ai_accept', 'question', qid, {'candidate_id': candidate['id'], 'version_id': vid, 'parts': parts, 'auto': auto, 'format_normalized': format_normalized}, actor=actor)
     return {'question_id': qid, 'version_id': vid, 'idempotent': False}
 
@@ -198,18 +198,18 @@ def auto_adopt(job):
     rows = db.all_("SELECT * FROM ai_question WHERE job_id=? AND state='ready' AND quality_state='no_issue_found' ORDER BY CAST(original_qno AS INTEGER),id", (job['id'],))
     adopted = 0
     for row in rows:
-        candidate = db.one('SELECT * FROM ai_candidate WHERE ai_question_id=? AND revision=?', (row['id'], row['current_revision']))
-        if not candidate:
-            continue
         try:
+            candidate = db.one('SELECT * FROM ai_candidate WHERE ai_question_id=? AND revision=?', (row['id'], row['current_revision']))
+            if not candidate:raise ApiError(409,'missing_candidate','候选结果缺失，请核对后重试')
             accept_candidate(candidate, list(PARTS), auto=True)
             adopted += 1
-        except ApiError as exc:
+        except Exception as exc:
+            known=isinstance(exc,(ApiError,provider.ProviderError))
+            failure={'code':getattr(exc,'code','auto_adopt_failed'), 'error_type':type(exc).__name__,
+                     'message':str(exc) if known else '自动入库失败，请核对后手动采纳（'+type(exc).__name__+'）'}
             with db.transaction() as conn:
-                db.audit('ai_auto_adopt_failed', 'ai_question', row['id'], {'code': exc.code, 'message': exc.message})
-        except provider.ProviderError as exc:
-            with db.transaction() as conn:
-                db.audit('ai_auto_adopt_failed', 'ai_question', row['id'], {'code': getattr(exc, 'code', 'invalid'), 'message': str(exc)})
+                conn.execute("UPDATE ai_question SET error_json=? WHERE id=? AND state='ready'",(db.dumps(failure),row['id']))
+                db.audit('ai_auto_adopt_failed', 'ai_question', row['id'], failure)
     if adopted:
         with db.transaction() as conn:
             db.audit('ai_auto_adopt', 'ai_job', job['id'], {'adopted': adopted})

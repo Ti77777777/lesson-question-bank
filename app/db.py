@@ -1,11 +1,12 @@
 """SQLite 存取层：连接、编号、事务、审计。
 
-单教师本地使用，采用「每线程一个连接」+ WAL。
+本地使用，采用「每线程一个连接」+ WAL；教师归属不代表访问权限。
 """
 from __future__ import annotations
 
 import json
 import os
+import uuid
 import sqlite3
 import threading
 from contextlib import contextmanager
@@ -191,10 +192,10 @@ def audit(action: str, target_type: str | None = None,
 # ------------------------------------------------------------------ 备份
 def backup(target_dir: Path | None = None) -> Path:
     """使用 sqlite3 在线备份 API，保证一致性。"""
-    target_dir = target_dir or (ROOT / "backup")
+    target_dir = target_dir or store_dir('backup')
     target_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(TZ).strftime("%Y%m%d-%H%M%S")
-    target = target_dir / f"qbank-{stamp}.db"
+    stamp = datetime.now(TZ).strftime("%Y%m%d-%H%M%S-%f")
+    target = target_dir / f"{DB_PATH.stem}-{stamp}-{uuid.uuid4().hex[:8]}.db"
     dest = sqlite3.connect(target)
     try:
         db().backup(dest)

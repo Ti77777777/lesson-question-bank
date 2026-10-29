@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import unittest
 import urllib.error
 import urllib.request
@@ -98,6 +99,16 @@ class ItemFeedbackTest(unittest.TestCase):
         status, data = self.call("GET", "/api/usages/USG000001/item-feedback")
         self.assertEqual(data["total"], 1)
         self.assertEqual(data["items"][0]["error_note"], "补充说明")
+
+    def test_05_simultaneous_submissions_do_not_duplicate_or_fail(self):
+        with db.transaction() as conn:conn.execute("DELETE FROM usage_item_feedback WHERE usage_id='USG000001'")
+        start=threading.Barrier(6)
+        def submit(i):
+            start.wait()
+            return self.call('POST','/api/usages/USG000001/item-feedback',{'item_id':'ITM000001','error_note':'并发观察'+str(i)})
+        with ThreadPoolExecutor(max_workers=6) as pool:results=list(pool.map(submit,range(6)))
+        self.assertTrue(all(status==200 for status,_ in results))
+        self.assertEqual(db.scalar("SELECT count(*) FROM usage_item_feedback WHERE usage_id='USG000001'"),1)
 
 
 if __name__ == "__main__":

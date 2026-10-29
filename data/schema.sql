@@ -328,6 +328,28 @@ CREATE TABLE IF NOT EXISTS audience (
     created_at TEXT NOT NULL
 );
 
+-- 教师归属用于筛选和名单管理，不代表登录或访问权限。
+CREATE TABLE IF NOT EXISTS teacher (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    note TEXT,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS audience_teacher (
+    audience_id TEXT NOT NULL REFERENCES audience(id),
+    teacher_id TEXT NOT NULL REFERENCES teacher(id),
+    PRIMARY KEY (audience_id, teacher_id)
+);
+CREATE INDEX IF NOT EXISTS ix_audience_teacher_teacher ON audience_teacher(teacher_id, audience_id);
+CREATE TABLE IF NOT EXISTS roster_member (
+    container_id TEXT NOT NULL REFERENCES audience(id),
+    student_id TEXT NOT NULL REFERENCES audience(id),
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (container_id, student_id),
+    CHECK (container_id <> student_id)
+);
+CREATE INDEX IF NOT EXISTS ix_roster_student ON roster_member(student_id, container_id);
+
 CREATE TABLE IF NOT EXISTS assignment (
     id            TEXT PRIMARY KEY,
     title         TEXT NOT NULL,

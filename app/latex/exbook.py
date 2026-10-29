@@ -13,6 +13,7 @@ from app import db
 
 TEMPLATE_DIR = db.ROOT / "templates" / "exbook"
 CLASS_FILE = TEMPLATE_DIR / "ExBook.cls"
+# Optional legacy assets may be archived when present; the renderer does not request them.
 COVER_FILE = "img/cover.jpg"
 WATER_FILE = "img/water.png"
 
@@ -540,8 +541,6 @@ def render_config(options: dict) -> str:
         "\\makeatletter",
         "\\renewcommand\\motto[1]{\\def\\ExBook@value@motto{\\kaishu “#1”}}",
         "\\makeatother",
-        "\\CoverImg{%s}" % COVER_FILE,
-        "\\WaterImg{%s}" % WATER_FILE,
         "\\PreTitle{%s}" % plain(opts["pretitle"]),
         "\\Title{%s}" % plain(opts["title"]),
         "\\motto{%s}" % plain(opts["motto"]),

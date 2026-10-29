@@ -79,6 +79,7 @@ class FeatureTest(unittest.TestCase):
         self.call('/api/search/presets',{'name':'bad','query':{'tags':[]}},status=400)
         self.call('/api/search/presets',{'name':'duplicate','query':{}})
         self.call('/api/search/presets',{'name':'duplicate','query':{}},status=409)
+        self.call('/api/search/presets/MISSING',method='DELETE',status=404)
 
     def test_presets_keep_independent_multi_modes_and_unions(self):
         query={'multi':'category,grade,levels,year','source_category':'mock,monthly',
