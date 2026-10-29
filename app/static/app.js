@@ -132,6 +132,8 @@ async function loadMeta() {
   try {
     const meta = await api('/api/meta');
     const counts = meta.counts || {};
+    const databaseLabel=document.getElementById('foot-database');
+    if(databaseLabel)databaseLabel.textContent=meta.db_path||'当前题库';
     const parts = [
       ['题目', counts.questions ?? 0],
       ['题单', counts.collections ?? 0],

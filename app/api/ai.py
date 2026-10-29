@@ -290,6 +290,8 @@ def edit(req):
     except provider.ProviderError as exc:error(exc)
     with db.transaction() as conn:
         row,job=_editable_question(conn,req.params['qid'])
+        if req.body('base_revision', row['current_revision']) != row['current_revision']:
+            raise ApiError(409,'question_changed','题面已变化，草稿已保留，请重新核对')
         previous=worker.unpack(row,'source_json')
         # Editing text never grants access to arbitrary local files or changes the baseline.
         for k in ('figure_paths','statement_images','pages','material_refs'):source[k]=previous.get(k,[])

@@ -9,6 +9,7 @@ import { addToBasket, readBasket, removeFromBasket } from '../lib/basket.js';
 import { upgradeMath } from '../lib/math.js';
 import { openCorrections } from '../lib/corrections.js';
 import { mountSavedSearches } from '../lib/saved-searches.js';
+import { openQuestionDrawer } from '../lib/question-drawer.js';
 
 const SORTS = [['recent', '最近录入'], ['difficulty', '思维难度优先'], ['used', '最近使用']];
 const LEVELS = [['', '不限'], ['basic', '基础', '1–2'], ['regular', '常规', '3'], ['advanced', '进阶', '4–5'], ['unrated', '未标注']];
@@ -276,7 +277,7 @@ export default async function mount(root, ctx) {
       return `<article class="q-card" data-open="${esc(item.id)}">
         <div class="q-card-main">
           <div class="q-meta-top">
-            <a class="qid" href="#/question/${esc(item.id)}">${esc(item.id)}</a>
+            <a class="qid" href="#/question/${esc(item.id)}" data-preview="${esc(item.id)}">${esc(item.id)}</a>
             ${badge(QTYPES[item.qtype] || item.qtype || '未分题型', 'plain')}
             ${badge(reviewLabel(item.review_state), reviewTone(item.review_state))}
             ${item.status === 'inactive' ? badge('停用', 'na') : ''}
@@ -299,6 +300,7 @@ export default async function mount(root, ctx) {
             ${diffCell('综合', dif.scope)}
           </div>
           <div class="used">最近使用：<b>${item.used_on ? esc(item.used_on.slice(0, 10)) : '无记录'}</b></div>
+          <button type="button" class="btn btn-sm" data-preview="${esc(item.id)}">查看题目</button>
           <button type="button" class="btn btn-sm ${inBasketNow ? '' : 'btn-primary'}" data-add="${esc(item.id)}">
             ${inBasketNow ? '移出选题篮' : '加入选题篮'}
           </button>
@@ -337,6 +339,8 @@ export default async function mount(root, ctx) {
   }
 
   resultsEl.addEventListener('click', (event) => {
+    const preview=event.target.closest('[data-preview]');
+    if(preview&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey){event.preventDefault();showPreview(preview.dataset.preview);return;}
     const correctionBtn = event.target.closest('[data-correct]');
     if (correctionBtn) {
       event.preventDefault();
@@ -366,8 +370,17 @@ export default async function mount(root, ctx) {
     }
     if (event.target.closest('a, button, input, select')) return;
     const card = event.target.closest('[data-open]');
-    if (card) location.hash = `#/question/${encodeURIComponent(card.dataset.open)}`;
+    if (card && !window.getSelection()?.toString()) showPreview(card.dataset.open);
   });
+
+  function showPreview(id){
+    const modal=openQuestionDrawer({id,ids:items.map(i=>i.id),onCorrection:(qid,{pendingCount,totalCount})=>{
+      if(!ctx.current())return;const row=items.find(i=>i.id===qid);if(!row)return;
+      row.correction_pending=pendingCount;row.correction_count=totalCount;
+      if(state.onlyCorrections&&!pendingCount){items=items.filter(i=>i.id!==qid);total--;}
+      renderResults();
+    }});ctx.onCleanup?.(modal.close);
+  }
 
   $('#search-basket', root).addEventListener('click', openBasket);
   document.addEventListener('basket:change', syncBasketButtons);

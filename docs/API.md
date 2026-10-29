@@ -393,3 +393,21 @@
 - AI批次的 `config_json.connection` 固定创建时的接口设置，后续继续任务不随全局设置改变。
 
 协议、能力验证及费用范围见 [多模型接口接入](多模型接口接入.md)。
+
+
+## 编辑体验扩展（v0.3）
+
+- GET /api/collections/{cid}/layout：增加 revision 和 draft_scope。
+- PUT /api/collections/{cid}/layout：可传 base_revision，冲突返回409；成功返回新 revision。旧客户端不传时仍兼容。
+- GET /api/meta：增加 draft_scope，供本机草稿按数据库隔离。
+- GET /api/layout-templates：返回当前题库的自定义样式 items。
+- POST /api/layout-templates：接收 name、options、space_mm，返回 template；最多50份，不包含标题、副标题或逐题数据。
+- DELETE /api/layout-templates/{tid}：删除自定义样式；不修改已套用题单。
+- POST /api/ai/questions/{qid}/edit：可传 base_revision；旧题面修订冲突返回409。候选修订仍使用 content_hash 核对。
+
+表单草稿仅存浏览器，不增加模型请求，详见[编辑与草稿](编辑与草稿.md)。
+
+
+## 直接排版扩展（v0.4）
+
+排版保存及PDF校样的layout对象可包含order数组，每项为{id, section_id}，须完整覆盖当前题单全部条目且不重复。section_id可为本题单分节编号或null；保存时与排版设置在同一事务中更新。order不作为永久覆盖写入layout_options，而是更新collection_item。base_revision同时检查题单、条目及分节变更，冲突返回409。

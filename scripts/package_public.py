@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse,hashlib,json,re,sys,zipfile
 from pathlib import Path,PurePosixPath
 ROOT=Path(__file__).resolve().parents[1]
-ROOT_FILES={'.gitignore','.env.example','README.md','LICENSE','NOTICE','requirements.txt','package.json','run.py','启动.bat','启动-演示数据.bat','启动AI工作台.bat'}
+ROOT_FILES={'.gitignore','.env.example','README.md','AGENTS.md','CHANGELOG.md','LICENSE','NOTICE','requirements.txt','package.json','run.py','启动.bat'}
 SCRIPTS={'audit_project.py','import_gaokao_tex.py','test_backend.py','test_frontend.mjs','package_public.py'}
 SUFFIXES={'app':{'.py','.sql','.js','.css','.html'},'tests':{'.py','.mjs'},'docs':{'.md'},'examples':{'.json'}}
 RULES={

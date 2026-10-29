@@ -8,6 +8,7 @@ import {
 import { flash, flashAfterNavigation, pickTags } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { upgradeMath } from '../lib/math.js';
+import { draftStore } from '../lib/drafts.js';
 
 function intOrNull(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -44,9 +45,10 @@ export default async function mount(root, ctx) {
     }
   }
 
-  const [tagRes, sourceRes] = await Promise.all([
+  const [tagRes, sourceRes, metaRes] = await Promise.all([
     apiOptional('/api/tags'),
     apiOptional('/api/sources'),
+    api('/api/meta'),
   ]);
   if (!ctx.current()) return;
 
@@ -248,6 +250,16 @@ export default async function mount(root, ctx) {
   `;
 
   const form = $('#newq-form', root);
+  const draft = draftStore(metaRes.draft_scope, `new-question:${inboxId||'blank'}`), previousDraft=draft.read();
+  let draftReady=false, submitted=false;
+  const draftBar=document.createElement('div');draftBar.className='draft-banner';form.before(draftBar);
+  draftBar.innerHTML='<span data-draft-status>填写内容会暂存为本机草稿，提交后才录入题库。</span>';
+  function keepDraft(){
+    if(!draftReady||submitted)return;
+    const fields=Object.fromEntries([...form.querySelectorAll('[name]')].map(el=>[el.name,el.type==='checkbox'?el.checked:el.value]));
+    const ok=draft.write({fields,qtype,answerKeys:[...answerKeys],tags,options,subquestions,solutions,occurrences});
+    draftBar.querySelector('[data-draft-status]').textContent=ok?'草稿已保留在本机 · 尚未录入题库':'浏览器无法保留草稿，请及时保存题目';
+  }
   const optionList = $('#option-list', root);
   const keyList = $('#answer-key-list', root);
   const subqList = $('#subq-list', root);
@@ -366,6 +378,7 @@ export default async function mount(root, ctx) {
   // ------------------------------------------------------------ 标签
 
   function renderTags() {
+    if(draftReady)keepDraft();
     if (!tags.length) {
       tagChips.innerHTML = '<span class="hint">未选择标签。知识点标签会影响检索与组题检查。</span>';
       return;
@@ -686,6 +699,7 @@ export default async function mount(root, ctx) {
       if (!newId) {
         throw new Error('保存成功，但后端没有返回题目编号，无法跳转。');
       }
+      submitted=true;draft.clear();
 
       let extraWarning = '';
       for (const occ of extraOccurrences) {
@@ -726,4 +740,18 @@ export default async function mount(root, ctx) {
   if (tagError) flash(tagError);
   else if (sourceError) flash(sourceError);
   upgradeMath(root);
+  if(previousDraft){
+    draftBar.insertAdjacentHTML('beforeend','<button type="button" class="btn btn-sm" data-restore-draft>恢复上次草稿</button><button type="button" class="btn btn-sm" data-discard-draft>丢弃旧草稿</button>');
+    const removeActions=()=>draftBar.querySelectorAll('button').forEach(b=>b.remove());
+    draftBar.querySelector('[data-restore-draft]').onclick=()=>{
+      const d=previousDraft.data;qtype=d.qtype;answerKeys=new Set(d.answerKeys);tags=d.tags;options=d.options;subquestions=d.subquestions;solutions=d.solutions;occurrences=d.occurrences;
+      for(const el of form.querySelectorAll('[name]'))if(Object.hasOwn(d.fields,el.name)){if(el.type==='checkbox')el.checked=Boolean(d.fields[el.name]);else el.value=d.fields[el.name];}
+      renderOptions();renderSubquestions();renderSolutions();renderOccurrences();renderTags();syncQtype();removeActions();keepDraft();
+    };
+    draftBar.querySelector('[data-discard-draft]').onclick=()=>{draft.clear();removeActions();draftBar.querySelector('[data-draft-status]').textContent='旧草稿已丢弃，可继续录入。';};
+  }
+  draftReady=true;
+  const changed=()=>{keepDraft();draftBar.querySelectorAll('button').forEach(b=>b.remove());};
+  form.addEventListener('input',changed);form.addEventListener('change',changed);
+  form.addEventListener('click',e=>{if(e.target.closest('button:not([type="submit"])'))queueMicrotask(keepDraft);});
 }

@@ -92,6 +92,18 @@ class AITest(unittest.TestCase):
         c=self.call('/api/ai/jobs/'+j)['questions'][0]['candidate']
         self.call('/api/ai/candidates/'+c['id']+'/accept',{'confirmed':True,'content_hash':c['content_hash']},409)
 
+    def test_source_editor_rejects_stale_revision_without_changing_source(self):
+        _,jid,detail,_=self.question_job();question=detail['questions'][0]
+        body={'source':copy.deepcopy(question['source']),'base_revision':question['current_revision']}
+        body['source']['stem']='计算 $2+2$，写出结果。'
+        self.call('/api/ai/questions/'+question['id']+'/edit',body)
+        body['source']['stem']='旧页面的错误覆盖'
+        self.call('/api/ai/questions/'+question['id']+'/edit',body,409)
+        latest=self.call('/api/ai/jobs/'+jid)['questions'][0]
+        self.assertEqual(latest['source']['stem'],'计算 $2+2$，写出结果。')
+        self.assertEqual(latest['state'],'recognized')
+        self.assertIsNone(latest['candidate'])
+
     def test_03_upload_security_and_original_preservation(self):
         raw=b'%PDF-1.4\n%test_original_bytes'
         f=self.call('/api/ai/files',raw,headers={'X-Filename':'sample.pdf'})['file']

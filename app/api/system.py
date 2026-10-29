@@ -78,6 +78,7 @@ def meta(req):
         "schema_version": db.scalar("SELECT value FROM meta WHERE key = 'schema_version'"),
         "root": db.ROOT.as_posix(),
         "db_path": db.rel_to_root(db.DB_PATH),
+        "draft_scope": db.rel_to_root(db.DB_PATH) + ':' + str(db.scalar("SELECT value FROM meta WHERE key='created_at'")),
         "counts": counts,
         "today": db.today(),
     }

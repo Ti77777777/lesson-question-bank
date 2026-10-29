@@ -80,6 +80,7 @@ export function openModal({
   if (flush) bodyEl.classList.add('flush');
 
   let closed = false;
+  const previousFocus = document.activeElement;
   const close = () => {
     if (closed) return;
     closed = true;
@@ -87,12 +88,20 @@ export function openModal({
     document.removeEventListener('keydown', onKey);
     if (!root.querySelector('.modal-mask')) document.body.classList.remove('modal-open');
     if (onClose) onClose();
+    if (previousFocus?.isConnected) previousFocus.focus({preventScroll:true});
   };
 
   function onKey(event) {
+    if (root.querySelector('.modal-mask:last-child') !== mask) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       close();
+    }
+    if (event.key === 'Tab') {
+      const nodes=[...modal.querySelectorAll('button,a[href],input,select,textarea,[tabindex="0"]')].filter(n=>!n.disabled&&n.getClientRects().length);
+      const first=nodes[0],last=nodes.at(-1);
+      if(event.shiftKey&&(document.activeElement===first||!modal.contains(document.activeElement))){event.preventDefault();last?.focus();}
+      else if(!event.shiftKey&&(document.activeElement===last||!modal.contains(document.activeElement))){event.preventDefault();first?.focus();}
     }
   }
 
@@ -104,6 +113,7 @@ export function openModal({
   root.appendChild(mask);
 
   if (onMount) onMount({ mask, modal, body: bodyEl, foot: footEl, close });
+  queueMicrotask(()=>{if(!closed&&!modal.contains(document.activeElement))modal.querySelector('button,input,select,textarea,a[href]')?.focus();});
   return { mask, modal, body: bodyEl, foot: footEl, close };
 }
 

@@ -58,6 +58,58 @@ class LayoutTest(unittest.TestCase):
         self.assertIn('PRIVATE_ANSWER', teacher)
         self.assertIn('PRIVATE_ANALYSIS', teacher)
 
+    def test_autosave_conflict_keeps_newer_layout_and_detects_item_edit(self):
+        first = api_layout.view(req({'cid': self.cid}))['revision']
+        saved = api_layout.save(req({'cid': self.cid}, {'base_revision': first, 'options': {'title': '较新修改'}}))
+        with self.assertRaises(ApiError) as conflict:
+            api_layout.save(req({'cid': self.cid}, {'base_revision': first, 'options': {'title': '旧标签页'}}))
+        self.assertEqual(conflict.exception.status, 409)
+        self.assertEqual(build.make_snapshot(self.cid)['options']['title'], '较新修改')
+        with db.transaction() as conn:
+            conn.execute('UPDATE collection_item SET space_mm=75 WHERE id=?', (self.iid,))
+        with self.assertRaises(ApiError):
+            api_layout.save(req({'cid': self.cid}, {'base_revision': saved['revision'], 'items': {self.iid: {'space_mm': 15}}}))
+
+    def test_reusable_styles_validate_and_do_not_capture_question_content(self):
+        result = api_layout.save_template(req(body={'name':'课堂样式', 'options':{'theme':'green','creator':'演示署名'}, 'space_mm':35}))['template']
+        self.assertIn(result, api_layout.templates(req())['items'])
+        self.assertNotIn('items', result)
+        for bad in [{'name':'课堂样式'}, {'name':'坏样式','options':{'title':'不应复制标题'}}, {'name':'坏留白','space_mm':201}]:
+            with self.assertRaises(ApiError): api_layout.save_template(req(body=bad))
+        api_layout.delete_template(req({'tid':result['id']}))
+        self.assertNotIn(result, api_layout.templates(req())['items'])
+
+    def test_direct_preview_order_is_saved_atomically_with_spacing(self):
+        with db.transaction() as conn:
+            second_qid=content._create_question({'qtype':'blank','stem':'SECOND_STEM','answer':'2'},conn)
+        second=teaching.item_create(req({'cid':self.cid},{'question_id':second_qid}))['item']['id']
+        sid=teaching.section_create(req({'cid':self.cid},{'title':'练习'}))['section']['id']
+        order=[{'id':second,'section_id':sid},{'id':self.iid,'section_id':sid}]
+        cfg={'options':{'cover':False},'items':{second:{'space_mm':60}},'order':order}
+        draft,_=api_layout.snapshot(self.cid,cfg)
+        self.assertEqual([i['id'] for i in draft['items']],[second,self.iid])
+        self.assertEqual(db.scalar('SELECT section_id FROM collection_item WHERE id=?',(second,)),None)
+        self.assertEqual(draft['items'][0]['space_mm'],60)
+        cfg['base_revision']=api_layout.view(req({'cid':self.cid}))['revision']
+        api_layout.save(req({'cid':self.cid},cfg))
+        formal=build.make_snapshot(self.cid)
+        self.assertEqual([i['id'] for i in formal['items']],[second,self.iid])
+        self.assertEqual(formal['items'][0]['section_id'],sid)
+        self.assertEqual(formal['items'][0]['space_mm'],60)
+        self.assertEqual(exbook.render_body(draft,draft['options'],'student'),exbook.render_body(formal,formal['options'],'student'))
+        self.assertNotIn('order',formal['collection']['layout_options'])
+
+    def test_bad_or_stale_order_cannot_partially_change_layout(self):
+        before=api_layout.view(req({'cid':self.cid}))
+        for order in [[],[{'id':'foreign','section_id':None}],[{'id':self.iid,'section_id':'foreign'}],
+                      [{'id':self.iid,'section_id':None},{'id':self.iid,'section_id':None}]]:
+            with self.subTest(order=order),self.assertRaises(ApiError):
+                api_layout.save(req({'cid':self.cid},{'options':{'title':'BAD_TITLE'},'order':order}))
+            self.assertEqual(api_layout.view(req({'cid':self.cid}))['revision'],before['revision'])
+        teaching.section_create(req({'cid':self.cid},{'title':'新分节'}))
+        with self.assertRaises(ApiError):
+            api_layout.save(req({'cid':self.cid},{'base_revision':before['revision'],'order':[{'id':self.iid,'section_id':None}]}))
+
     def test_draft_reset_reverts_saved_overrides_without_saving(self):
         api_layout.save(req({'cid': self.cid}, {'items': {self.iid: {'space_mm': 85}}}))
         draft,_ = api_layout.snapshot(self.cid, {'options': {'cover': True}, 'items': {}})

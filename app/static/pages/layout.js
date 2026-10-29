@@ -1,8 +1,11 @@
 import { api } from '../lib/api.js';
 import { esc } from '../lib/dom.js';
-import { flash } from '../lib/ui.js';
+import { flash, confirmDialog } from '../lib/ui.js';
+import { draftStore, autosaver } from '../lib/drafts.js';
+import { mountLayoutTemplates } from '../lib/layout-templates.js';
 import { richToHtml, loadKatex } from '../lib/math.js';
 import { paginateBlocks } from '../lib/layout-preview.js';
+import { groupedItems, movePreviewItem, bindLayoutInteractions } from '../lib/layout-interactions.js';
 
 const VERSIONS = { student: '学生版', answer: '答案版', teacher: '教师版' };
 const COLORS = { blue: '#426987', green: '#39705b', purple: '#765c91', orange: '#ae7441' };
@@ -14,35 +17,63 @@ export default async function mount(root, ctx) {
   const data = await api(`/api/collections/${encodeURIComponent(cid)}/layout`);
   if (!ctx.current()) return;
   const snap = data.snapshot;
+  snap.items = groupedItems(snap.items, snap.sections);
   let options = { ...snap.options }, overrides = structuredClone(data.layout.items || {});
   let selected = snap.items[0]?.id || '', version = 'student', mode = 'quick', dirty = false, pdf = null, disposed = false, painting = 0;
   root.classList.add('layout-page');
   ctx.onCleanup(() => { disposed = true; root.classList.remove('layout-page'); });
-  const payload = () => ({ options: Object.fromEntries(['title', 'subtitle', 'pretitle', 'creator', 'motto', 'theme', 'format', 'cover', 'toc', 'show_sources', 'teacher_notes', 'options_layout'].map(k => [k, options[k] ?? (['cover', 'teacher_notes'].includes(k) ? true : ['toc', 'show_sources'].includes(k) ? false : '')])), items: overrides });
+  const payload = () => ({ options: Object.fromEntries(['title', 'subtitle', 'pretitle', 'creator', 'motto', 'theme', 'format', 'cover', 'toc', 'show_sources', 'teacher_notes', 'options_layout'].map(k => [k, options[k] ?? (['cover', 'teacher_notes'].includes(k) ? true : ['toc', 'show_sources'].includes(k) ? false : '')])), items: overrides, order: snap.items.map(i=>({id:i.id,section_id:i.section_id||null})) });
+  const store = draftStore(data.draft_scope, `layout:${cid}`), recovered = store.read();
   const $ = s => root.querySelector(s);
   const effective = item => ({ ...item, ...(overrides[item.id] || {}) });
   root.innerHTML = `<div class="page-head"><div><p class="layout-eyebrow">讲义制作</p><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)} · ${snap.items.length}道题</p></div><div class="detail-actions"><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn" data-save>保存排版</button><button class="btn btn-primary" data-publish ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
-    <div class="layout-workspace"><aside class="layout-controls">
+    <div data-recovery></div><div class="layout-workspace"><aside class="layout-controls">
+      <section class="card" data-templates></section>
       <section class="card"><h2>整份讲义</h2>
         ${[['title', '讲义标题'], ['subtitle', '副标题'], ['pretitle', '封面前置语'], ['creator', '编写署名']].map(([k,t]) => `<label class="field"><span>${t}</span><input data-option="${k}" value="${esc(options[k] || '')}" maxlength="300"></label>`).join('')}
         <div class="layout-fields"><label class="field"><span>版面密度</span><select data-option="format">${selectOptions(FORMATS, options.format)}</select></label><label class="field"><span>主题色</span><select data-option="theme">${selectOptions({ blue: '青蓝', green: '松绿', purple: '浅紫', orange: '暖橙' }, options.theme)}</select></label></div>
         <label class="field"><span>全卷选项排列</span><select data-option="options_layout">${selectOptions({ auto: '自动：放得下时横排', vertical: '全部竖排' }, options.options_layout || 'auto')}</select></label>
         <div class="layout-checks">${[['cover','显示封面'],['show_sources','显示题目来源'],['teacher_notes','教师版讲评提示']].map(([k,t]) => `<label><input type="checkbox" data-option="${k}" ${options[k] ? 'checked' : ''}>${t}</label>`).join('')}</div>
       </section>
-      <section class="card"><h2>逐题微调</h2><p class="hint">点击题号或纸面中的题目选择。</p><div class="layout-item-list">${snap.items.map((i,n) => `<button class="btn btn-sm" data-pick="${esc(i.id)}">${n+1}</button>`).join('')}</div><div data-item-settings></div></section>
+      <section class="card"><h2>逐题微调</h2><p class="hint">点击题号定位；拖动纸面左侧把手排序，拖动作答区底边调整留白。</p><div class="layout-item-list" data-item-list></div><div data-item-settings></div></section>
       <section class="layout-note"><strong>预览与正式导出共用设置</strong><p>快速预览估算分页；公式、图形及长题的最终位置，以“实际PDF校样”为准。校样不会新增发布记录。</p><span data-save-state>已加载保存设置</span></section>
     </aside><section class="layout-stage"><div class="layout-toolbar"><div class="layout-modes"><button class="btn btn-sm active" data-mode="quick">快速预览</button><button class="btn btn-sm" data-mode="pdf">实际PDF校样</button></div><select data-version aria-label="预览版本">${selectOptions(VERSIONS, version)}</select><label class="layout-zoom">缩放<select data-zoom aria-label="预览缩放"><option value="0.65">65%</option><option value="0.8" selected>80%</option><option value="1">100%</option></select></label><button class="btn btn-sm" data-compile ${snap.items.length ? '' : 'disabled'}>生成PDF校样</button></div>
-      <div class="layout-status" data-status role="status">快速预览 · 分页为估算</div><div class="layout-canvas" data-canvas><div data-pages></div><div data-pdf hidden></div></div><div data-export role="status"></div></section></div>`;
+      <div class="layout-status" data-status role="status">快速预览 · 分页为估算</div><div class="layout-page-nav" data-page-nav aria-label="预览页码"></div><div class="layout-interaction-hint" data-interaction role="status">快速预览可直接调整；实际PDF校样用于核对最终排版。</div><div class="layout-canvas" data-canvas><div data-pages></div><div data-pdf hidden></div></div><div data-export role="status"></div></section></div>`;
   // Friendly labels without binding model values to arbitrary HTML.
   $('[data-option="theme"]').innerHTML = selectOptions({ blue: '青蓝', green: '松绿', purple: '浅紫', orange: '暖橙', ...(!COLORS[options.theme] ? { [options.theme]: options.theme } : {}) }, options.theme);
+  const saver = autosaver({read:payload,store,base:data.revision,
+    save:(value,base)=>api(`/api/collections/${encodeURIComponent(cid)}/layout`,{method:'PUT',body:{...value,base_revision:base}}),
+    onState:(state,error)=>{if(disposed)return;dirty=state!=='saved';$('[data-save-state]').textContent=({pending:'草稿已保留 · 即将自动保存',saving:'正在自动保存…',saved:'已自动保存',unprotected:'浏览器无法保留草稿，正在尝试保存到题库',error:`保存失败，修改仍保留在本页：${error?.message||''}`})[state];}
+  });
+  ctx.onCleanup(()=>saver.dispose());
+  const beforeUnload=e=>{if(saver.dirty){e.preventDefault();e.returnValue='';}};
+  window.addEventListener('beforeunload',beforeUnload);ctx.onCleanup(()=>window.removeEventListener('beforeunload',beforeUnload));
+  function syncControls(){root.querySelectorAll('[data-option]').forEach(input=>{const v=options[input.dataset.option];if(input.type==='checkbox')input.checked=Boolean(v);else input.value=v??'';});renderItemSettings();paint();}
+  if(recovered){
+    $('[data-recovery]').innerHTML='<div class="draft-banner"><span>发现上次未完成的排版草稿。</span><button class="btn btn-sm" data-restore>恢复草稿</button><button class="btn btn-sm" data-discard>丢弃草稿</button></div>';
+    $('[data-restore]').onclick=async()=>{
+      if(recovered.base!==data.revision&&!await confirmDialog({title:'核对旧草稿',message:'题单已在草稿之后发生修改。恢复会用草稿替换当前通用排版和留白，请确认要恢复。',confirmText:'恢复并核对'}))return;
+      if(disposed)return;options={...options,...recovered.data.options};const ids=new Set(snap.items.map(i=>i.id));overrides=Object.fromEntries(Object.entries(recovered.data.items||{}).filter(([id])=>ids.has(id)));
+      if(Array.isArray(recovered.data.order)){
+        const byId=new Map(snap.items.map(i=>[i.id,i])),sections=new Set(snap.sections.map(s=>s.id)),seen=new Set(),rows=[];
+        for(const e of recovered.data.order){if(!byId.has(e.id)||seen.has(e.id))continue;seen.add(e.id);const item=byId.get(e.id);rows.push({...item,section_id:e.section_id===null||sections.has(e.section_id)?e.section_id:item.section_id});}
+        snap.items=groupedItems([...rows,...snap.items.filter(i=>!seen.has(i.id))],snap.sections);
+      }
+      $('[data-recovery]').replaceChildren();markDirty();syncControls();
+    };
+    $('[data-discard]').onclick=()=>{store.clear();$('[data-recovery]').replaceChildren();};
+  }
+  mountLayoutTemplates($('[data-templates]'),{read:payload,current:()=>!disposed,apply:t=>{options={...options,...t.options};snap.items.forEach(i=>{overrides[i.id]={...(overrides[i.id]||{}),space_mm:t.space_mm};});markDirty();syncControls();}});
 
   function markDirty() {
     dirty = true; pdf = null;
-    $('[data-save-state]').textContent = '有未保存的排版调整';
+    saver.change();
+    $('[data-recovery]').replaceChildren();
     $('[data-pdf]').innerHTML = '<div class="layout-empty">设置已变化，请重新生成PDF校样。</div>';
     $('[data-status]').textContent = mode === 'pdf' ? 'PDF校样已过期，请重新生成' : '快速预览 · 分页为估算';
   }
   function renderItemSettings() {
+    $('[data-item-list]').innerHTML=snap.items.map((i,n)=>`<button class="btn btn-sm" data-pick="${esc(i.id)}" aria-label="定位第${n+1}题">${n+1}</button>`).join('');
     root.querySelectorAll('[data-pick]').forEach(b => b.classList.toggle('selected', b.dataset.pick === selected));
     const original = snap.items.find(i => i.id === selected);
     if (!original) { $('[data-item-settings]').innerHTML = '<p class="hint">题单为空，请先返回题单添加题目。</p>'; return; }
@@ -73,7 +104,7 @@ export default async function mount(root, ctx) {
     if (version === 'student') {
       const hint = q.teaching || {};
       if (i.hint_level !== 'none' && (hint.key_step || hint.probe)) html += `<p class="paper-hint">提示：${richToHtml(i.hint_level === 'full' ? hint.probe : hint.key_step)}</p>`;
-      if (i.space_mm) html += `<div class="paper-space" style="height:${Number(i.space_mm)}mm"><span>作答区 · ${Number(i.space_mm)} mm</span></div>`;
+      html += `<div class="paper-space ${i.space_mm?'':'paper-space-empty'}" style="height:${Number(i.space_mm||0)}mm"><span data-space-label>作答区 · ${Number(i.space_mm||0)} mm</span><button type="button" class="paper-space-handle" data-space-resize role="slider" aria-label="调整第${number}题作答留白" aria-valuemin="0" aria-valuemax="200" aria-valuenow="${Number(i.space_mm||0)}" aria-valuetext="${Number(i.space_mm||0)}毫米" title="拖动调整留白；上下方向键每次调整5毫米">↕</button></div>`;
     } else {
       const selectedSolutions = (entry.solutions || []).filter(s => !i.solution_id || s.id === i.solution_id);
       const answer = q.answer || (q.answer_keys || []).join('、') || subs.map(s => s.answer ? `（${s.key}）${s.answer}` : '').filter(Boolean).join('；') || '（略）';
@@ -82,11 +113,12 @@ export default async function mount(root, ctx) {
       if (version === 'teacher' && options.teacher_notes) html += Object.entries({ why: '为什么想到', key_step: '关键一步', pitfalls: '易错点', probe: '追问' }).filter(([k]) => q.teaching?.[k]).map(([k,t]) => `<p><b>${t}：</b>${richToHtml(q.teaching[k])}</p>`).join('');
       html += '</div>';
     }
-    return `<article class="paper-question ${selected === i.id ? 'selected' : ''}" data-paper-item="${esc(i.id)}" tabindex="0" aria-label="选择第${number}题">${html}</article>`;
+    return `<article class="paper-question ${selected === i.id ? 'selected' : ''}" data-paper-item="${esc(i.id)}" tabindex="0" aria-label="选择第${number}题"><button type="button" class="paper-drag-handle" data-paper-drag aria-label="拖动第${number}题排序" title="拖动排序；上下方向键移动题目">⠿</button>${html}</article>`;
   }
   function paint() {
     if (disposed) return;
     const run = ++painting, stage = $('[data-pages]');
+    const canvas=$('[data-canvas]'),scrollTop=canvas.scrollTop,scrollLeft=canvas.scrollLeft;
     stage.style.setProperty('--paper-theme', COLORS[options.theme] || COLORS.blue);
     stage.style.setProperty('--paper-font', options.format === 'compact' ? '14px' : options.format === 'loose' ? '16px' : '15px');
     stage.style.setProperty('--paper-leading', options.format === 'compact' ? '1.65' : options.format === 'loose' ? '2' : '1.85');
@@ -100,8 +132,7 @@ export default async function mount(root, ctx) {
       for (const item of items) blocks.push({ html: itemHtml(item, ++number), breakBefore: Boolean(effective(item).page_break_before) });
     }
     const cover = options.cover ? `<div class="layout-paper paper-cover"><div>${esc(options.pretitle || '')}</div><h1>${esc(options.title)}</h1><h2>${esc(options.subtitle || '')} · ${VERSIONS[version]}</h2><footer>${esc(options.creator || '')}</footer></div>` : '';
-    stage.innerHTML = '<div class="paper-measure">' + blocks.map(b => `<div>${b.html}</div>`).join('') + '</div>';
-    const measurement = stage.querySelector('.paper-measure');
+    const measurement=document.createElement('div');measurement.className='paper-measure';measurement.innerHTML=blocks.map(b=>`<div>${b.html}</div>`).join('');stage.appendChild(measurement);
     measurement.querySelectorAll('.paper-choices.auto').forEach(c => {
       const widths = [...c.children].map(el => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect().width / Number($('[data-zoom]').value); });
       if (c.children.length === 4 && widths.every(w => w < (measurement.clientWidth - 60) / 4)) c.classList.add('horizontal');
@@ -111,27 +142,41 @@ export default async function mount(root, ctx) {
     if (run !== painting) return;
     const label = `<span>${esc(options.title)}</span><span>${VERSIONS[version]}</span>`;
     stage.innerHTML = cover + pages.map((page,n) => `<div class="layout-paper"><div class="paper-header">${label}</div><div class="paper-body">${page.map(b => b.html).join('')}</div><div class="paper-footer">第 ${n+1} 页 · 快速预览</div></div>`).join('');
+    canvas.scrollTop=scrollTop;canvas.scrollLeft=scrollLeft;
     if (!blocks.length) stage.innerHTML = '<div class="layout-empty">题单中还没有题目，请返回题单添加。</div>';
     if (mode === 'quick') $('[data-status]').textContent = `快速预览 · 约${pages.length + (options.cover ? 1 : 0)}页 · 分页以PDF校样为准`;
+    const papers=[...stage.querySelectorAll('.layout-paper')];
+    $('[data-page-nav]').innerHTML=papers.map((paper,n)=>`<button class="layout-page-thumb ${paper.querySelector('.paper-question.selected')?'active':''}" data-page-index="${n}" aria-label="跳到${paper.classList.contains('paper-cover')?'封面':'第'+(n+(options.cover?0:1))+'页'}"><span aria-hidden="true">▤</span>${paper.classList.contains('paper-cover')?'封面':'第'+(n+(options.cover?0:1))+'页'}</button>`).join('');
     stage.querySelectorAll('[data-paper-item]').forEach(el => {
-      const pick = () => { selected = el.dataset.paperItem; renderItemSettings(); stage.querySelectorAll('[data-paper-item]').forEach(x => x.classList.toggle('selected', x === el)); };
-      el.onclick = pick; el.onkeydown = e => { if (e.key === 'Enter') pick(); };
+      const pick = () => selectItem(el.dataset.paperItem);
+      el.onclick = e=>{if(!e.target.closest('[data-paper-drag],[data-space-resize]'))pick();};
+      el.onkeydown = e => { if(e.target===el&&e.key==='Enter')pick(); };
     });
     // Late image dimensions must trigger another measurement.
     stage.querySelectorAll('img').forEach(img => { if (!img.complete) img.onload = () => { if (run === painting) paint(); }; });
   }
   async function save() {
-    await api(`/api/collections/${encodeURIComponent(cid)}/layout`, { method: 'PUT', body: payload() });
+    await saver.flush();
     dirty = false; if (disposed) return; $('[data-save-state]').textContent = '排版已保存，正式导出将使用这些设置';
   }
   function showMode(next) {
     mode = next; $('[data-pages]').hidden = mode !== 'quick'; $('[data-pdf]').hidden = mode !== 'pdf';
+    $('[data-page-nav]').hidden=mode!=='quick';$('[data-interaction]').textContent=mode==='quick'?'拖动左侧把手排序；拖动作答区底边调整留白。也可用上下方向键操作。':'实际PDF校样不可直接拖动，切换到快速预览调整。';
     root.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === next));
     if (mode === 'pdf' && !pdf) $('[data-pdf]').innerHTML = '<div class="layout-empty">点击“生成PDF校样”查看与正式导出相同的排版。生成校样不会登记发布物。</div>';
     if (mode === 'quick') paint();
   }
   root.querySelectorAll('[data-option]').forEach(input => { const update = () => { options[input.dataset.option] = input.type === 'checkbox' ? input.checked : input.value; markDirty(); paint(); }; input.onchange = update; if (input.type === 'text') input.oninput = update; });
-  root.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { selected = b.dataset.pick; renderItemSettings(); paint(); });
+  function selectItem(id){selected=id;renderItemSettings();$('[data-pages]').querySelectorAll('[data-paper-item]').forEach(el=>el.classList.toggle('selected',el.dataset.paperItem===id));}
+  function focusItem(id,selector){const el=[...$('[data-pages]').querySelectorAll('[data-paper-item]')].find(el=>el.dataset.paperItem===id),target=el?.querySelector(selector),canvas=$('[data-canvas]');if(target){const rect=target.getBoundingClientRect(),box=canvas.getBoundingClientRect();if(rect.top<box.top+15)canvas.scrollTop+=rect.top-box.top-15;else if(rect.bottom>box.bottom-15)canvas.scrollTop+=rect.bottom-box.bottom+15;target.focus({preventScroll:true});}}
+  $('[data-item-list]').onclick=e=>{const b=e.target.closest('[data-pick]');if(b){selectItem(b.dataset.pick);focusItem(selected,'[data-paper-drag]');}};
+  $('[data-page-nav]').onclick=e=>{const button=e.target.closest('[data-page-index]');if(!button)return;const paper=$('[data-pages]').querySelectorAll('.layout-paper')[Number(button.dataset.pageIndex)],canvas=$('[data-canvas]');if(paper){canvas.scrollTop+=paper.getBoundingClientRect().top-canvas.getBoundingClientRect().top-20;root.querySelectorAll('[data-page-index]').forEach(b=>b.classList.toggle('active',b===button));}};
+  ctx.onCleanup(bindLayoutInteractions($('[data-canvas]'),{
+    select:selectItem,
+    move:(id,target,before)=>{const next=movePreviewItem(snap.items,snap.sections,id,target,before);if(next===snap.items)return;snap.items=next;selected=id;markDirty();renderItemSettings();paint();focusItem(id,'[data-paper-drag]');},
+    resize:(id,mm)=>{selected=id;overrides[id]={...(overrides[id]||{}),space_mm:mm};markDirty();renderItemSettings();paint();focusItem(id,'[data-space-resize]');},
+    announce:message=>{if(!disposed)$('[data-interaction]').textContent=message;}
+  }));
   root.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => showMode(b.dataset.mode));
   $('[data-version]').onchange = () => { version = $('[data-version]').value; pdf = null; paint(); if (mode === 'pdf') showMode('pdf'); };
   $('[data-zoom]').onchange = () => { $('[data-pages]').style.zoom = $('[data-zoom]').value; paint(); };
