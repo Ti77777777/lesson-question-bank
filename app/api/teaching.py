@@ -1254,6 +1254,130 @@ def item_delete(req):
 ITEM_RESTORE_FIELDS = ("section_id", "question_id", "question_version_id", "order_no") + ITEM_FIELDS
 
 
+@get("/api/collections/{cid}/version-updates")
+def collection_version_updates(req):
+    """N06 新版提醒：列出条目引用的版本落后于题目当前版本的条目。
+
+    只提示，不改数据。归档与历史讲义走各自快照，这里只看可编辑的题单。
+    """
+    from app import commands
+
+    cid = req.params["cid"]
+    _collection(cid)
+    rows = db.all_(
+        "SELECT i.id AS item_id, i.order_no, i.section_id, i.question_id, "
+        "       i.question_version_id AS used_version_id, i.solution_id, i.subq_keys, "
+        "       q.short_name, q.current_version_id, q.status AS question_status, "
+        "       v.version_no AS used_version_no, v.change_note AS used_change_note, "
+        "       v.created_at AS used_at, "
+        "       nv.version_no AS new_version_no, nv.change_note AS new_change_note, "
+        "       nv.created_at AS new_at, nv.qtype AS new_qtype "
+        "FROM collection_item i "
+        "JOIN question q ON q.id = i.question_id "
+        "JOIN question_version v ON v.id = i.question_version_id "
+        "JOIN question_version nv ON nv.id = q.current_version_id "
+        "WHERE i.collection_id = ? AND q.current_version_id <> i.question_version_id "
+        "ORDER BY i.order_no, i.id", (cid,))
+    items = [{
+        "item_id": row["item_id"], "order_no": row["order_no"],
+        "section_id": row["section_id"], "question_id": row["question_id"],
+        "short_name": row["short_name"], "question_status": row["question_status"],
+        "used": {"version_id": row["used_version_id"], "version_no": row["used_version_no"],
+                 "change_note": row["used_change_note"], "created_at": row["used_at"]},
+        "new": {"version_id": row["current_version_id"], "version_no": row["new_version_no"],
+                "change_note": row["new_change_note"], "created_at": row["new_at"],
+                "qtype": row["new_qtype"]},
+        # 换了版本后这些"题目专属设置"可能失配，必须由教师重选，不能照搬
+        "needs_review": [label for label, present in
+                         (("指定解法", bool(row["solution_id"])),
+                          ("小问范围", bool(row["subq_keys"]))) if present],
+    } for row in rows]
+    return {"items": items, "total": len(items), "revision": commands.collection_revision(cid)}
+
+
+@post("/api/collections/{cid}/version-updates/apply")
+def collection_version_updates_apply(req):
+    """N06 显式更新：把选中的条目换到题目当前版本，整批原子执行。
+
+    不自动升级、不猜新旧解法或小问的对应关系；换版后失配的解法与小问范围直接清空并逐条报告，
+    让教师在新版上重选，而不是把旧编号硬套到新版本。
+    """
+    from app import commands
+
+    cid = req.params["cid"]
+    _collection(cid)
+    body = req.json or {}
+    updates = body.get("updates")
+    if not isinstance(updates, list) or not 1 <= len(updates) <= 100:
+        raise ApiError(400, "bad_field", "updates 必须是 1 至 100 条")
+
+    prepared, results = [], []
+    for index, raw in enumerate(updates):
+        entry = {"index": index, "item_id": None, "ok": False}
+        try:
+            if not isinstance(raw, dict):
+                raise ApiError(400, "bad_field", "每条应为对象")
+            item_id = _text(raw.get("item_id")).strip()
+            entry["item_id"] = item_id
+            row = _item_row(item_id)
+            if row["collection_id"] != cid:
+                raise ApiError(404, "not_found", "条目不属于这个题单")
+            question = db.one("SELECT * FROM question WHERE id = ?", (row["question_id"],))
+            target_id = _text(raw.get("question_version_id")).strip() or question["current_version_id"]
+            target = db.one("SELECT * FROM question_version WHERE id = ?", (target_id,))
+            if target is None:
+                raise ApiError(404, "not_found", "目标版本不存在")
+            if target["question_id"] != row["question_id"]:
+                raise ApiError(400, "version_mismatch", "目标版本不属于这道题")
+            if target_id == row["question_version_id"]:
+                raise ApiError(409, "already_current", "这条已经是该版本")
+            used = db.one("SELECT version_no FROM question_version WHERE id = ?",
+                          (row["question_version_id"],))
+            if used and target["version_no"] <= used["version_no"]:
+                raise ApiError(409, "not_newer", "只能更新到更新的版本")
+
+            # 换版后哪些设置会失效：旧解法、旧小问都不属于新版本
+            solution_ok = bool(row["solution_id"]) and bool(db.one(
+                "SELECT 1 AS x FROM solution WHERE id = ? AND question_version_id = ?",
+                (row["solution_id"], target_id)))
+            keys = row.get("subq_keys") or []
+            new_keys = {str(sub.get("key")) for sub in (target.get("subquestions") or [])
+                        if isinstance(sub, dict)}
+            kept_keys = [key for key in keys if str(key) in new_keys] if keys else []
+
+            prepared.append({"item_id": item_id, "version_id": target_id,
+                             "solution_id": row["solution_id"] if solution_ok else None,
+                             "subq_keys": kept_keys or None,
+                             "dropped": [label for label, gone in
+                                         (("指定解法", bool(row["solution_id"]) and not solution_ok),
+                                          ("小问范围", bool(keys) and len(kept_keys) != len(keys)))
+                                         if gone]})
+            entry.update({"ok": True, "version_id": target_id,
+                          "dropped": prepared[-1]["dropped"]})
+        except ApiError as exc:
+            entry.update({"code": exc.code, "message": exc.message})
+        results.append(entry)
+
+    def apply(conn, _before):
+        for item in prepared:
+            conn.execute(
+                "UPDATE collection_item SET question_version_id = ?, solution_id = ?, "
+                "subq_keys = ? WHERE id = ?",
+                (item["version_id"], item["solution_id"], db.dumps(item["subq_keys"]),
+                 item["item_id"]))
+            db.audit("item.version_update", "collection_item", item["item_id"],
+                     {"version_id": item["version_id"], "dropped": item["dropped"]})
+        if prepared:
+            _touch_collection(conn, cid)
+        return {"results": results, "updated": len(prepared)}
+
+    return commands.execute(cid, _text(body.get("operation_id")), "version-updates.apply",
+                            {"updates": [{"item_id": _text(r.get("item_id")),
+                                          "version_id": r.get("question_version_id")}
+                                         for r in updates if isinstance(r, dict)]},
+                            apply, base_revision=_text(body.get("base_revision")) or None)
+
+
 @post("/api/collections/{cid}/commands")
 def collection_command(req):
     """N02 首期：可撤销的题单写入。

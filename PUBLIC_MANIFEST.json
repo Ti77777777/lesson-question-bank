@@ -104,8 +104,8 @@
       "sha256": "1f27064b7a801080b9a5d73c45132fafde63645552099fd520d8802a6f6c9c88"
     },
     "app/api/teaching.py": {
-      "bytes": 92957,
-      "sha256": "2f5fb11609c0faa877fc785c21691c7050229796a4cf25e8edc187d800d63346"
+      "bytes": 100049,
+      "sha256": "25739f4e086e600467896626cc62741605a420da8a75a75d66b0f25a56abe600"
     },
     "app/api/workspace.py": {
       "bytes": 7479,
@@ -288,8 +288,8 @@
       "sha256": "b35b7195daf3bb4a607606424e97b197adadb3dd810b318ffdac53237cd8e08e"
     },
     "app/static/pages/collection.js": {
-      "bytes": 45518,
-      "sha256": "94be28bacfc52eb65b2d54a471868d4d86decd299eb4bce2e4e6fdea25f0161c"
+      "bytes": 49076,
+      "sha256": "5692942417aff2c02d5dfa500b06692cfdc5800ba77c319efc227dd906e2e424"
     },
     "app/static/pages/collections.js": {
       "bytes": 6188,
@@ -344,8 +344,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 19533,
-      "sha256": "fbe2c8a6e341c7df6dbc7879716802cd4de68797137fc74fcd9a9524cc858a10"
+      "bytes": 20838,
+      "sha256": "d0e9632d1993fe79cb5cf97b05e05fdfbe8dcbb7bcd2cab5a4efa38b64b4dcb9"
     },
     "data/schema.sql": {
       "bytes": 21493,
@@ -404,8 +404,8 @@
       "sha256": "25a97be8c7c5c8fed10ee77c3ae395356997da33833d10efe1d02041a6419696"
     },
     "docs/新功能设计与实施规划.md": {
-      "bytes": 23107,
-      "sha256": "b6b968b533e696411135bc336c5ac4616f70a9d147eb21944ec1139e03ef9f26"
+      "bytes": 23251,
+      "sha256": "a7676c63107cc3cf841157dd4407069d3550d55029a86f83e222c85f95287b27"
     },
     "docs/旧功能优化方案.md": {
       "bytes": 21871,
@@ -461,7 +461,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "29776854b90a8f3b170c141ecb6f7d57b1b0b00b7b9d56a07fdac93b1b925ab8"
+      "sha256": "1f74179113356b0d033253b4476e1de9fdc48b1d396121a8c6f2766d076342a7"
     },
     "README.md": {
       "bytes": 4696,
@@ -610,6 +610,10 @@
     "tests/test_usage_summary.py": {
       "bytes": 7842,
       "sha256": "4de8d25514f2100c4a5dc35b7e072162bc41e8c8b9c7fe22d6e4f05144ecb321"
+    },
+    "tests/test_version_updates.py": {
+      "bytes": 8278,
+      "sha256": "d7fdcbb6ff6176ba9e786f3102630853876900a557968aa2cd636d99369f9750"
     },
     "tests/test_workbench.mjs": {
       "bytes": 1221,

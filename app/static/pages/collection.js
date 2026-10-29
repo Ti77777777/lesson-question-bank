@@ -26,6 +26,7 @@ export default async function mount(root, ctx) {
   const history = createHistory(20);
   let revision = '';
   let busyStep = false;
+  let staleItems = [];
 
   function sortedSections() {
     return [...sections].sort((a, b) => Number(a.order_no ?? 0) - Number(b.order_no ?? 0));
@@ -63,6 +64,7 @@ export default async function mount(root, ctx) {
       items = Array.isArray(data.items) ? data.items : [];
       check = data.check || null;
       revision = data.revision || revision;
+      loadVersionUpdates();
       rememberCollection(cid, collection.title, 'edit');
       paint();
       upgradeMath(root);
@@ -256,6 +258,11 @@ export default async function mount(root, ctx) {
         </div>
       </div>
 
+      ${staleItems.length ? `<div class="notice notice-warn" id="stale-banner">
+        <b>${staleItems.length} 道题有新版本</b>　当前题单引用的还是旧版，更新后才会用新题面。
+        <button type="button" class="btn btn-sm" data-act="version-updates">查看并更新</button>
+      </div>` : ''}
+
       <div class="collection-grid">
         <section class="card">
           <div class="card-head">
@@ -288,6 +295,68 @@ export default async function mount(root, ctx) {
 
     renderCheck();
     upgradeMath(root);
+  }
+
+  async function loadVersionUpdates() {
+    try {
+      const data = await api(`/api/collections/${encodeURIComponent(cid)}/version-updates`);
+      staleItems = Array.isArray(data.items) ? data.items : [];
+    } catch {
+      staleItems = [];
+    }
+  }
+
+  function openVersionUpdates() {
+    if (!staleItems.length) return;
+    const rows = staleItems.map((row, index) => `
+      <label class="check usage-item">
+        <input type="checkbox" data-update="${esc(row.item_id)}" ${index === 0 ? 'checked' : ''}>
+        <span>
+          第 ${esc(row.order_no + 1)} 题　${esc(row.short_name || row.question_id)}
+          ：v${esc(row.used.version_no)} → <b>v${esc(row.new.version_no)}</b>
+          ${row.new.change_note ? `（${esc(row.new.change_note)}）` : ''}
+          ${row.needs_review.length ? `<br><span class="hint">换版后需重选：${esc(row.needs_review.join('、'))}</span>` : ''}
+        </span>
+      </label>`).join('');
+
+    const modal = openModal({
+      title: `更新到新版本（${staleItems.length} 条）`,
+      width: 'modal-wide',
+      body: `<div class="modal-error" hidden data-error></div>
+        <p class="hint">更新只改题单引用的版本；题目本身、旧版本与已归档的讲义都不受影响。
+        旧解法与小问范围不会套到新版本上，失配的直接清空，需要你在题目里重选。</p>
+        <div class="usage-items">${rows}</div>`,
+      footer: `<button type="button" class="btn" data-close>取消</button>
+               <button type="button" class="btn btn-primary" data-apply>更新选中条目</button>`,
+    });
+
+    const err = modal.body.querySelector('[data-error]');
+    modal.foot.querySelector('[data-apply]').addEventListener('click', async (event) => {
+      const picked = [...modal.body.querySelectorAll('[data-update]')]
+        .filter((box) => box.checked).map((box) => ({ item_id: box.dataset.update }));
+      if (!picked.length) { err.hidden = false; err.textContent = '先选要更新的条目。'; return; }
+      const btn = event.currentTarget;
+      btn.disabled = true;
+      try {
+        const res = await api(`/api/collections/${encodeURIComponent(cid)}/version-updates/apply`, {
+          method: 'POST',
+          body: { operation_id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+                  base_revision: revision, updates: picked },
+        });
+        revision = res.revision || revision;
+        const dropped = (res.results || []).flatMap((row) => row.dropped || []);
+        modal.close();
+        flash(`已更新 ${res.updated} 条${dropped.length ? '；' + dropped.join('、') + '已清空，请到题目里重选' : ''}`, 'ok');
+        await reloadPreserve();
+        loadCheck();
+      } catch (e) {
+        err.hidden = false;
+        err.textContent = e.code === 'revision_conflict'
+          ? '题单在操作期间被改过，请关闭后重新打开本窗口。'
+          : (e.message || String(e));
+        btn.disabled = false;
+      }
+    });
   }
 
   /** 撤销／重做：把上一步的逆动作依次发回服务端，并把结果反过来压到另一侧。 */
@@ -841,6 +910,10 @@ export default async function mount(root, ctx) {
     if (act === 'check-refresh') {
       $('#check-body', root).innerHTML = loading('正在检查…');
       await loadCheck();
+      return;
+    }
+    if (act === 'version-updates') {
+      openVersionUpdates();
       return;
     }
     if (act === 'undo' || act === 'redo') {
