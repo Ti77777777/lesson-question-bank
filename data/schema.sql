@@ -450,3 +450,20 @@ CREATE TABLE IF NOT EXISTS collection_command (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_command_op ON collection_command(collection_id, op_key);
 CREATE INDEX IF NOT EXISTS ix_command_time ON collection_command(collection_id, created_at);
+
+-- N09 逐题反馈：绑定一次使用记录里的某一道题（使用快照的条目），
+-- 与整次使用反馈分开保存；没有逐题观察时只填整次反馈。
+CREATE TABLE IF NOT EXISTS usage_item_feedback (
+    id                   TEXT PRIMARY KEY,
+    usage_id             TEXT NOT NULL,
+    item_id              TEXT NOT NULL,
+    question_id          TEXT,
+    question_version_id  TEXT,
+    error_note           TEXT NOT NULL,
+    error_tags           TEXT,
+    sample_scope         TEXT,
+    suggestion           TEXT,
+    created_at           TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_uif_usage_item ON usage_item_feedback(usage_id, item_id);
+CREATE INDEX IF NOT EXISTS ix_uif_question ON usage_item_feedback(question_id, created_at);

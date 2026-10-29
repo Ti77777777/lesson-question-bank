@@ -2024,6 +2024,80 @@ def assignment_update(req):
 # ---------------------------------------------------------------- §11 使用记录
 
 
+@get("/api/usages/{uid}/item-feedback")
+def usage_item_feedback_list(req):
+    """N09 逐题反馈：只列这次使用里实际登记过的条目。"""
+    from app import history
+
+    uid = req.params["uid"]
+    usage = db.one("SELECT * FROM usage_log WHERE id = ?", (uid,))
+    if usage is None:
+        raise ApiError(404, "not_found", "没有这条使用记录：%s" % uid)
+    release = db.one("SELECT snapshot FROM release WHERE id = ?", (usage["release_id"],)) or {}
+    snapshot = _loads(release.get("snapshot"), {})
+    used = {row.get("id"): row for row in history.selected_items(snapshot, usage.get("items"))}
+    notes = db.all_("SELECT * FROM usage_item_feedback WHERE usage_id = ? ORDER BY created_at, id",
+                    (uid,))
+    out = []
+    for row in notes:
+        item = used.get(row["item_id"]) or {}
+        out.append(dict(row, in_use_scope=bool(item),
+                        question_no=(item.get("order_no") if item else None)))
+    return {"items": out, "total": len(out),
+            "scope": [{"item_id": item_id, "question_id": row.get("question_id"),
+                       "question_version_id": row.get("question_version_id")}
+                      for item_id, row in used.items()]}
+
+
+@post("/api/usages/{uid}/item-feedback")
+def usage_item_feedback_create(req):
+    """登记一道题的观察。只能针对这次使用里实际登记过的条目。"""
+    from app import history
+
+    uid = req.params["uid"]
+    usage = db.one("SELECT * FROM usage_log WHERE id = ?", (uid,))
+    if usage is None:
+        raise ApiError(404, "not_found", "没有这条使用记录：%s" % uid)
+    body = req.json or {}
+    item_id = _text(body.get("item_id")).strip()
+    if not item_id:
+        raise ApiError(400, "missing_field", "缺少 item_id")
+    release = db.one("SELECT snapshot FROM release WHERE id = ?", (usage["release_id"],)) or {}
+    snapshot = _loads(release.get("snapshot"), {})
+    used = {row.get("id"): row for row in history.selected_items(snapshot, usage.get("items"))}
+    item = used.get(item_id)
+    if item is None:
+        raise ApiError(409, "not_in_use_scope",
+                       "这条不属于本次实际使用的题目，不能登记为本次观察")
+    note = _text(body.get("error_note")).strip()
+    if not note:
+        raise ApiError(400, "missing_field", "缺少 error_note（具体错在哪）")
+    tags = body.get("error_tags")
+    tags = [str(t) for t in tags if str(t).strip()] if isinstance(tags, list) else None
+    existing = db.one("SELECT id FROM usage_item_feedback WHERE usage_id = ? AND item_id = ?",
+                      (uid, item_id))
+    with db.transaction() as conn:
+        if existing:
+            conn.execute(
+                "UPDATE usage_item_feedback SET error_note = ?, error_tags = ?, sample_scope = ?, "
+                "suggestion = ? WHERE id = ?",
+                (note, db.dumps(tags), _text(body.get("sample_scope")) or None,
+                 _text(body.get("suggestion")) or None, existing["id"]))
+            fid = existing["id"]
+        else:
+            fid = db.next_id(conn, "UIF")
+            conn.execute(
+                "INSERT INTO usage_item_feedback(id, usage_id, item_id, question_id, "
+                "question_version_id, error_note, error_tags, sample_scope, suggestion, created_at) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (fid, uid, item_id, item.get("question_id"), item.get("question_version_id"),
+                 note, db.dumps(tags), _text(body.get("sample_scope")) or None,
+                 _text(body.get("suggestion")) or None, db.now()))
+        db.audit("usage.item_feedback", "usage_log", uid,
+                 {"item_id": item_id, "feedback_id": fid})
+    return {"feedback": db.one("SELECT * FROM usage_item_feedback WHERE id = ?", (fid,))}
+
+
 @get("/api/usage-summary")
 def usage_summary(req):
     """N04 按教学对象批量查已用：一次问清当前这页题在该对象下的最近使用日期。
