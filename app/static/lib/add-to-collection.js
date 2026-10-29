@@ -113,6 +113,7 @@ export function openAddToCollection(ids, { onDone } = {}) {
               ? `<ul class="plain-list">${failed.map((r) => `<li>${esc(r.question_id || '（未指名）')}：${esc(r.message || r.code || '未加入')}</li>`).join('')}</ul>`
               : '')
             + `<p><a href="#/collection/${esc(target.value)}">打开题单继续调整</a></p>`;
+          if (out.revision) revision = out.revision;   // 下一次点击要用新的基准
           if (out.added && onDone) onDone(out);
           submit.textContent = '再加入一次';
         } catch (err) {
