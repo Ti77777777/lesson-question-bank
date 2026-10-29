@@ -286,6 +286,19 @@
 }
 ```
 
+### 可撤销的题单写入（N02 首期）
+
+`POST /api/collections/{cid}/commands`，请求 `{"operation_id","base_revision","action","item_id","payload"}`：
+
+| action | payload | 逆动作 |
+|---|---|---|
+| `remove` | — | `restore`（含完整条目快照） |
+| `restore` | 条目快照：`question_id`、`question_version_id`、`section_id`、`order_no` 及条目设置 | `remove` |
+| `reorder` | `{"items":[{"id","order_no","section_id"}]}` | `reorder`（还原每个条目原来的位置） |
+| `settings` | 条目设置字段 | `settings`（原有值） |
+
+返回 `{"action","label","inverse","revision","replayed"}`。撤销只是把 `inverse` 原样再发一次，因此同样受操作编号幂等与修订校验保护；`restore` 时编号已被占用则返回 409 `already_exists`，不会悄悄换号。
+
 `revision` 是题单、分节、条目与排版的聚合摘要（`app/commands.py`）。它只用于题单结构写入的并发校验；题目自身版本变化另行核对，不混进这个摘要。
 
 `GET /api/collections/{cid}` 返回：

@@ -13,6 +13,8 @@ import {
 } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { upgradeMath } from '../lib/math.js';
+import { createHistory, sendCommand, applyAll } from '../lib/collection-history.js';
+import { rememberCollection } from '../lib/recent-work.js';
 
 export default async function mount(root, ctx) {
   const cid = ctx.params.id;
@@ -21,6 +23,9 @@ export default async function mount(root, ctx) {
   let items = [];
   let check = null;
   let itemNumbers = new Map();
+  const history = createHistory(20);
+  let revision = '';
+  let busyStep = false;
 
   function sortedSections() {
     return [...sections].sort((a, b) => Number(a.order_no ?? 0) - Number(b.order_no ?? 0));
@@ -57,6 +62,8 @@ export default async function mount(root, ctx) {
       sections = Array.isArray(data.sections) ? data.sections : [];
       items = Array.isArray(data.items) ? data.items : [];
       check = data.check || null;
+      revision = data.revision || revision;
+      rememberCollection(cid, collection.title, 'edit');
       paint();
       upgradeMath(root);
       if (!check) loadCheck();
@@ -241,6 +248,8 @@ export default async function mount(root, ctx) {
           </div>
         </div>
         <div class="detail-actions">
+          <button type="button" class="btn" data-act="undo" ${history.canUndo() ? '' : 'disabled'} title="${esc(history.peekUndo()?.label || '没有可撤销的操作')}">撤销${history.canUndo() ? '：' + esc(history.peekUndo().label) : ''}</button>
+          <button type="button" class="btn" data-act="redo" ${history.canRedo() ? '' : 'disabled'} title="${esc(history.peekRedo()?.label || '没有可重做的操作')}">重做${history.canRedo() ? '：' + esc(history.peekRedo().label) : ''}</button>
           <button type="button" class="btn" data-act="edit-collection">改题单信息</button>
           <a class="btn btn-primary" href="#/layout/${encodeURIComponent(cid)}">排版与导出</a>
           <details class="compact-actions"><summary class="btn">更多操作</summary><div><button type="button" class="btn" data-act="build">快速导出</button><a class="btn" href="#/releases">查看归档</a></div></details>
@@ -281,6 +290,38 @@ export default async function mount(root, ctx) {
     upgradeMath(root);
   }
 
+  /** 撤销／重做：把上一步的逆动作依次发回服务端，并把结果反过来压到另一侧。 */
+  async function step(direction) {
+    if (busyStep) return;
+    const entry = direction === 'undo' ? history.peekUndo() : history.peekRedo();
+    if (!entry) return;
+    busyStep = true;
+    try {
+      // 撤销按逆序回放：最后做的先撤；重做则按记录顺序。
+      const inverses = direction === 'undo' ? [...entry.inverses].reverse() : [...entry.inverses];
+      const result = await applyAll(cid, revision, inverses);
+      revision = result.revision || revision;
+      if (direction === 'undo') {
+        history.takeUndo();
+        history.pushRedo(entry.label, result.inverses);
+        flash(`已撤销：${entry.label}`, 'ok');
+      } else {
+        history.takeRedo();
+        history.pushUndo(entry.label, result.inverses);
+        flash(`已重做：${entry.label}`, 'ok');
+      }
+      await reloadPreserve();
+      loadCheck();
+    } catch (err) {
+      // 冲突时保留操作栈但提示核对，不自动覆盖别人的修改
+      flash(err.code === 'revision_conflict'
+        ? '题单已被其他页面修改，请刷新后再决定是否撤销。'
+        : err.message);
+    } finally {
+      busyStep = false;
+    }
+  }
+
   async function loadCheck() {
     try {
       check = await api(`/api/collections/${encodeURIComponent(cid)}/check`);
@@ -305,10 +346,9 @@ export default async function mount(root, ctx) {
         order += 1;
       });
     });
-    await api(`/api/collections/${encodeURIComponent(cid)}/reorder`, {
-      method: 'POST',
-      body: { items: payload },
-    });
+    const out = await sendCommand(cid, revision, 'reorder', '', { items: payload });
+    revision = out.revision || revision;
+    history.push(out.label || '调整顺序', [out.inverse]);
     await reloadPreserve();
   }
 
@@ -387,7 +427,10 @@ export default async function mount(root, ctx) {
           page_break_before: modal.body.querySelector('[data-break]').checked ? 1 : 0,
           note: value('[data-note]').trim() || null,
         };
-        await api(`/api/items/${encodeURIComponent(item.id)}`, { method: 'PATCH', body });
+        const inverses = [];
+        const settingsOut = await sendCommand(cid, revision, 'settings', item.id, body);
+        revision = settingsOut.revision || revision;
+        inverses.push(settingsOut.inverse);
 
         // 条目 PATCH 不接受 section_id；跨节移动走题单排序接口。
         if (sectionChanged) {
@@ -414,15 +457,15 @@ export default async function mount(root, ctx) {
             });
           });
           if (payload.length) {
-            await api(`/api/collections/${encodeURIComponent(cid)}/reorder`, {
-              method: 'POST',
-              body: { items: payload },
-            });
+            const moveOut = await sendCommand(cid, revision, 'reorder', '', { items: payload });
+            revision = moveOut.revision || revision;
+            inverses.push(moveOut.inverse);
           }
         }
 
         modal.close();
-        flash('条目设置已保存。', 'ok');
+        history.push('修改条目设置', inverses);
+        flash('条目设置已保存，可撤销。', 'ok');
         await reloadPreserve();
         loadCheck();
       });
@@ -763,6 +806,20 @@ export default async function mount(root, ctx) {
 
   // ------------------------------------------------------------ 事件
 
+  // 只有在非文本编辑区域才接管撤销快捷键，输入框里的撤销仍由浏览器处理
+  function onHistoryKey(event) {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+    const tag = (event.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || event.target.isContentEditable) return;
+    if (event.key === 'z' && !event.shiftKey) {
+      event.preventDefault(); step('undo');
+    } else if ((event.key === 'z' && event.shiftKey) || event.key === 'y') {
+      event.preventDefault(); step('redo');
+    }
+  }
+  document.addEventListener('keydown', onHistoryKey);
+  if (ctx.onCleanup) ctx.onCleanup(() => document.removeEventListener('keydown', onHistoryKey));
+
   root.addEventListener('click', async (event) => {
     const act = event.target.closest('[data-act]')?.dataset.act;
     if (act === 'add-section') {
@@ -784,6 +841,10 @@ export default async function mount(root, ctx) {
     if (act === 'check-refresh') {
       $('#check-body', root).innerHTML = loading('正在检查…');
       await loadCheck();
+      return;
+    }
+    if (act === 'undo' || act === 'redo') {
+      await step(act);
       return;
     }
 
@@ -838,8 +899,10 @@ export default async function mount(root, ctx) {
       });
       if (!ok) return;
       try {
-        await api(`/api/items/${encodeURIComponent(delItem.dataset.delItem)}`, { method: 'DELETE' });
-        flash('条目已移除。', 'ok');
+        const out = await sendCommand(cid, revision, 'remove', delItem.dataset.delItem);
+        revision = out.revision || revision;
+        history.push(out.label || '移除题目', [out.inverse]);
+        flash('条目已移除，可撤销。', 'ok');
         await reloadPreserve();
         loadCheck();
       } catch (err) {

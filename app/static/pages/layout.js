@@ -3,6 +3,7 @@ import { esc } from '../lib/dom.js';
 import { flash, confirmDialog } from '../lib/ui.js';
 import { draftStore, autosaver } from '../lib/drafts.js';
 import { mountLayoutTemplates } from '../lib/layout-templates.js';
+import { rememberCollection } from '../lib/recent-work.js';
 import { richToHtml, loadKatex } from '../lib/math.js';
 import { paginateBlocks } from '../lib/layout-preview.js';
 import { groupedItems, movePreviewItem, bindLayoutInteractions } from '../lib/layout-interactions.js';
@@ -17,6 +18,7 @@ export default async function mount(root, ctx) {
   const data = await api(`/api/collections/${encodeURIComponent(cid)}/layout`);
   if (!ctx.current()) return;
   const snap = data.snapshot;
+  rememberCollection(cid, (snap.collection || {}).title, 'layout');
   snap.items = groupedItems(snap.items, snap.sections);
   let options = { ...snap.options }, overrides = structuredClone(data.layout.items || {});
   let selected = snap.items[0]?.id || '', version = 'student', mode = 'quick', dirty = false, pdf = null, disposed = false, painting = 0;

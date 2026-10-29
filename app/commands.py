@@ -94,6 +94,7 @@ def execute(cid: str, op_key: str, kind: str, payload, apply_fn,
 
 
 def _run(conn, cid: str, op_key: str, kind: str, payload, apply_fn, base_revision):
+    # 整份结果都要存：撤销动作重试时要拿回同一份 inverse，只存计数会让重试丢逆操作。
     digest = input_digest({"kind": kind, "payload": payload})
 
     replay = _existing(conn, cid, op_key)
@@ -122,8 +123,8 @@ def _run(conn, cid: str, op_key: str, kind: str, payload, apply_fn, base_revisio
         "INSERT INTO collection_command(id, collection_id, op_key, kind, input_digest, "
         "before_revision, after_revision, result_json, created_at) VALUES(?,?,?,?,?,?,?,?,?)",
         (db.next_id(conn, "OPC"), cid, op_key, kind, digest, before, after,
-         db.dumps({"results": result.get("results"), "added": result.get("added"),
-                   "removed": result.get("removed"), "kind": kind}), db.now()))
+         db.dumps({key: value for key, value in result.items()
+                   if key not in ("revision", "replayed")}), db.now()))
     return result
 
 

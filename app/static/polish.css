@@ -140,3 +140,16 @@ input[type=checkbox],input[type=radio] { accent-color:var(--indigo); }
   .search-workbench .q-stem { font-size:14px; }
 }
 @media(prefers-reduced-motion:reduce) { .search-workbench .q-card { transition:none; } }
+
+
+/* N08 继续上次工作 */
+.recent-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.recent-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 14px; min-width: 180px; max-width: 320px;
+  border: 1px solid var(--line, #dfe3e8); border-radius: 8px;
+  text-decoration: none; color: inherit;
+}
+.recent-item b { font-weight: 600; }
+.recent-item span { color: #6b7280; font-size: 12px; }
+.recent-item:hover { border-color: var(--accent, #2f7d7a); }

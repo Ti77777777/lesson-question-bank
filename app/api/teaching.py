@@ -1251,6 +1251,127 @@ def item_delete(req):
     return {"ok": True, "deleted": iid}
 
 
+ITEM_RESTORE_FIELDS = ("section_id", "question_id", "question_version_id", "order_no") + ITEM_FIELDS
+
+
+@post("/api/collections/{cid}/commands")
+def collection_command(req):
+    """N02 首期：可撤销的题单写入。
+
+    每个动作都返回它的逆动作；页面把逆动作压进撤销栈，撤销时再发一次同样的请求。
+    服务端只负责「校验修订 + 执行 + 记录」，不保存撤销栈——栈属于当前页面会话。
+    """
+    from app import commands
+    from app.layout import clear_item_override
+
+    cid = req.params["cid"]
+    _collection(cid)
+    body = req.json or {}
+    action = _text(body.get("action")).strip()
+    item_id = _text(body.get("item_id")).strip()
+    payload = body.get("payload")
+    if action not in ("remove", "restore", "reorder", "settings"):
+        raise ApiError(400, "bad_field",
+                       "action 只能是 remove、restore、reorder、settings")
+    if not isinstance(payload, dict):
+        payload = {}
+
+    def item_row(iid: str) -> dict:
+        row = _item_row(iid)
+        if row["collection_id"] != cid:
+            raise ApiError(404, "not_found", "条目 %s 不属于题单 %s" % (iid, cid))
+        return row
+
+    def snapshot(row: dict) -> dict:
+        return {key: row[key] for key in ITEM_RESTORE_FIELDS if key in row}
+
+    def apply(conn, _before):
+        inverse = None
+        detail = {"action": action, "item_id": item_id}
+
+        if action == "remove":
+            row = item_row(item_id)
+            inverse = {"action": "restore", "item_id": item_id, "payload": snapshot(row)}
+            conn.execute("DELETE FROM collection_item WHERE id = ?", (item_id,))
+            clear_item_override(conn, cid, item_id)
+            detail.update({"question_id": row["question_id"]})
+            label = "移除题目"
+
+        elif action == "restore":
+            existing = conn.execute("SELECT collection_id FROM collection_item WHERE id = ?",
+                                    (item_id,)).fetchone()
+            if existing is not None:
+                raise ApiError(409, "already_exists",
+                               "条目 %s 已存在，不能重复恢复" % item_id)
+            question_id = _text(payload.get("question_id")).strip()
+            version_id = _text(payload.get("question_version_id")).strip()
+            if not question_id or not version_id:
+                raise ApiError(400, "bad_field", "恢复条目需要 question_id 与 question_version_id")
+            version = db.one("SELECT * FROM question_version WHERE id = ?", (version_id,))
+            if version is None or version["question_id"] != question_id:
+                raise ApiError(409, "version_mismatch", "要恢复的版本已失效或不属于该题")
+            section_id = payload.get("section_id") or None
+            if section_id:
+                _section_in_collection(section_id, cid)
+            order_no = int(payload.get("order_no") or 0)
+            settings = {key: payload.get(key) for key in ITEM_FIELDS if key in payload}
+            columns = (["id", "collection_id", "section_id", "question_id",
+                        "question_version_id", "order_no", "created_at"] + list(settings.keys()))
+            values = ([item_id, cid, section_id, question_id, version_id, order_no, db.now()]
+                      + list(settings.values()))
+            conn.execute("INSERT INTO collection_item(%s) VALUES(%s)"
+                         % (", ".join(columns), ", ".join("?" * len(columns))), values)
+            inverse = {"action": "remove", "item_id": item_id, "payload": {}}
+            detail.update({"question_id": question_id})
+            label = "恢复题目"
+
+        elif action == "reorder":
+            rows = payload.get("items")
+            if not isinstance(rows, list) or not rows:
+                raise ApiError(400, "bad_field", "reorder 需要 items 数组")
+            previous = []
+            for row in rows:
+                iid = _text(row.get("id")).strip()
+                current = item_row(iid)
+                previous.append({"id": iid, "order_no": current["order_no"],
+                                 "section_id": current["section_id"]})
+            for row in rows:
+                iid = _text(row.get("id")).strip()
+                section_id = row.get("section_id") or None
+                if section_id:
+                    _section_in_collection(section_id, cid)
+                conn.execute("UPDATE collection_item SET order_no = ?, section_id = ? WHERE id = ?",
+                             (int(row.get("order_no") or 0), section_id, iid))
+            inverse = {"action": "reorder", "item_id": "", "payload": {"items": previous}}
+            label = "调整顺序"
+
+        else:  # settings
+            row = item_row(item_id)
+            data = _item_settings(payload, row,
+                                  db.one("SELECT * FROM question_version WHERE id = ?",
+                                         (row["question_version_id"],)) or {})
+            if not data:
+                raise ApiError(400, "empty_body", "没有需要修改的设置")
+            previous = {key: row.get(key) for key in data}
+            assignments = ", ".join("%s = ?" % key for key in data)
+            conn.execute("UPDATE collection_item SET %s WHERE id = ?" % assignments,
+                         list(data.values()) + [item_id])
+            clear_item_override(conn, cid, item_id,
+                                set(data) & {"space_mm", "page_break_before"})
+            inverse = {"action": "settings", "item_id": item_id, "payload": previous}
+            label = "修改条目设置"
+
+        _touch_collection(conn, cid)
+        db.audit("collection.command", "collection", cid,
+                 {"action": action, "item_id": item_id or None, "label": label})
+        return {"inverse": inverse, "label": label, "action": action}
+
+    return commands.execute(cid, _text(body.get("operation_id")),
+                            "command." + action,
+                            {"action": action, "item_id": item_id, "payload": payload},
+                            apply, base_revision=_text(body.get("base_revision")) or None)
+
+
 @post("/api/collections/{cid}/reorder")
 def collection_reorder(req):
     cid = req.params["cid"]

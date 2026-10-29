@@ -8,6 +8,7 @@ import { INBOX_STATUS, INBOX_TONE } from '../lib/constants.js';
 import { flash } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { upgradeMath } from '../lib/math.js';
+import { validatedRecent } from '../lib/recent-work.js';
 
 const FILTERS = [
   ['', '全部'],
@@ -22,6 +23,20 @@ export default async function mount(root, ctx) {
   let items = [];
   let total = 0;
 
+  async function paintRecent() {
+    const card = $('#recent-work', root);
+    const list = $('#recent-list', root);
+    if (!card || !list) return;
+    const rows = await validatedRecent(3);
+    if (!ctx.current() || !rows.length) return;
+    list.innerHTML = rows.map((row) => `
+      <a class="recent-item" href="${row.mode === 'layout' ? '#/layout/' : '#/collection/'}${encodeURIComponent(row.id)}">
+        <b>${esc(row.title)}</b>
+        <span>${esc(row.count)} 题${row.mode === 'layout' ? ' · 上次在排版' : ''}</span>
+      </a>`).join('');
+    card.hidden = false;
+  }
+
   root.innerHTML = `
     <div class="page-head">
       <div>
@@ -32,6 +47,11 @@ export default async function mount(root, ctx) {
         <span class="hint" id="inbox-total"></span>
       </div>
     </div>
+
+    <section class="card" id="recent-work" hidden>
+      <div class="card-head"><h2>继续上次工作</h2><span class="hint">只记在本浏览器</span></div>
+      <div class="recent-list" id="recent-list"></div>
+    </section>
 
     <div class="inbox-grid">
       <section class="card">
@@ -295,4 +315,5 @@ export default async function mount(root, ctx) {
   });
 
   await loadList();
+  paintRecent();
 }
