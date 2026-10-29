@@ -312,8 +312,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 7163,
-      "sha256": "ff630e308ecd3c5dddc2cade57599b12787815edfbdcc614f02c9d11c6ded4fa"
+      "bytes": 8035,
+      "sha256": "01a91e02608495b8b06c4ea7b32915bb4864587e4e323d20b57449a3400df71c"
     },
     "data/schema.sql": {
       "bytes": 20776,
@@ -387,6 +387,10 @@
       "bytes": 1789,
       "sha256": "149030cbc02962391c61d227d2a91d00dc359b7779091cd9ec3ae497e032e768"
     },
+    "docs/系统总体设计大纲.md": {
+      "bytes": 26670,
+      "sha256": "76d2cd1619f821ae3f3dfb425f90176644602462d6e20b9008cb0fc9b10ed578"
+    },
     "docs/编辑与草稿.md": {
       "bytes": 7089,
       "sha256": "6c652f7bdc685d5bc4d093b27eb471d0c2239dac9fa58d9b04e8aa7ba0a4b6bf"
@@ -416,8 +420,8 @@
       "sha256": "024b8f1cbb1f2bd3cabda1734aa7bf29fab5b8cd3493d52c821eef628b3d295f"
     },
     "README.md": {
-      "bytes": 4242,
-      "sha256": "b978046ffb9fc21dd8c73aae1303c87be459bed0aa409e72cc5594eef114e12c"
+      "bytes": 4414,
+      "sha256": "3204fe5e9b7e75ef3ed70229247d093f6d416381572918b97d3d51c39ddde990"
     },
     "requirements.txt": {
       "bytes": 103,
