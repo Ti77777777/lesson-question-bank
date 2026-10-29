@@ -1,0 +1,311 @@
+{
+  "description": "12道虚构演示题，不含真实试卷、学校、教师、学生或API数据。",
+  "questions": [
+    {
+      "short_name": "演示01：集合交集",
+      "qtype": "single",
+      "stem": "设集合 $A=\\{0,2,4\\}$，$B=\\{1,2,5\\}$，则 $A\\cap B=$",
+      "answer": "$\\{2\\}$",
+      "analysis": "两个集合中共有的元素只有 $2$，故交集为 $\\{2\\}$，选B。",
+      "options": [
+        {
+          "key": "A",
+          "text": "$0$"
+        },
+        {
+          "key": "B",
+          "text": "$\\{2\\}$"
+        },
+        {
+          "key": "C",
+          "text": "$\\{4\\}$"
+        },
+        {
+          "key": "D",
+          "text": "$\\{0,1,2,4,5\\}$"
+        }
+      ],
+      "answer_keys": [
+        "B"
+      ],
+      "knowledge": "集合运算",
+      "method": "定义法",
+      "demo_index": 1,
+      "total_points": 5
+    },
+    {
+      "short_name": "演示02：导数计算",
+      "qtype": "single",
+      "stem": "已知 $f(x)=x^3-2x$，则 $f\\prime(1)=$",
+      "answer": "$1$",
+      "analysis": "$f\\prime(x)=3x^2-2$，所以 $f\\prime(1)=1$，选C。",
+      "options": [
+        {
+          "key": "A",
+          "text": "$-1$"
+        },
+        {
+          "key": "B",
+          "text": "$0$"
+        },
+        {
+          "key": "C",
+          "text": "$1$"
+        },
+        {
+          "key": "D",
+          "text": "$3$"
+        }
+      ],
+      "answer_keys": [
+        "C"
+      ],
+      "knowledge": "导数运算",
+      "method": "代入法",
+      "demo_index": 2,
+      "total_points": 5
+    },
+    {
+      "short_name": "演示03：复数的模",
+      "qtype": "single",
+      "stem": "设复数 $z=2-\\mathrm i$，则 $|z|=$",
+      "answer": "$\\sqrt5$",
+      "analysis": "由复数模的定义，$|z|=\\sqrt{2^2+(-1)^2}=\\sqrt5$，选D。",
+      "options": [
+        {
+          "key": "A",
+          "text": "$1$"
+        },
+        {
+          "key": "B",
+          "text": "$\\sqrt2$"
+        },
+        {
+          "key": "C",
+          "text": "$\\sqrt3$"
+        },
+        {
+          "key": "D",
+          "text": "$\\sqrt5$"
+        }
+      ],
+      "answer_keys": [
+        "D"
+      ],
+      "knowledge": "复数",
+      "method": "定义法",
+      "demo_index": 3,
+      "total_points": 5
+    },
+    {
+      "short_name": "演示04：二次函数性质",
+      "qtype": "multi",
+      "stem": "对于函数 $f(x)=x^2$，下列说法正确的是",
+      "answer": "A、C、D",
+      "analysis": "$f(-x)=f(x)$，故为偶函数；在实数集上并非递增；函数值非负，且在 $x=0$ 处最小值为 $0$。",
+      "options": [
+        {
+          "key": "A",
+          "text": "函数是偶函数"
+        },
+        {
+          "key": "B",
+          "text": "函数在实数集上严格递增"
+        },
+        {
+          "key": "C",
+          "text": "函数值恒非负"
+        },
+        {
+          "key": "D",
+          "text": "函数最小值为0"
+        }
+      ],
+      "answer_keys": [
+        "A",
+        "C",
+        "D"
+      ],
+      "knowledge": "二次函数",
+      "method": "数形结合",
+      "demo_index": 4,
+      "total_points": 6
+    },
+    {
+      "short_name": "演示05：等差数列",
+      "qtype": "multi",
+      "stem": "已知数列通项 $a_n=3n+1$，$n\\in\\mathbb N^*$，则",
+      "answer": "A、B、C",
+      "analysis": "$a_1=4$，相邻项差为 $3$，$a_2=7$，$S_3=4+7+10=21$。",
+      "options": [
+        {
+          "key": "A",
+          "text": "$a_1=4$"
+        },
+        {
+          "key": "B",
+          "text": "公差为3"
+        },
+        {
+          "key": "C",
+          "text": "$S_3=21$"
+        },
+        {
+          "key": "D",
+          "text": "$a_2=10$"
+        }
+      ],
+      "answer_keys": [
+        "A",
+        "B",
+        "C"
+      ],
+      "knowledge": "等差数列",
+      "method": "代入法",
+      "demo_index": 5,
+      "total_points": 6
+    },
+    {
+      "short_name": "演示06：概率基本性质",
+      "qtype": "multi",
+      "stem": "在同一随机试验中，下列说法正确的是",
+      "answer": "A、B、D",
+      "analysis": "必然事件的概率为1，概率非负。互斥事件不一定独立，例如一次抛硬币中正面和反面事件。D是独立事件的概率关系。",
+      "options": [
+        {
+          "key": "A",
+          "text": "$P(\\Omega)=1$"
+        },
+        {
+          "key": "B",
+          "text": "任意事件A满足 $P(A)\\ge0$"
+        },
+        {
+          "key": "C",
+          "text": "互斥事件一定相互独立"
+        },
+        {
+          "key": "D",
+          "text": "若A、B独立，则 $P(A\\cap B)=P(A)P(B)$"
+        }
+      ],
+      "answer_keys": [
+        "A",
+        "B",
+        "D"
+      ],
+      "knowledge": "概率",
+      "method": "反例法",
+      "demo_index": 6,
+      "total_points": 6
+    },
+    {
+      "short_name": "演示07：二项式系数",
+      "qtype": "blank",
+      "stem": "$(1+x)^4$ 的展开式中，$x^2$ 的系数为______。",
+      "answer": "$6$",
+      "analysis": "由二项式定理，所求系数为 $\\binom42=6$。",
+      "knowledge": "二项式定理",
+      "method": "公式法",
+      "demo_index": 7,
+      "total_points": 5
+    },
+    {
+      "short_name": "演示08：配方求最小值",
+      "qtype": "blank",
+      "stem": "函数 $f(x)=x^2-6x+10$ 的最小值为______。",
+      "answer": "$1$",
+      "analysis": "$f(x)=(x-3)^2+1\\ge1$，当且仅当 $x=3$ 时取等。",
+      "knowledge": "二次函数",
+      "method": "配方法",
+      "demo_index": 8,
+      "total_points": 5
+    },
+    {
+      "short_name": "演示09：特殊角",
+      "qtype": "blank",
+      "stem": "$\\cos\\frac{\\pi}{3}=$______。",
+      "answer": "$\\frac12$",
+      "analysis": "由特殊角的三角函数值，$\\cos\\frac{\\pi}{3}=\\frac12$。",
+      "knowledge": "三角函数",
+      "method": "公式法",
+      "demo_index": 9,
+      "total_points": 5
+    },
+    {
+      "short_name": "演示10：实根与正根",
+      "qtype": "solve",
+      "stem": "已知 $a\\in\\mathbb R$，方程 $x^2-2ax+4=0$。",
+      "answer": "（1）$a<-2$或$a>2$；（2）$a>2$。",
+      "analysis": "判别式 $\\Delta=4a^2-16$。两不等实根要求 $\\Delta>0$，故 $|a|>2$。两根积为4；要求两根均为正，只需在有两不同实根基础上再满足两根和 $2a>0$，得 $a>2$。",
+      "subquestions": [
+        {
+          "key": "1",
+          "text": "求方程有两个不同实根时a的范围。",
+          "answer": "$a<-2$或$a>2$。"
+        },
+        {
+          "key": "2",
+          "text": "若两个根均为正，求a的范围。",
+          "answer": "$a>2$。",
+          "depends_on": [
+            "1"
+          ]
+        }
+      ],
+      "knowledge": "一元二次方程",
+      "method": "判别式法",
+      "demo_index": 10,
+      "total_points": 12
+    },
+    {
+      "short_name": "演示11：不放回抽样",
+      "qtype": "solve",
+      "stem": "袋中有5个红球和3个蓝球，除颜色外均相同。随机不放回取出2球。",
+      "answer": "（1）$\\frac5{14}$；（2）$\\frac{15}{28}$。",
+      "analysis": "所有取法共 $\\binom82=28$ 种。两个红球的取法有 $\\binom52=10$ 种，概率为 $10/28=5/14$；一红一蓝有 $5\\times3=15$ 种，概率为 $15/28$。",
+      "subquestions": [
+        {
+          "key": "1",
+          "text": "求两个球均为红球的概率。",
+          "answer": "$\\frac5{14}$。"
+        },
+        {
+          "key": "2",
+          "text": "求恰有一个红球的概率。",
+          "answer": "$\\frac{15}{28}$。"
+        }
+      ],
+      "knowledge": "概率",
+      "method": "古典概型",
+      "demo_index": 11,
+      "total_points": 12
+    },
+    {
+      "short_name": "演示12：单调性与极值",
+      "qtype": "solve",
+      "stem": "已知函数 $f(x)=x^3-3x$。",
+      "answer": "在$(-\\infty,-1)$、$(1,+\\infty)$上递增，在$(-1,1)$上递减；极大值2，极小值-2。",
+      "analysis": "$f\\prime(x)=3(x-1)(x+1)$。导数在$(-\\infty,-1)$和$(1,+\\infty)$上为正，在$(-1,1)$上为负。因此$x=-1$处极大值为2，$x=1$处极小值为-2。",
+      "subquestions": [
+        {
+          "key": "1",
+          "text": "求函数的单调区间。",
+          "answer": "递增区间为$(-\\infty,-1)$与$(1,+\\infty)$，递减区间为$(-1,1)$。"
+        },
+        {
+          "key": "2",
+          "text": "求函数的极值。",
+          "answer": "极大值2，极小值-2。",
+          "depends_on": [
+            "1"
+          ]
+        }
+      ],
+      "knowledge": "导数与极值",
+      "method": "导数法",
+      "demo_index": 12,
+      "total_points": 12
+    }
+  ]
+}

@@ -1,0 +1,208 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "question_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "solved",
+        "unresolved"
+      ]
+    },
+    "unresolved_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "answer_tex": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "answer_keys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ]
+      }
+    },
+    "subquestion_answers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "answer_tex": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "key",
+          "answer_tex"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "solutions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "solution_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "is_primary": {
+            "type": "boolean"
+          },
+          "approach": {
+            "type": "string"
+          },
+          "steps_tex": {
+            "type": "string",
+            "minLength": 1
+          },
+          "conditions": {
+            "type": "string"
+          },
+          "teacher_tip": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "solution_key",
+          "label",
+          "is_primary",
+          "approach",
+          "steps_tex",
+          "conditions",
+          "teacher_tip"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "teaching": {
+      "type": "object",
+      "properties": {
+        "key_step": {
+          "type": "string"
+        },
+        "prereq": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "pitfalls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "probe": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "key_step",
+        "prereq",
+        "pitfalls",
+        "probe"
+      ],
+      "additionalProperties": false
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "major",
+              "minor"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_region_keys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "suggestion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "severity",
+          "code",
+          "field_path",
+          "message",
+          "evidence_region_keys",
+          "suggestion"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "question_key",
+    "input_hash",
+    "status",
+    "unresolved_reason",
+    "answer_tex",
+    "answer_keys",
+    "subquestion_answers",
+    "solutions",
+    "teaching",
+    "issues"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QBank AI solve v1.0"
+}

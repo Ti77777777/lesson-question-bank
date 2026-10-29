@@ -1,0 +1,1103 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "design_example",
+        "provider_pipeline"
+      ]
+    },
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_file_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "base_version_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "question": {
+      "type": "object",
+      "properties": {
+        "question_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_qno": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qtype": {
+          "type": "string",
+          "enum": [
+            "single",
+            "multi",
+            "blank",
+            "solve",
+            "unknown"
+          ]
+        },
+        "points": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "stem_tex": {
+              "type": "string"
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "enum": [
+                      "A",
+                      "B",
+                      "C",
+                      "D"
+                    ]
+                  },
+                  "text_tex": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "key",
+                  "text_tex"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "subquestions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "parent_key": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "text_tex": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "material_keys": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "required": [
+                  "key",
+                  "parent_key",
+                  "text_tex",
+                  "material_keys"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "tail_tex": {
+              "type": "string"
+            },
+            "material_keys": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "stem_tex",
+            "options",
+            "subquestions",
+            "tail_tex",
+            "material_keys"
+          ],
+          "additionalProperties": false
+        },
+        "evidence_region_keys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "isolated_reference": {
+          "type": "object",
+          "properties": {
+            "presence": {
+              "type": "string",
+              "enum": [
+                "absent",
+                "answer_only",
+                "answer_and_solution",
+                "uncertain"
+              ]
+            },
+            "answer_tex": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "solution_tex": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "evidence_region_keys": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "trust": {
+              "type": "string",
+              "enum": [
+                "unreviewed_source"
+              ]
+            }
+          },
+          "required": [
+            "presence",
+            "answer_tex",
+            "solution_tex",
+            "evidence_region_keys",
+            "trust"
+          ],
+          "additionalProperties": false
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "major",
+                  "minor"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "field_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence_region_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "suggestion": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "severity",
+              "code",
+              "field_path",
+              "message",
+              "evidence_region_keys",
+              "suggestion"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "question_key",
+        "original_qno",
+        "qtype",
+        "points",
+        "body",
+        "evidence_region_keys",
+        "isolated_reference",
+        "issues"
+      ],
+      "additionalProperties": false
+    },
+    "recognition_regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "region_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "bbox": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "stem",
+              "option",
+              "figure_student",
+              "shared_material",
+              "reference_answer",
+              "reference_solution",
+              "revision_note",
+              "non_question"
+            ]
+          },
+          "answer_free": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "region_key",
+          "page",
+          "bbox",
+          "role",
+          "answer_free"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "material_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "figure",
+              "table",
+              "shared_text"
+            ]
+          },
+          "content_tex": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "region_keys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "student",
+              "teacher",
+              "evidence"
+            ]
+          }
+        },
+        "required": [
+          "material_key",
+          "kind",
+          "content_tex",
+          "region_keys",
+          "purpose"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "solve": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "question_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "solved",
+            "unresolved"
+          ]
+        },
+        "unresolved_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "answer_tex": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "answer_keys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          }
+        },
+        "subquestion_answers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "answer_tex": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "key",
+              "answer_tex"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "solutions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "solution_key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "is_primary": {
+                "type": "boolean"
+              },
+              "approach": {
+                "type": "string"
+              },
+              "steps_tex": {
+                "type": "string",
+                "minLength": 1
+              },
+              "conditions": {
+                "type": "string"
+              },
+              "teacher_tip": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "solution_key",
+              "label",
+              "is_primary",
+              "approach",
+              "steps_tex",
+              "conditions",
+              "teacher_tip"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "teaching": {
+          "type": "object",
+          "properties": {
+            "key_step": {
+              "type": "string"
+            },
+            "prereq": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "pitfalls": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "probe": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key_step",
+            "prereq",
+            "pitfalls",
+            "probe"
+          ],
+          "additionalProperties": false
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "major",
+                  "minor"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "field_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence_region_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "suggestion": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "severity",
+              "code",
+              "field_path",
+              "message",
+              "evidence_region_keys",
+              "suggestion"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "question_key",
+        "input_hash",
+        "status",
+        "unresolved_reason",
+        "answer_tex",
+        "answer_keys",
+        "subquestion_answers",
+        "solutions",
+        "teaching",
+        "issues"
+      ],
+      "additionalProperties": false
+    },
+    "review_annotation": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "question_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "solution_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "overall": {
+          "type": "string",
+          "enum": [
+            "no_issue_found",
+            "issue_found",
+            "disputed",
+            "unable_to_check"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item": {
+                "type": "string",
+                "enum": [
+                  "stem",
+                  "answer",
+                  "solution",
+                  "figure",
+                  "classification",
+                  "boundary",
+                  "method_scope"
+                ]
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "no_issue_found",
+                  "issue_found",
+                  "disputed",
+                  "unable_to_check",
+                  "not_applicable"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "severity": {
+                      "type": "string",
+                      "enum": [
+                        "critical",
+                        "major",
+                        "minor"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field_path": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "evidence_region_keys": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "suggestion": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "severity",
+                    "code",
+                    "field_path",
+                    "message",
+                    "evidence_region_keys",
+                    "suggestion"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "item",
+              "result",
+              "reason",
+              "issues"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "reference_comparison": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "absent",
+                "equivalent",
+                "different",
+                "uncertain"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        "classification": {
+          "type": "object",
+          "properties": {
+            "lexicon_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "tag_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dimension": {
+                    "type": "string",
+                    "enum": [
+                      "knowledge",
+                      "textbook",
+                      "prereq",
+                      "method",
+                      "idea",
+                      "purpose",
+                      "error"
+                    ]
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "primary",
+                      "secondary"
+                    ]
+                  },
+                  "solution_key": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "tag_id",
+                  "dimension",
+                  "role",
+                  "solution_key",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "proposed_tags": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "dimension": {
+                    "type": "string",
+                    "enum": [
+                      "knowledge",
+                      "textbook",
+                      "prereq",
+                      "method",
+                      "idea",
+                      "purpose",
+                      "error"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "definition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "parent_suggestion": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "dimension",
+                  "name",
+                  "definition",
+                  "parent_suggestion"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "lexicon_version",
+            "tags",
+            "proposed_tags"
+          ],
+          "additionalProperties": false
+        },
+        "assessment": {
+          "type": "object",
+          "properties": {
+            "rubric_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_students": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allowed_methods": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "calc": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 5
+            },
+            "think": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 5
+            },
+            "scope": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 5
+            },
+            "difficulty_reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recommendation": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "S",
+                "A",
+                "B",
+                "C",
+                null
+              ]
+            },
+            "recommendation_reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "rubric_version",
+            "target_students",
+            "allowed_methods",
+            "calc",
+            "think",
+            "scope",
+            "difficulty_reason",
+            "recommendation",
+            "recommendation_reason"
+          ],
+          "additionalProperties": false
+        },
+        "subquestion_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from_key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "to_key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "proposed"
+                ]
+              }
+            },
+            "required": [
+              "from_key",
+              "to_key",
+              "reason",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "dependency_review": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "proposed",
+            "not_applicable"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "question_key",
+        "input_hash",
+        "solution_hash",
+        "overall",
+        "items",
+        "reference_comparison",
+        "classification",
+        "assessment",
+        "subquestion_dependencies",
+        "dependency_review"
+      ],
+      "additionalProperties": false
+    },
+    "quality_state": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "needs_review",
+        "no_issue_found",
+        "disputed",
+        "human_confirmed"
+      ]
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "passed",
+            "failed"
+          ]
+        },
+        "semantics": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "passed",
+            "failed"
+          ]
+        },
+        "tex": {
+          "type": "string",
+          "enum": [
+            "not_run",
+            "passed",
+            "failed"
+          ]
+        },
+        "visual": {
+          "type": "string",
+          "enum": [
+            "not_run",
+            "checked",
+            "issues_found"
+          ]
+        },
+        "math_tools": {
+          "type": "string",
+          "enum": [
+            "not_run",
+            "verified",
+            "refuted",
+            "inconclusive"
+          ]
+        }
+      },
+      "required": [
+        "schema",
+        "semantics",
+        "tex",
+        "visual",
+        "math_tools"
+      ],
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "created_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_calls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "step": {
+                "type": "string",
+                "minLength": 1
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1
+              },
+              "prompt_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "input_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "output_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "step",
+              "model",
+              "prompt_version",
+              "input_hash",
+              "output_hash"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "is_real_model_result": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "created_by",
+        "model_calls",
+        "is_real_model_result"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "origin",
+    "candidate_id",
+    "revision",
+    "job_id",
+    "source_file_id",
+    "source_sha256",
+    "input_hash",
+    "base_version_id",
+    "question",
+    "recognition_regions",
+    "materials",
+    "solve",
+    "review_annotation",
+    "quality_state",
+    "validation",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QBank AI candidate v1.0"
+}

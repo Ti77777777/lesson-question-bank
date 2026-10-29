@@ -1,0 +1,11 @@
+Third-party notices
+
+The LaTeX class in templates/exbook/ExBook.cls is adapted from ExBook.
+Original class authorship (MA WEI JIAN) is retained in the class header.
+ExBook is distributed under the MIT license; see templates/exbook/LICENSE.
+This distribution modifies neutral defaults and optional artwork fallbacks.
+Original promotional material and artwork are not included.
+
+The web interface loads KaTeX from a public CDN when formulas are rendered.
+KaTeX is MIT licensed and is not bundled in this source archive.
+Optional Python PDF/image dependencies retain their respective licenses.

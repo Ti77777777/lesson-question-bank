@@ -1,0 +1,418 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "paper_title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_revision_notes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "region_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "bbox": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "stem",
+              "option",
+              "figure_student",
+              "shared_material",
+              "reference_answer",
+              "reference_solution",
+              "revision_note",
+              "non_question"
+            ]
+          },
+          "answer_free": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "region_key",
+          "page",
+          "bbox",
+          "role",
+          "answer_free"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "material_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "figure",
+              "table",
+              "shared_text"
+            ]
+          },
+          "content_tex": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "region_keys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "student",
+              "teacher",
+              "evidence"
+            ]
+          }
+        },
+        "required": [
+          "material_key",
+          "kind",
+          "content_tex",
+          "region_keys",
+          "purpose"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "original_qno": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qtype": {
+            "type": "string",
+            "enum": [
+              "single",
+              "multi",
+              "blank",
+              "solve",
+              "unknown"
+            ]
+          },
+          "points": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "stem_tex": {
+                "type": "string"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "A",
+                        "B",
+                        "C",
+                        "D"
+                      ]
+                    },
+                    "text_tex": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "text_tex"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "subquestions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "parent_key": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "text_tex": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "material_keys": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "parent_key",
+                    "text_tex",
+                    "material_keys"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "tail_tex": {
+                "type": "string"
+              },
+              "material_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "stem_tex",
+              "options",
+              "subquestions",
+              "tail_tex",
+              "material_keys"
+            ],
+            "additionalProperties": false
+          },
+          "evidence_region_keys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "isolated_reference": {
+            "type": "object",
+            "properties": {
+              "presence": {
+                "type": "string",
+                "enum": [
+                  "absent",
+                  "answer_only",
+                  "answer_and_solution",
+                  "uncertain"
+                ]
+              },
+              "answer_tex": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "solution_tex": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "evidence_region_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "trust": {
+                "type": "string",
+                "enum": [
+                  "unreviewed_source"
+                ]
+              }
+            },
+            "required": [
+              "presence",
+              "answer_tex",
+              "solution_tex",
+              "evidence_region_keys",
+              "trust"
+            ],
+            "additionalProperties": false
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "severity": {
+                  "type": "string",
+                  "enum": [
+                    "critical",
+                    "major",
+                    "minor"
+                  ]
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_region_keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "suggestion": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "severity",
+                "code",
+                "field_path",
+                "message",
+                "evidence_region_keys",
+                "suggestion"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "question_key",
+          "original_qno",
+          "qtype",
+          "points",
+          "body",
+          "evidence_region_keys",
+          "isolated_reference",
+          "issues"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "document_issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "major",
+              "minor"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_region_keys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "suggestion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "severity",
+          "code",
+          "field_path",
+          "message",
+          "evidence_region_keys",
+          "suggestion"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "paper_title",
+    "source_revision_notes",
+    "regions",
+    "materials",
+    "questions",
+    "document_issues"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QBank AI recognition v1.0"
+}

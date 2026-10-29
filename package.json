@@ -1,0 +1,10 @@
+{
+  "name": "lesson-question-bank",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/test_frontend.mjs"
+  }
+}

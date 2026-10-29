@@ -1,0 +1,26 @@
+# Local databases, credentials and teaching materials
+data/**
+!data/schema.sql
+!data/seed.py
+assets/**
+sources/**
+imports/**
+releases/**
+backup/**
+build/**
+output/**
+dist/**
+*.db
+*.db-*
+*.sqlite*
+*.dpapi
+*.ai.lock
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,382 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "question_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "solution_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "overall": {
+      "type": "string",
+      "enum": [
+        "no_issue_found",
+        "issue_found",
+        "disputed",
+        "unable_to_check"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string",
+            "enum": [
+              "stem",
+              "answer",
+              "solution",
+              "figure",
+              "classification",
+              "boundary",
+              "method_scope"
+            ]
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "no_issue_found",
+              "issue_found",
+              "disputed",
+              "unable_to_check",
+              "not_applicable"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "severity": {
+                  "type": "string",
+                  "enum": [
+                    "critical",
+                    "major",
+                    "minor"
+                  ]
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "field_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_region_keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "suggestion": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "severity",
+                "code",
+                "field_path",
+                "message",
+                "evidence_region_keys",
+                "suggestion"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "item",
+          "result",
+          "reason",
+          "issues"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reference_comparison": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "absent",
+            "equivalent",
+            "different",
+            "uncertain"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "status",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "classification": {
+      "type": "object",
+      "properties": {
+        "lexicon_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tag_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dimension": {
+                "type": "string",
+                "enum": [
+                  "knowledge",
+                  "textbook",
+                  "prereq",
+                  "method",
+                  "idea",
+                  "purpose",
+                  "error"
+                ]
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "primary",
+                  "secondary"
+                ]
+              },
+              "solution_key": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "tag_id",
+              "dimension",
+              "role",
+              "solution_key",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "proposed_tags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dimension": {
+                "type": "string",
+                "enum": [
+                  "knowledge",
+                  "textbook",
+                  "prereq",
+                  "method",
+                  "idea",
+                  "purpose",
+                  "error"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "definition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "parent_suggestion": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "dimension",
+              "name",
+              "definition",
+              "parent_suggestion"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "lexicon_version",
+        "tags",
+        "proposed_tags"
+      ],
+      "additionalProperties": false
+    },
+    "assessment": {
+      "type": "object",
+      "properties": {
+        "rubric_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_students": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed_methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "calc": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 5
+        },
+        "think": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 5
+        },
+        "scope": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 5
+        },
+        "difficulty_reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recommendation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "S",
+            "A",
+            "B",
+            "C",
+            null
+          ]
+        },
+        "recommendation_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "rubric_version",
+        "target_students",
+        "allowed_methods",
+        "calc",
+        "think",
+        "scope",
+        "difficulty_reason",
+        "recommendation",
+        "recommendation_reason"
+      ],
+      "additionalProperties": false
+    },
+    "subquestion_dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "proposed"
+            ]
+          }
+        },
+        "required": [
+          "from_key",
+          "to_key",
+          "reason",
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "dependency_review": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "proposed",
+        "not_applicable"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "question_key",
+    "input_hash",
+    "solution_hash",
+    "overall",
+    "items",
+    "reference_comparison",
+    "classification",
+    "assessment",
+    "subquestion_dependencies",
+    "dependency_review"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QBank AI review-annotation v1.0"
+}

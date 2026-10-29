@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>习题课题库</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="app-bar">
+    <div class="app-bar-inner">
+      <a class="brand" href="#/inbox" aria-label="回到收题箱">
+        <span class="brand-name">习题课题库</span>
+        <span class="brand-sub">高中数学习题课备课</span>
+      </a>
+      <nav class="main-nav" id="main-nav" aria-label="主导航">
+        <a href="#/ai" data-nav="ai">AI 工作台</a>
+        <a href="#/inbox" data-nav="inbox">收题箱</a>
+        <a href="#/search" data-nav="search">题库检索</a>
+        <a href="#/collections" data-nav="collections">题单</a>
+        <a href="#/releases" data-nav="releases">导出与归档</a>
+        <a href="#/usage" data-nav="usage">使用与反馈</a>
+      </nav>
+      <div class="bar-right">
+        <span class="meta-counts" id="meta-counts" title="题库规模"></span>
+        <button type="button" class="btn btn-quiet basket-btn" id="basket-btn">
+          选题篮<span class="count mono" id="basket-count">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="flash" id="flash" role="alert" hidden></div>
+
+  <main id="view" class="view" aria-live="polite"></main>
+
+  <footer class="app-foot">
+    <span>本地单机 · 数据保存在本机 <span class="mono">data/qbank.db</span></span>
+    <span id="foot-meta"></span>
+  </footer>
+
+  <div id="modal-root"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

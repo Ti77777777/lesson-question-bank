@@ -1,0 +1,4 @@
+# Optional: required only for PDF/image import.
+Pillow>=10,<13
+pdfplumber>=0.11,<1
+pypdfium2>=4,<6
