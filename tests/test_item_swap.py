@@ -121,6 +121,23 @@ class SwapTest(unittest.TestCase):
         row = next(i for i in self.ok("GET", "/api/collections/%s" % cid)["items"] if i["id"] == item)
         self.assertEqual(row["question_id"], q1)
 
+    def test_05_cannot_swap_into_a_question_already_in_the_collection(self):
+        cid, sid, q1, v1, q2, v2, item = self.fixture("换题 E")
+        # 先正常把另一条加到题单里（用当前条目的题号之外的题）
+        second = self.ok("POST", "/api/collections/%s/items" % cid, {"question_id": q2})["item"]["id"]
+        self.assertTrue(second)
+        rev = self.ok("GET", "/api/collections/%s" % cid)["revision"]
+        status, err = self.call("POST", "/api/items/%s/swap" % item, {
+            "operation_id": str(uuid.uuid4()), "base_revision": rev, "question_id": q2})
+        self.assertEqual(status, 409)
+        self.assertEqual(err["error"]["code"], "duplicate")
+        # 明确要求放两次才放行
+        rev = self.ok("GET", "/api/collections/%s" % cid)["revision"]
+        out = self.ok("POST", "/api/items/%s/swap" % item, {
+            "operation_id": str(uuid.uuid4()), "base_revision": rev,
+            "question_id": q2, "allow_duplicate": True})
+        self.assertEqual(out["question_id"], q2)
+
     def test_04_replay_is_idempotent(self):
         cid, sid, q1, v1, q2, v2, item = self.fixture("换题 D")
         body = {"operation_id": str(uuid.uuid4()),

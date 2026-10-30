@@ -409,7 +409,7 @@ export default async function mount(root, ctx) {
     }).join('');
 
     upgradeMath(resultsEl);
-    annotateUsage(list);
+    annotateUsage(items);   // 这里的结果数组叫 items，写成 list 会直接 ReferenceError
 
     const loaded = items.length;
     noteEl.textContent = loaded < total ? `已显示 ${loaded} / ${total}` : '';

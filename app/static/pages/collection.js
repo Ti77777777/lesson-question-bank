@@ -331,12 +331,21 @@ export default async function mount(root, ctx) {
       results.innerHTML = '<p class="hint">正在查找…</p>';
       try {
         const data = await api('/api/questions', { query: { keyword: keyword || undefined, limit: 10 } });
+        // 题单里已有的题不能再换进来，否则会出现两条同题
+        const already = new Set(items.map((row) => row.question_id));
         const rows = (data.items || []).filter((row) => !item || row.id !== item.question_id);
-        results.innerHTML = rows.length ? rows.map((row) => `
-          <label class="check usage-item">
-            <input type="radio" name="swap-pick" value="${esc(row.id)}">
-            <span>${esc(row.short_name || row.id)}<br><span class="hint">${esc((row.stem_preview || '').slice(0, 60))}</span></span>
-          </label>`).join('') : '<p class="hint">没有找到别的题，换个关键词或先录入新题。</p>';
+        results.innerHTML = rows.length ? rows.map((row) => {
+          const used = already.has(row.id);
+          return `
+          <label class="check usage-item ${used ? 'is-disabled' : ''}">
+            <input type="radio" name="swap-pick" value="${esc(row.id)}" ${used ? 'disabled' : ''}>
+            <span>${esc(row.short_name || row.id)}${used ? '<span class="hint">　已在题单</span>' : ''}
+              <br><span class="hint swap-stem" data-rich>${esc((row.stem || row.stem_preview || '').trim())}</span>
+            </span>
+          </label>`;
+        }).join('') : '<p class="hint">没有找到别的题，换个关键词或先录入新题。</p>';
+        // 题面里是 LaTeX，必须渲染，否则显示成 $f(x)=...$ 原文
+        upgradeMath(results);
       } catch (e) {
         results.innerHTML = `<p class="hint">查找失败：${esc(e.message || String(e))}</p>`;
       }

@@ -1283,6 +1283,14 @@ def item_swap(req):
     if qid == row["question_id"]:
         raise ApiError(409, "same_question", "换的仍是同一道题")
 
+    # 换进来之前先看题单里有没有这道题，否则会出现两条同题
+    duplicate = db.one(
+        "SELECT id FROM collection_item WHERE collection_id = ? AND question_id = ? AND id <> ?",
+        (cid, qid, iid))
+    if duplicate is not None and not body.get("allow_duplicate"):
+        raise ApiError(409, "duplicate",
+                       "题单里已有这道题（条目 %s），确实要放两次请说明" % duplicate["id"])
+
     question = db.one("SELECT * FROM question WHERE id = ?", (qid,))
     if question is None:
         raise ApiError(404, "not_found", "题目 %s 不存在" % qid)
