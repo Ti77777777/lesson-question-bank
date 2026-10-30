@@ -364,7 +364,7 @@ export default async function mount(root, ctx) {
     if (row.items === null || row.items === undefined) return '<span class="hint">整份讲义</span>';
     const list = Array.isArray(row.items) ? row.items : [];
     if (!list.length) return '<span class="hint">未登记题目</span>';
-    return `<span class="mono" style="font-size:11px;">${esc(list.join('、'))}</span>`;
+    return `<span class="mono" style="font-size:var(--font-13);">${esc(list.join('、'))}</span>`;
   }
 
   function renderUsages() {
@@ -380,7 +380,7 @@ export default async function mount(root, ctx) {
         <td>${esc(audienceName(row))}</td>
         <td class="num">${esc(fmtDate(row.used_on))}</td>
         <td>${esc(USAGE_PURPOSES[row.purpose] || row.purpose || '—')}</td>
-        <td class="mono" style="font-size:11.5px;">${esc(row.release_id || '—')}</td>
+        <td class="mono" style="font-size:var(--font-14);">${esc(row.release_id || '—')}</td>
         <td>${usageItemsText(row)}</td>
         <td><button type="button" class="btn btn-sm" data-feedback="${esc(row.id)}">反馈${Number(row.feedback_count) ? ` ${esc(row.feedback_count)}` : ''}</button></td>
       </tr>
@@ -654,21 +654,21 @@ export default async function mount(root, ctx) {
 
     container.innerHTML = `<div class="recent-grid">
       <div>
-        <div class="mini-title"><span>近期用过的题</span><span class="hint" style="font-size:10.5px;">${questions.length} 道</span></div>
+        <div class="mini-title"><span>近期用过的题</span><span class="hint" style="font-size:var(--font-13);">${questions.length} 道</span></div>
         ${questions.length ? `<ul class="recent-list">${questions.map((row) => {
           const q = row.question || row;
           const qid = q.id || row.question_id;
           const used = row.last_used || row.used_on || row.used_at;
           const count = row.use_count || row.count;
           return `<li>
-            ${qid ? `<a href="#/question/${esc(qid)}" class="mono" style="font-size:11.5px;">${esc(qid)}</a>` : ''}
+            ${qid ? `<a href="#/question/${esc(qid)}" class="mono" style="font-size:var(--font-14);">${esc(qid)}</a>` : ''}
             ${esc(q.short_name || truncate(q.stem_preview || row.stem_preview, 48) || '')}
             <div class="meta">${used ? `最近 ${esc(fmtDate(used))}` : '日期未记录'}${count ? `，使用 ${esc(count)} 次` : ''}${row.collection_title ? `，${esc(row.collection_title)}` : ''}${row.purpose ? `，${esc(USAGE_PURPOSES[row.purpose] || row.purpose)}` : ''}</div>
           </li>`;
         }).join('')}</ul>` : `<div class="check-empty">近 ${esc(days)} 天没有题目使用记录。</div>`}
       </div>
       <div>
-        <div class="mini-title"><span>近期用过的题单</span><span class="hint" style="font-size:10.5px;">${recentCollections.length} 份</span></div>
+        <div class="mini-title"><span>近期用过的题单</span><span class="hint" style="font-size:var(--font-13);">${recentCollections.length} 份</span></div>
         ${recentCollections.length ? `<ul class="recent-list">${recentCollections.map((row) => {
           const c = row.collection || row;
           const cid = c.id || row.collection_id

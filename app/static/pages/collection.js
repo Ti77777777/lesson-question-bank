@@ -122,7 +122,7 @@ export default async function mount(root, ctx) {
     const groupItems = itemsOf(section.id);
     return `<div class="section-block" data-section="${esc(section.id)}">
       <div class="section-head">
-        <span class="mono faint" style="font-size:11px;">${String(index + 1).padStart(2, '0')}</span>
+        <span class="mono faint" style="font-size:var(--font-13);">${String(index + 1).padStart(2, '0')}</span>
         <h3>${esc(section.title || '未命名分节')}</h3>
         <span class="sec-kind">${esc(SECTION_KINDS[section.kind] || section.kind || '')}</span>
         ${badge(`${groupItems.length} 题`, 'plain')}
@@ -169,13 +169,13 @@ export default async function mount(root, ctx) {
       </div>
 
       <div>
-        <div class="mini-title"><span>时间预算</span><span class="mono" style="font-size:10.5px;color:${over ? 'var(--ochre)' : 'var(--faint)'};">${esc(num(total))} / ${esc(num(budget))} 分</span></div>
+        <div class="mini-title"><span>时间预算</span><span class="mono" style="font-size:var(--font-13);color:${over ? 'var(--ochre)' : 'var(--faint)'};">${esc(num(total))} / ${esc(num(budget))} 分</span></div>
         <div class="time-bar"><div class="fill ${over ? 'over' : ''}" style="width:${Math.min(100, Math.round(ratio * 100))}%;"></div></div>
         ${over ? '<div class="item-warn">已超过时间预算的 90%。</div>' : ''}
       </div>
 
       <div>
-        <div class="mini-title"><span>难度分布</span><span class="hint" style="font-size:10.5px;">思维难度 1–5</span></div>
+        <div class="mini-title"><span>难度分布</span><span class="hint" style="font-size:var(--font-13);">思维难度 1–5</span></div>
         ${[1, 2, 3, 4, 5].map((n) => {
           const value = Number(spread[String(n)] ?? spread[n] ?? 0);
           return `<div class="bar-row">
@@ -187,7 +187,7 @@ export default async function mount(root, ctx) {
       </div>
 
       <div>
-        <div class="mini-title"><span>重复提示</span><span class="hint" style="font-size:10.5px;">${duplicates.length} 组</span></div>
+        <div class="mini-title"><span>重复提示</span><span class="hint" style="font-size:var(--font-13);">${duplicates.length} 组</span></div>
         ${duplicates.length ? `<ul class="check-list warn">${duplicates.map((dup) => {
           const a = itemById(dup.a);
           const b = itemById(dup.b);
@@ -196,7 +196,7 @@ export default async function mount(root, ctx) {
       </div>
 
       <div>
-        <div class="mini-title"><span>未审校条目</span><span class="hint" style="font-size:10.5px;">${unreviewed.length} 条</span></div>
+        <div class="mini-title"><span>未审校条目</span><span class="hint" style="font-size:var(--font-13);">${unreviewed.length} 条</span></div>
         ${unreviewed.length ? `<ul class="check-list warn">${unreviewed.map((id) => {
           const item = itemById(typeof id === 'string' ? id : id.id || id.item_id);
           const qid = item?.question?.id || item?.question_id;

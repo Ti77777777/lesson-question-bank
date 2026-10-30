@@ -192,10 +192,10 @@ export default async function mount(root, ctx) {
       <div class="rel-head">
         ${badge(relLabel, 'info')}
         <span class="arrow">${direction === 'in' ? '由' : ''}</span>
-        ${target ? `<a href="#/question/${esc(target)}" class="mono" style="font-size:12px;">${esc(target)}</a>` : ''}
-        <span style="font-size:12.5px;">${esc(q.short_name || q.stem_preview || '')}</span>
-        ${direction === 'in' && !['same_method', 'error_contrast'].includes(rel.rel_type) ? '<span class="faint" style="font-size:11px;">指向本题</span>' : ''}
-        ${['same_method', 'error_contrast'].includes(rel.rel_type) ? '<span class="faint" style="font-size:11px;">双向</span>' : ''}
+        ${target ? `<a href="#/question/${esc(target)}" class="mono" style="font-size:var(--font-14);">${esc(target)}</a>` : ''}
+        <span style="font-size:var(--font-15);">${esc(q.short_name || q.stem_preview || '')}</span>
+        ${direction === 'in' && !['same_method', 'error_contrast'].includes(rel.rel_type) ? '<span class="faint" style="font-size:var(--font-13);">指向本题</span>' : ''}
+        ${['same_method', 'error_contrast'].includes(rel.rel_type) ? '<span class="faint" style="font-size:var(--font-13);">双向</span>' : ''}
         ${rel.confirmed ? badge('已确认', 'pass') : badge('待确认', 'pending')}
         ${!rel.confirmed ? `<button type="button" class="btn-link" data-confirm-rel="${esc(rel.id)}">确认关系</button>` : ''}
         <button type="button" class="btn-link danger" data-del-rel="${esc(rel.id)}">删除</button>

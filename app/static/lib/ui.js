@@ -178,7 +178,7 @@ export function confirmDialog({
     const modal = openModal({
       title,
       width: 'modal-narrow',
-      body: `<p style="font-size:13.5px;line-height:1.75;white-space:pre-wrap;">${esc(message)}</p>`,
+      body: `<p style="font-size:var(--font-16);line-height:1.75;white-space:pre-wrap;">${esc(message)}</p>`,
       footer: `<button type="button" class="btn" data-cancel>${esc(cancelText)}</button>
                <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-ok>${esc(confirmText)}</button>`,
       onClose: () => resolve(result),

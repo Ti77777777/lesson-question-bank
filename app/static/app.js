@@ -187,7 +187,7 @@ async function openBasketModal() {
       return `<div class="basket-row">
         <span class="idx">${String(index + 1).padStart(2, '0')}</span>
         <div class="main">
-          <a class="mono" href="#/question/${esc(id)}" style="font-size:12px;">${esc(id)}</a>
+          <a class="mono" href="#/question/${esc(id)}" style="font-size:var(--font-14);">${esc(id)}</a>
           <span class="name"> ${esc(q.short_name || '')}</span>
           <div class="stem">${esc(truncate(version.stem || q.stem_preview || '', 90) || '（题目详情暂不可用）')}</div>
         </div>

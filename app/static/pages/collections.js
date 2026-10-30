@@ -54,7 +54,7 @@ export default async function mount(root, ctx) {
         </div>
         <div class="collection-stat"><span class="k">题量</span><span class="v">${esc(num(count))}</span></div>
         <div class="collection-stat"><span class="k">发布</span><span class="v">${esc(num(releaseCount))}</span></div>
-        <div class="updated muted" style="font-size:12px;">更新 ${esc(fmtDate(row.updated_at))}</div>
+        <div class="updated muted" style="font-size:var(--font-14);">更新 ${esc(fmtDate(row.updated_at))}</div>
         <div style="text-align:right;"><a class="btn btn-sm" href="#/collection/${esc(row.id)}">编辑题单</a></div>
       </article>`;
     }).join('');
