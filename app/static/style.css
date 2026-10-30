@@ -650,7 +650,8 @@ input[type="checkbox"], input[type="radio"] {
 /* ---------------------------------------------------------------- 数学内容 */
 
 [data-rich] { line-height: 1.75; overflow-wrap: anywhere; }
-body .katex { font-size: 1.03em; }
+/* KaTeX's 1.21 ratio compensates for its smaller glyph metrics beside body text. */
+body .katex { font-size: 1.21em; }
 [data-rich] .katex-display {
   margin: .5em 0;
   overflow-x: auto;

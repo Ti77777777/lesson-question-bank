@@ -26,9 +26,11 @@ let loader = null;
 function loadScript(base) {
   return new Promise((resolve) => {
     let settled = false;
+    let timer;
     const finish = (ok) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       resolve(Boolean(ok));
     };
     const script = document.createElement('script');
@@ -38,17 +40,19 @@ function loadScript(base) {
     script.async = true;
     script.onload = () => finish(Boolean(window.katex));
     script.onerror = () => finish(false);
+    timer = setTimeout(() => finish(Boolean(window.katex)), SOURCE_TIMEOUT);
     document.head.appendChild(script);
-    setTimeout(() => finish(Boolean(window.katex)), SOURCE_TIMEOUT);
   });
 }
 
 function loadStylesheet(base) {
   return new Promise((resolve) => {
     let settled = false;
+    let timer;
     const finish = (ok) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       resolve(Boolean(ok));
     };
     const link = document.createElement('link');
@@ -58,8 +62,8 @@ function loadStylesheet(base) {
     link.crossOrigin = 'anonymous';
     link.onload = () => finish(true);
     link.onerror = () => finish(false);
+    timer = setTimeout(() => finish(true), SOURCE_TIMEOUT);
     document.head.appendChild(link);
-    setTimeout(() => finish(true), SOURCE_TIMEOUT);
   });
 }
 
