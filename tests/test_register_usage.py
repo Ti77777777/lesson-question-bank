@@ -122,6 +122,30 @@ class RegisterUsageTest(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertEqual(err["error"]["code"], "bad_items")
 
+    def test_05_operation_id_cannot_replay_different_content(self):
+        op = str(uuid.uuid4())
+        status, first = self.call('POST', '/api/usages', self.body(op))
+        self.assertEqual(status, 200, first)
+        for changes in ({'items': ['ITM000002']}, {'purpose': 'homework'},
+                        {'note': '另一次使用'}, {'used_on': '2026-10-30'}):
+            status, out = self.call('POST', '/api/usages', {**self.body(op), **changes})
+            self.assertEqual(status, 409, out)
+            self.assertEqual(out['error']['code'], 'operation_conflict')
+        self.assertEqual(db.scalar('SELECT count(*) FROM usage_log WHERE op_key=?', (op,)), 1)
+
+    def test_06_concurrent_retries_write_once(self):
+        from concurrent.futures import ThreadPoolExecutor
+        op = str(uuid.uuid4())
+        start = threading.Barrier(6)
+        def submit(_):
+            start.wait()
+            return self.call('POST', '/api/usages', self.body(op))
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            results = list(pool.map(submit, range(6)))
+        self.assertEqual([code for code, _ in results], [200] * 6, results)
+        self.assertEqual(len({out['usage']['id'] for _, out in results}), 1)
+        self.assertEqual(db.scalar('SELECT count(*) FROM usage_log WHERE op_key=?', (op,)), 1)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

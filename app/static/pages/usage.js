@@ -10,6 +10,7 @@ import {
 import { flash, openModal, runSubmit } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { mountRoster } from '../lib/roster.js';
+import { usageOperations, latestSelection, snapshotUsageItems } from '../lib/usage-state.js';
 
 export default async function mount(root, ctx) {
   let audiences = [];
@@ -18,6 +19,8 @@ export default async function mount(root, ctx) {
   let collections = [];
   let releases = [];
   let rosterPanel, selectedTeacher="", teacherContext, recentRun=0;
+  const usageReads = latestSelection(), usageOps = usageOperations();
+  let usageReadyFor = '', usageSaving = false;
 
   root.innerHTML = `
     <div class="page-head">
@@ -110,10 +113,10 @@ export default async function mount(root, ctx) {
               </div>
               <div>
                 <span class="field-label">实际使用的题目</span>
-                <div id="usage-items" class="stack-sm"><span class="hint">选择已生成讲义后列出该题单的题目。</span></div>
+                <div id="usage-items" class="stack-sm"><span class="hint">选择已生成讲义后列出导出时的题目。</span></div>
               </div>
               <label class="field"><span>备注</span><textarea name="note" rows="2" placeholder="如 只讲了例题，练习留作作业"></textarea></label>
-              <button type="submit" class="btn btn-primary">登记使用</button>
+              <button type="submit" class="btn btn-primary" disabled>登记使用</button>
             </form>
           </aside>
         </div>
@@ -363,8 +366,9 @@ export default async function mount(root, ctx) {
   // ------------------------------------------------------------ 使用记录
 
   function usageItemsText(row) {
+    if (row.items === null || row.items === undefined) return '<span class="hint">整份讲义</span>';
     const list = Array.isArray(row.items) ? row.items : [];
-    if (!list.length) return '<span class="hint">未单独选择题目（按全部使用记录）</span>';
+    if (!list.length) return '<span class="hint">未登记题目</span>';
     return `<span class="mono" style="font-size:11px;">${esc(list.join('、'))}</span>`;
   }
 
@@ -491,34 +495,40 @@ export default async function mount(root, ctx) {
     });
   });
 
-  // 已生成讲义切换 → 读取题单条目
+  // Read the immutable exported items, not the editable collection.
+  function syncUsageSubmit() {
+    if (!ctx.current()) return;
+    $('#usage-form button[type="submit"]', root).disabled = usageSaving
+      || !usageReadyFor || usageReadyFor !== $('#usage-release', root).value;
+  }
   $('#usage-release', root).addEventListener('change', async (event) => {
     const releaseId = event.target.value;
+    const currentRead = usageReads.start();
+    usageReadyFor = '';
+    syncUsageSubmit();
     usageItemsEl.innerHTML = '<span class="hint">正在读取题目…</span>';
     if (!releaseId) {
-      usageItemsEl.innerHTML = '<span class="hint">选择已生成讲义后列出该题单的题目。</span>';
+      usageItemsEl.innerHTML = '<span class="hint">选择已生成讲义后列出导出时的题目。</span>';
       return;
     }
     try {
-      let release = releases.map((row) => row.release || row).find((row) => row.id === releaseId);
-      let collectionId = release?.collection_id;
-      if (!collectionId) {
-        const detail = await api(`/api/releases/${encodeURIComponent(releaseId)}`);
-        release = detail.release || detail;
-        collectionId = release.collection_id || detail.collection_id;
-      }
-      if (!collectionId) throw new Error('这份讲义没有关联题单。');
-      const data = await api(`/api/collections/${encodeURIComponent(collectionId)}`);
-      const list = Array.isArray(data.items) ? data.items : [];
+      const detail = await api(`/api/releases/${encodeURIComponent(releaseId)}`);
+      if (!ctx.current() || !currentRead()) return;
+      const release = detail.release || detail;
+      if (release.status === 'failed') throw new Error('编译失败的讲义不能登记使用。');
+      const list = snapshotUsageItems(release.snapshot);
       if (!list.length) {
-        usageItemsEl.innerHTML = '<span class="hint">该题单没有题目。</span>';
+        usageItemsEl.innerHTML = '<span class="hint">这份讲义没有题目，无法登记使用。</span>';
         return;
       }
       usageItemsEl.innerHTML = list.map((item) => `<label class="check" style="display:flex;">
         <input type="checkbox" data-usage-item value="${esc(item.id)}" checked>
-        <span>${esc(item.question?.id || item.question_id || '')}，${esc(truncate(item.question?.short_name || item.question?.stem_preview || '', 40))}</span>
+        <span>${esc(item.question_id || '')}，${esc(truncate(item.label || '', 40))}</span>
       </label>`).join('');
+      usageReadyFor = releaseId;
+      syncUsageSubmit();
     } catch (err) {
+      if (!ctx.current() || !currentRead()) return;
       usageItemsEl.innerHTML = `<div class="modal-error">${esc(err.message)}</div>`;
     }
   });
@@ -527,6 +537,7 @@ export default async function mount(root, ctx) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
+    if (usageSaving) return;
     if (!data.get('audience_id')) {
       flash('请选择班级、小组或学生。');
       return;
@@ -540,34 +551,53 @@ export default async function mount(root, ctx) {
       return;
     }
     const items = $$('[data-usage-item]:checked', usageItemsEl).map((input) => input.value);
+    if (usageReadyFor !== data.get('release_id')) {
+      flash('请等待这份讲义的题目读取完成，失败时可重新选择。');
+      return;
+    }
+    if (!items.length) {
+      flash('至少勾选一道这次实际使用的题目。');
+      return;
+    }
     const button = form.querySelector('button[type="submit"]');
+    usageSaving = true;
     button.disabled = true;
     button.textContent = '登记中…';
     try {
-      await api('/api/usages', {
-        method: 'POST',
-        body: {
+      const payload = {
           audience_id: data.get('audience_id'),
           release_id: data.get('release_id'),
           used_on: data.get('used_on'),
           purpose: data.get('purpose'),
           items,
           note: String(data.get('note') || '').trim() || null,
-        },
-      });
-      flash('使用记录已登记。', 'ok');
+      };
+      const out = await api('/api/usages', {method: 'POST', body: {
+        ...payload, operation_id: usageOps.forPayload(payload),
+      }});
+      usageOps.clear();
+      if (!ctx.current()) return;
+      flash(out.replayed ? '这次登记之前已保存过，没有重复添加。' : '使用记录已登记。', 'ok');
+      form.querySelector('[name="audience_id"]').value = '';
       form.querySelector('[name="note"]').value = '';
       await loadUsages();
       refreshMeta();
     } catch (err) {
+      if (!ctx.current()) return;
       flash(err.message);
     } finally {
-      button.disabled = false;
-      button.textContent = '登记使用';
+      usageSaving = false;
+      syncUsageSubmit();
+      if (ctx.current()) button.textContent = '登记使用';
     }
   });
 
   // ------------------------------------------------------------ 近期回查
+
+  $('#recent-form', root).addEventListener('change', () => {
+    recentRun++;
+    $('#recent-result', root).innerHTML = '<p class="hint">条件已更改，请重新查询。</p>';
+  });
 
   $('#recent-form', root).addEventListener('submit', async (event) => {
     event.preventDefault();

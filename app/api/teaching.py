@@ -2225,19 +2225,23 @@ def usage_create(req):
 
     # N05：快捷登记会给每次提交一个操作编号，双击或超时重试不会写两条使用记录。
     op_key = _text(body.get("operation_id")).strip() or None
-    if op_key:
-        existing = db.one("SELECT id FROM usage_log WHERE op_key = ?", (op_key,))
-        if existing is not None:
-            row = db.one("SELECT * FROM usage_log WHERE id = ?", (existing["id"],))
-            return {"usage": row, "notice": "这次登记已经保存过，未重复添加", "replayed": True}
-
+    note = None if body.get("note") is None else _text(body["note"])
     with db.transaction() as conn:
+        if op_key:
+            existing = db.one("SELECT * FROM usage_log WHERE op_key = ?", (op_key,))
+            if existing is not None:
+                submitted = {"assignment_id": assignment_id, "release_id": release_id,
+                             "audience_id": audience_id, "used_on": used_on,
+                             "purpose": purpose, "items": items, "note": note}
+                if any(existing.get(key) != value for key, value in submitted.items()):
+                    raise ApiError(409, "operation_conflict", "该操作编号已用于其他登记内容，请核对后重新提交")
+                return {"usage": existing, "notice": "这次登记已经保存过，未重复添加", "replayed": True}
         uid = db.next_id(conn, "USG")
         conn.execute(
             "INSERT INTO usage_log(id, assignment_id, release_id, audience_id, used_on, "
             "purpose, items, note, created_at, op_key) VALUES(?,?,?,?,?,?,?,?,?,?)",
             (uid, assignment_id, release_id, audience_id, used_on, purpose,
-             db.dumps(items), None if body.get("note") is None else _text(body.get("note")),
+             db.dumps(items), note,
              db.now(), op_key),
         )
         db.audit("usage.create", "usage_log", uid,

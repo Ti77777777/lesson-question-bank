@@ -497,3 +497,10 @@
 - `GET /api/source-changes` 查最近 30 次；`POST /api/source-changes/{cid}/undo` 撤销。来源已再次变化时拒绝覆盖。
 - `GET/POST /api/questions/{qid}/corrections`：登记 `{version_id,category,description,suggestion?}`；category 为 `stem,answer,solution,figure,tags,source,difficulty,other`。
 - `PATCH /api/corrections/{cid}`：`{status,expected_status,note,fixed_version_id?}`；status 为 `pending,resolved,dismissed`。处理说明必填，旧状态不匹配返回 409；只有 resolved 可以关联修订版本。登记纠错本身不修改题目。
+
+
+## 20 使用登记的操作编号（0.8.1）
+
+`POST /api/usages` 可提供 `operation_id`。查重与新增在同一 SQLite 写事务内完成；相同编号和相同登记字段返回原 `usage` 及 `replayed:true`，并发请求不会创建多条。相同编号但 `assignment_id,release_id,audience_id,used_on,purpose,items,note` 任何有效字段不同，返回 409 `operation_conflict`。前端应对同一次失败请求保留编号；只有新内容或明确新的一次使用才生成新编号。
+
+网页使用发布物历史快照的条目编号；不要用可继续编辑的题单条目替代。网页的至少一题要求不改变接口既有的 `items:null` 表示整份、`items:[]` 表示没有题目这一语义。

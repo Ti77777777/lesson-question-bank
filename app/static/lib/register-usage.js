@@ -7,21 +7,12 @@
 import { api } from './api.js';
 import { openModal, flash } from './ui.js';
 import { esc } from './dom.js';
-
-const newOpId = () => (crypto.randomUUID ? crypto.randomUUID()
-  : 'op-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+import { usageOperations, snapshotUsageItems } from './usage-state.js';
 
 const today = () => {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-
-const itemLabel = (snapshot, item) => {
-  const entry = (snapshot.question_versions || {})[item.question_version_id]
-    || (snapshot.questions || {})[item.question_id] || {};
-  const q = entry.question || {};
-  return q.short_name || item.question_id;
 };
 
 export function openRegisterUsage(releaseId, { onDone } = {}) {
@@ -63,6 +54,11 @@ export function openRegisterUsage(releaseId, { onDone } = {}) {
       const itemsBox = body.querySelector('[data-items]');
       const submit = foot.querySelector('[data-submit]');
       let release = null;
+      const operations = usageOperations();
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!submit.disabled) submit.click();
+      });
 
       (async () => {
         try {
@@ -72,13 +68,13 @@ export function openRegisterUsage(releaseId, { onDone } = {}) {
           ]);
           release = detail.release || {};
           const snapshot = release.snapshot || {};
-          const items = Array.isArray(snapshot.items) ? snapshot.items : [];
+          const items = snapshotUsageItems(snapshot);
           const title = (snapshot.collection || {}).title || release.collection_title || '';
           summary.textContent = `讲义：${title}　共 ${items.length} 题　导出 ${(release.created_at || '').slice(0, 10)}`;
           itemsBox.innerHTML = items.length
             ? items.map((item, index) => `<label class="check usage-item">
                 <input type="checkbox" data-item="${esc(item.id)}" checked>
-                <span>${index + 1}. ${esc(itemLabel(snapshot, item))}</span>
+                <span>${index + 1}. ${esc(item.label)}</span>
               </label>`).join('')
             : '<p class="hint">这份讲义没有条目，无法登记使用。</p>';
           audienceSel.innerHTML = '<option value="">选择班级、小组或学生</option>'
@@ -111,14 +107,16 @@ export function openRegisterUsage(releaseId, { onDone } = {}) {
         submit.disabled = true;
         submit.textContent = '登记中…';
         try {
-          const out = await api('/api/usages', { method: 'POST', body: {
-            operation_id: newOpId(),
+          const payload = {
             release_id: releaseId,
             audience_id: audienceId,
             used_on: usedOn,
             purpose: body.querySelector('[data-purpose]').value,
             items: chosen,
             note: body.querySelector('[data-note]').value.trim() || null,
+          };
+          const out = await api('/api/usages', { method: 'POST', body: {
+            ...payload, operation_id: operations.forPayload(payload),
           }});
           close();
           flash(out.replayed ? '这次登记之前已保存过，没有重复添加。' : '已登记这次使用。', 'ok');
