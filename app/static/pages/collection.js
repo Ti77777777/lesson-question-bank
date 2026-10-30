@@ -64,7 +64,8 @@ export default async function mount(root, ctx) {
       items = Array.isArray(data.items) ? data.items : [];
       check = data.check || null;
       revision = data.revision || revision;
-      loadVersionUpdates();
+      // 必须等它回来再 paint：标头横幅读的是 staleItems，晚到就只能等下次重绘才出现
+      await loadVersionUpdates();
       rememberCollection(cid, collection.title, 'edit');
       paint();
       upgradeMath(root);
