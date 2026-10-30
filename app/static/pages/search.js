@@ -1,5 +1,6 @@
 /* 题库检索：常用条件即时筛选，完整条件保存在链接中。 */
 import { api, apiOptional } from '../lib/api.js';
+import { identityLabel } from '../lib/identity.js';
 import { esc, badge, $, $$, emptyState, errorCard, loading, num } from '../lib/dom.js';
 import { QTYPES, SOURCE_GRADES, reviewLabel, reviewTone } from '../lib/constants.js';
 import { flash } from '../lib/ui.js';
@@ -314,7 +315,7 @@ export default async function mount(root, ctx) {
       const data = await api('/api/audiences?limit=100');
       const list = data.items || [];
       select.innerHTML = '<option value="">不限</option>' + list.map((row) =>
-        `<option value="${esc(row.id)}" ${row.id === state.audience ? 'selected' : ''}>${esc(row.name || row.id)}</option>`).join('');
+        `<option value="${esc(row.id)}" ${row.id === state.audience ? 'selected' : ''}>${esc(identityLabel(row))}</option>`).join('');
       select.disabled = false;
     } catch {
       // 读不到对象列表时不禁用检索，只是没有可选对象

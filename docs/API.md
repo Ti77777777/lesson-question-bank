@@ -459,15 +459,15 @@
 | 方法与路径 | 请求 / 返回 |
 |---|---|
 | `GET /api/teachers` | `{items,total}`，教师按名称、编号排序 |
-| `POST /api/teachers` | `{name,note?}` → `{teacher}`；名称 1–80 字，备注最多 500 字 |
-| `PATCH /api/teachers/{tid}` | `{name?,note?}` → `{teacher}` |
+| `POST /api/teachers` | `{name,code?,note?,operation_id?,allow_same_name?}` → `{teacher}`；名称 1–80 字，工号最多 80 字，备注最多 500 字 |
+| `PATCH /api/teachers/{tid}` | `{name?,code?,note?,base_revision?}` → `{teacher}` |
 | `GET /api/audiences?teacher_id=...` | 可用具体教师编号或 `_unassigned`；空值返回全部。保留 `kind` 等既有条件 |
 | `POST /api/audiences` | 既有字段可附 `teacher_ids:[]`，一次事务创建并关联；未指定时不分配 |
 | `GET /api/audiences/{aid}/teachers` | `{audience,revision}`，含直接与继承教师 |
 | `PUT /api/audiences/{aid}/teachers` | `{teacher_ids:[],base_revision}` 替换直接关联 → 同 GET 包装 |
 | `GET /api/audiences/{aid}/members` | 班级/小组 → `{audience,items,total,revision}` |
 | `PUT /api/audiences/{aid}/members` | `{student_ids:[],base_revision}` 替换名单 → 同 GET 包装；空列表移出所有成员，不删除学生 |
-| `POST /api/audiences/{aid}/members` | `{name,code?}` → `{student}`，一次事务创建学生并加入本班 |
+| `POST /api/audiences/{aid}/members` | `{name,code?,note?,operation_id?,allow_same_name?}` → `{student}`，一次事务创建学生并加入本班 |
 
 列表中的 audience 增加 `direct_teachers`、`teachers`、`classes`、`member_count`。`teachers` 是直接教师与所在班级/小组教师的并集。名单只接受学生；有名单关联的记录不能直接改变类型。编号列表最多 1000 项且不能重复。名单/归属 GET 返回的 `revision` 必须原样随 PUT 提交；过期或缺失返回 409，不写入。不存在的教师/对象返回 404，无效类型或名称返回 400。
 
@@ -504,3 +504,15 @@
 `POST /api/usages` 可提供 `operation_id`。查重与新增在同一 SQLite 写事务内完成；相同编号和相同登记字段返回原 `usage` 及 `replayed:true`，并发请求不会创建多条。相同编号但 `assignment_id,release_id,audience_id,used_on,purpose,items,note` 任何有效字段不同，返回 409 `operation_conflict`。前端应对同一次失败请求保留编号；只有新内容或明确新的一次使用才生成新编号。
 
 网页使用发布物历史快照的条目编号；不要用可继续编辑的题单条目替代。网页的至少一题要求不改变接口既有的 `items:null` 表示整份、`items:[]` 表示没有题目这一语义。
+
+## 21 同名档案与创建重试（0.9.0）
+
+教师和 audience 返回 `display_name`、`profile_revision`。`display_name` 为姓名、可用的工号/代号/班级信息及永久系统编号；客户端仍须转义后展示，关联与选择只使用 `id`。
+
+- 新建教师、班级、小组或学生遇到同类同名档案，返回 409 `same_name`，`error.detail.candidates` 包含已有档案。确认是不同对象后可加 `allow_same_name:true` 重交，也可直接选用已有 ID。此开关只豁免同名检查，不豁免编号冲突。
+- 教师 `code` 与同类 audience `code` 非空时分别查重。比较按 Unicode NFKC、首尾去空格和 casefold 进行；冲突返回 409 `duplicate_code` 与 candidates。编号最多 80 字，不接受控制字符。已有重复代号保留，原档案不改该代号的编辑仍允许。
+- 三类 POST 创建入口均可带 `operation_id`（最多 128 字）。查重与创建在同一写事务内进行，相同动作、相同有效内容返回原档案及 `replayed:true`；同编号换动作、父班级或有效内容返回 409 `operation_conflict`。确认同名开关不计入内容哈希。重放返回当前档案，不重新分配教师，也不恢复之后已移出的班级关系。
+- `POST /api/audiences` 支持 `kind,name,code?,note?,teacher_ids?,operation_id?,allow_same_name?`。`PATCH /api/audiences/{aid}` 和教师 PATCH 支持 `base_revision`；传入时必须匹配资料版本，否则 409 `profile_changed`。为兼容已有客户端，未传版本仍接受。网页总是传版本。
+- 姓名、编号和备注编辑不更换 ID，不改写既有使用记录与练习安排。名单及教师关系的 `revision` 与资料 `profile_revision` 分别校验，不可混用。读取名单/归属使用一致性读事务，不提前获取写锁。
+
+系统没有按姓名合并档案、硬删除人员或认证教师身份。操作编号由前端在当前页面/弹窗生命周期内保存，跨刷新不保证恢复。

@@ -85,7 +85,7 @@ class HistoryTest(unittest.TestCase):
         return rid
 
     def audience(self):
-        return self.call('POST', '/api/audiences', {'kind': 'class', 'name': '回归测试班'})['audience']['id']
+        return self.call('POST', '/api/audiences', {'kind': 'class', 'name': '回归测试班', 'allow_same_name': True})['audience']['id']
 
     def usage(self, rid, aid, items=None, status=200):
         return self.call('POST', '/api/usages', {'release_id': rid, 'audience_id': aid,

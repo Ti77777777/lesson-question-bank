@@ -10,6 +10,7 @@ import {
 import { flash, openModal, runSubmit } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { mountRoster } from '../lib/roster.js';
+import { identityLabel } from '../lib/identity.js';
 import { usageOperations, latestSelection, snapshotUsageItems } from '../lib/usage-state.js';
 
 export default async function mount(root, ctx) {
@@ -48,8 +49,8 @@ export default async function mount(root, ctx) {
                 <input type="text" name="name" placeholder="如 高一（3）班">
               </label>
               <label class="field"><span>负责教师</span><select id="audience-teacher"><option value="">暂不分配</option></select></label>
-              <label class="field"><span>代号</span><input type="text" name="code" placeholder="如 G1-3"></label>
-              <label class="field"><span>备注</span><textarea name="note" rows="2" placeholder="如 分层 B 组，每周一次"></textarea></label>
+              <label class="field"><span>学号或班级代号（选填）</span><input type="text" name="code" placeholder="如 G1-3"></label>
+              <label class="field"><span>备注</span><textarea name="note" rows="2" placeholder="如 届别、校区或其他区分说明"></textarea></label>
               <button type="submit" class="btn btn-primary">添加班级</button>
             </form>
           </aside>
@@ -153,11 +154,10 @@ export default async function mount(root, ctx) {
   const usageItemsEl = $('#usage-items', root);
 
   const audienceName = (idOrRow) => {
-    if (idOrRow && typeof idOrRow === 'object') {
-      return idOrRow.audience_name || idOrRow.audience?.name || idOrRow.name || idOrRow.audience_id || '—';
-    }
-    const found = audiences.find((row) => row.id === idOrRow);
-    return found?.name || idOrRow || '—';
+    const id = typeof idOrRow === 'object' ? idOrRow.audience_id : idOrRow;
+    const found = audiences.find(row => row.id === id);
+    return found ? identityLabel(found) : typeof idOrRow === 'object'
+      ? identityLabel({id, name:idOrRow.audience_name || idOrRow.audience?.name || idOrRow.name}) : id || '—';
   };
   const collectionTitle = (id) => {
     const found = collections.find((row) => row.id === id);
@@ -170,7 +170,7 @@ export default async function mount(root, ctx) {
     $$('select[data-audience-select]', root).forEach((select) => {
       const previous = select.value;
       const options = ['<option value="">选择班级、小组或学生</option>', ...audiences.map((row) => (
-        `<option value="${esc(row.id)}">${esc(row.name)}（${esc(AUDIENCE_KINDS[row.kind] || row.kind || '')}）</option>`
+        `<option value="${esc(row.id)}">${esc(identityLabel(row))}（${esc(AUDIENCE_KINDS[row.kind] || row.kind || '')}）</option>`
       ))];
       select.innerHTML = options.join('');
       if (previous && audiences.some((row) => row.id === previous)) select.value = previous;
@@ -246,26 +246,24 @@ export default async function mount(root, ctx) {
     button.disabled = true;
     button.textContent = '保存中…';
     try {
-      await api('/api/audiences', {
-        method: 'POST',
-        body: {
+      const out = await rosterPanel.createAudience({
           kind: data.get('kind'),
           teacher_ids: $('#audience-teacher',root).value ? [$('#audience-teacher',root).value] : [],
           name,
           code: String(data.get('code') || '').trim() || null,
           note: String(data.get('note') || '').trim() || null,
-        },
       });
+      if (!out || !ctx.current()) return;
       form.reset();
       $('#audience-teacher',root).value=selectedTeacher==='_unassigned'?'':selectedTeacher;
-      flash('已添加。', 'ok');
+      flash(out.reused ? '已选用已有档案。可在列表中分配教师或调整名单。' : out.replayed ? '这次添加已保存，没有重复创建。' : '已添加。', 'ok');
       await loadAudiences();
       refreshMeta();
     } catch (err) {
+      if (!ctx.current()) return;
       flash(err.message);
     } finally {
-      button.disabled = false;
-      updateAudienceForm();
+      if (ctx.current()) { button.disabled = false; updateAudienceForm(); }
     }
   });
 
@@ -723,7 +721,7 @@ export default async function mount(root, ctx) {
     const changedScope=selectedTeacher!==teacherId;
     audiences=items;selectedTeacher=teacherId;syncSelects();renderAssignments();renderUsages();
     const owner=$('#audience-teacher',root),previous=owner.value;
-    owner.innerHTML='<option value="">暂不分配</option>'+teachers.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+    owner.innerHTML='<option value="">暂不分配</option>'+teachers.map(t=>`<option value="${esc(t.id)}">${esc(identityLabel(t))}</option>`).join('');
     owner.value=teacherContext!==teacherId?(teachers.some(t=>t.id===teacherId)?teacherId:''):previous;
     teacherContext=teacherId;
     if(changedScope){recentRun++;$('#recent-result',root).innerHTML='<p class="hint">请重新选择班级、小组或学生进行查询。</p>';}

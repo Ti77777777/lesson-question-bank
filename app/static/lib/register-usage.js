@@ -8,6 +8,7 @@ import { api } from './api.js';
 import { openModal, flash } from './ui.js';
 import { esc } from './dom.js';
 import { usageOperations, snapshotUsageItems } from './usage-state.js';
+import { identityLabel } from './identity.js';
 
 const today = () => {
   const d = new Date();
@@ -79,7 +80,7 @@ export function openRegisterUsage(releaseId, { onDone } = {}) {
             : '<p class="hint">这份讲义没有条目，无法登记使用。</p>';
           audienceSel.innerHTML = '<option value="">选择班级、小组或学生</option>'
             + (audiences.items || []).map((row) =>
-              `<option value="${esc(row.id)}">${esc(row.name || row.id)}</option>`).join('');
+              `<option value="${esc(row.id)}">${esc(identityLabel(row))}</option>`).join('');
 
           if (release.status === 'failed') {
             err.hidden = false;

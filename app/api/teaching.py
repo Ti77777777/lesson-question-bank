@@ -1804,11 +1804,12 @@ def audience_list(req):
         params.append(kind)
     sql += " ORDER BY a.kind, a.name"
     from app.api import roster
-    items = roster.filter_rows(roster.decorate(db.all_(sql, params)), req.arg('teacher_id'))
+    with db.read_transaction():
+        items = roster.filter_rows(roster.decorate(db.all_(sql, params)), req.arg('teacher_id'))
     return {"items": items, "total": len(items)}
 
 
-AUDIENCE_FIELDS = ("kind", "name", "code", "note")
+AUDIENCE_FIELDS = ("kind", "name", "code", "note", "base_revision")
 
 
 @post("/api/audiences")
@@ -1821,20 +1822,30 @@ def audience_create(req):
     name = roster.text(body.get('name'), '名称')
     if not name:
         raise ApiError(400, "missing_field", "缺少必填字段：name（名称）")
+    code = roster.code_value(body.get('code'))
+    note = roster.text(body.get('note'), '备注', 1000, False)
+    teacher_ids = sorted(roster.ids(body.get('teacher_ids', [])))
     with db.transaction() as conn:
+        request = roster.creation(req, 'audience.create', {'kind': kind, 'name': name,
+            'code': code, 'note': note, 'teacher_ids': teacher_ids})
+        if request[2]:
+            return {'audience': roster.decorate([roster.audience(request[2])])[0], 'replayed': True}
+        roster.check_code('audience', code, kind)
+        roster.duplicates(req, 'audience', name, kind)
         aid = db.next_id(conn, "AUD")
         conn.execute(
             "INSERT INTO audience(id, kind, name, code, note, created_at) VALUES(?,?,?,?,?,?)",
-            (aid, kind, name, None if body.get("code") is None else _text(body.get("code")),
-             None if body.get("note") is None else _text(body.get("note")), db.now()),
+            (aid, kind, name, code, note, db.now()),
         )
-        if 'teacher_ids' in body:roster.assign(conn, aid, body['teacher_ids'])
+        roster.assign(conn, aid, teacher_ids)
+        roster.remember(conn, request, 'audience.create', aid)
         db.audit("audience.create", "audience", aid, {"kind": kind, "name": name})
-    return {"audience": db.one("SELECT * FROM audience WHERE id = ?", (aid,))}
+    return {"audience": roster.decorate([roster.audience(aid)])[0]}
 
 
 @patch("/api/audiences/{aid}")
 def audience_update(req):
+    from app.api import roster
     aid = req.params["aid"]
     if db.one("SELECT id FROM audience WHERE id = ?", (aid,)) is None:
         raise ApiError(404, "not_found", f"使用对象 {aid} 不存在")
@@ -1852,18 +1863,21 @@ def audience_update(req):
         data["name"] = text(body["name"], "名称")
     for field in ("code", "note"):
         if field in body:
-            data[field] = None if body[field] is None else _text(body[field])
+            data[field] = roster.code_value(body[field]) if field == 'code' else roster.text(body[field], '备注', 1000, False)
     if not data:
         raise ApiError(400, "empty_body", "没有需要修改的字段")
     with db.transaction() as conn:
-        if 'kind' in data and data['kind'] != db.one('SELECT kind FROM audience WHERE id=?',(aid,))['kind']:
+        current = roster.audience(aid)
+        roster.check_profile(req, current)
+        if 'kind' in data and data['kind'] != current['kind']:
             linked = db.scalar('SELECT count(*) FROM roster_member WHERE container_id=? OR student_id=?',(aid,aid))
             if linked:raise ApiError(409,'linked_roster','已有班级名单关联，不能直接改变类型')
+        roster.check_code('audience', data.get('code', current.get('code')), data.get('kind', current['kind']), aid)
         assignments = ", ".join(f"{key} = ?" for key in data)
         conn.execute(f"UPDATE audience SET {assignments} WHERE id = ?",
                      list(data.values()) + [aid])
         db.audit("audience.update", "audience", aid, data)
-    return {"audience": db.one("SELECT * FROM audience WHERE id = ?", (aid,))}
+    return {"audience": roster.decorate([roster.audience(aid)])[0]}
 
 
 @get("/api/audiences/{aid}/recent")

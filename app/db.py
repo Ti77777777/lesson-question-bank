@@ -70,6 +70,19 @@ def transaction():
         raise
 
 
+@contextmanager
+def read_transaction():
+    """A consistent WAL snapshot without reserving the writer lock."""
+    conn = db()
+    try:
+        conn.execute('BEGIN')
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+
+
 SCHEMA_VERSION = "1"
 
 
@@ -91,6 +104,7 @@ def init_db() -> None:
     _ensure_column("source", "grade", "TEXT")
     _ensure_column("source", "school", "TEXT")
     _ensure_column("source", "year", "TEXT")
+    _ensure_column("teacher", "code", "TEXT")
     # N05：快捷登记使用带操作编号，重试不重复写记录
     _ensure_column("usage_log", "op_key", "TEXT")
     db().execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_usage_op ON usage_log(op_key) "

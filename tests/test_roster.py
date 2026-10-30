@@ -84,4 +84,84 @@ class RosterTest(unittest.TestCase):
         finally:
             first.unlink();second.unlink()
 
+    def test_homonym_teachers_are_distinct_and_codes_cannot_be_reused(self):
+        first=self.call('/api/teachers',{'name':'同名教师','code':'T-01','note':'南校区'})['teacher']
+        conflict=self.call('/api/teachers',{'name':'同名教师','code':'T-02','note':'北校区'},status=409)
+        self.assertEqual(conflict['error']['code'],'same_name')
+        self.assertEqual(conflict['error']['detail']['candidates'][0]['id'],first['id'])
+        second=self.call('/api/teachers',{'name':'同名教师','code':'T-02','note':'北校区','allow_same_name':True})['teacher']
+        self.assertNotEqual(first['id'],second['id']);self.assertNotEqual(first['display_name'],second['display_name'])
+        collision=self.call('/api/teachers',{'name':'另一教师','code':'ｔ-０１','allow_same_name':True},status=409)
+        self.assertEqual(collision['error']['code'],'duplicate_code')
+        self.call('/api/teachers',{'name':'控制字符编号','code':'BAD\u007f'},status=400)
+        self.call('/api/teachers',{'name':'标准化扩展编号','code':'\ufb03'*80},status=400)
+
+    def test_homonym_students_remain_separate_when_renamed_or_transferred(self):
+        first_class=self.audience('class','身份甲班');second_class=self.audience('class','身份乙班')
+        first=self.call('/api/audiences/'+first_class+'/members',{'name':'同名学生','code':'2027-01'})['student']
+        conflict=self.call('/api/audiences/'+second_class+'/members',{'name':'同名学生','code':'2027-02'},status=409)
+        self.assertEqual(conflict['error']['detail']['candidates'][0]['classes'][0]['id'],first_class)
+        second=self.call('/api/audiences/'+second_class+'/members',{'name':'同名学生','code':'2027-02','allow_same_name':True})['student']
+        self.assertNotEqual(first['id'],second['id'])
+        assignment=self.call('/api/assignments',{'title':'保留归属的历史安排','audience_id':first['id']})['assignment']
+        collection=self.call('/api/collections',{'title':'身份历史测试讲义'})['collection']
+        from app.latex.build import make_snapshot
+        snapshot=make_snapshot(collection['id'])
+        with db.transaction() as conn:
+            rid=db.next_id(conn,'RLS')
+            conn.execute('INSERT INTO release(id,collection_id,snapshot,created_at) VALUES(?,?,?,?)',
+                         (rid,collection['id'],db.dumps(snapshot),db.now()))
+        usage=self.call('/api/usages',{'release_id':rid,'assignment_id':assignment['id'],'audience_id':first['id'],'used_on':'2026-10-30','purpose':'class','items':[]})['usage']
+        updated=self.call('/api/audiences/'+first['id'],{'name':'改名后的学生','code':'2027-03','note':'仍是原档案','base_revision':first['profile_revision']},'PATCH')['audience']
+        self.assertEqual(updated['id'],first['id'])
+        self.members(second_class,[first['id'],second['id']]);self.members(first_class,[])
+        rows=self.call('/api/assignments')['items'];self.assertEqual(next(r for r in rows if r['id']==assignment['id'])['audience_id'],first['id'])
+        self.assertEqual(self.call('/api/audiences/'+second_class+'/members')['total'],2)
+        saved_usage=db.one('SELECT audience_id,assignment_id FROM usage_log WHERE id=?',(usage['id'],))
+        self.assertEqual(saved_usage,{'audience_id':first['id'],'assignment_id':assignment['id']})
+        self.assertEqual(db.one('SELECT name FROM audience WHERE id=?',(second['id'],))['name'],'同名学生')
+
+    def test_creation_retries_are_atomic_and_scoped(self):
+        from concurrent.futures import ThreadPoolExecutor
+        gate=threading.Barrier(6)
+        payload={'name':'并发教师','operation_id':'identity-concurrent-teacher'}
+        def submit(_):gate.wait();return self.call('/api/teachers',payload)['teacher']['id']
+        with ThreadPoolExecutor(max_workers=6) as pool:ids=list(pool.map(submit,range(6)))
+        self.assertEqual(len(set(ids)),1)
+        self.assertEqual(db.scalar("SELECT count(*) FROM teacher WHERE name='并发教师'"),1)
+        self.call('/api/teachers',{**payload,'name':'不同内容'},status=409)
+        self.call('/api/audiences',{'kind':'class','name':'不同动作','operation_id':payload['operation_id']},status=409)
+
+    def test_member_retry_does_not_duplicate_or_reverse_a_later_removal(self):
+        parent=self.audience('class','防重名单');other=self.audience('class','防重另一班')
+        payload={'name':'只创建一次的学生','operation_id':'identity-member-retry'}
+        student=self.call('/api/audiences/'+parent+'/members',payload)['student']['id']
+        replay=self.call('/api/audiences/'+parent+'/members',payload)
+        self.assertTrue(replay['replayed']);self.assertEqual(replay['student']['id'],student)
+        self.assertEqual(self.call('/api/audiences/'+parent+'/members')['total'],1)
+        self.call('/api/audiences/'+other+'/members',payload,status=409)
+        self.members(parent,[])
+        self.call('/api/audiences/'+parent+'/members',payload)
+        self.assertEqual(self.call('/api/audiences/'+parent+'/members')['total'],0)
+
+    def test_code_uniqueness_is_per_kind_and_legacy_duplicates_survive(self):
+        a=self.call('/api/audiences',{'kind':'student','name':'编号学生甲','code':'S-09'})['audience']
+        self.call('/api/audiences',{'kind':'student','name':'编号学生乙','code':'s-09'},status=409)
+        self.call('/api/audiences',{'kind':'class','name':'编号班级','code':'S-09'})
+        b=self.audience('student','旧编号学生')
+        with db.transaction() as conn:conn.execute('UPDATE audience SET code=? WHERE id IN (?,?)',('LEGACY',a['id'],b))
+        db.init_db()
+        self.assertEqual(db.scalar("SELECT count(*) FROM audience WHERE code='LEGACY'"),2)
+        self.call('/api/audiences/'+b,{'note':'编辑备注不改旧编号','code':'LEGACY'},'PATCH')
+        self.call('/api/audiences',{'kind':'student','name':'新记录不能再撞号','code':'legacy'},status=409)
+
+    def test_profile_edits_reject_stale_revision(self):
+        teacher=self.call('/api/teachers',{'name':'资料冲突老师'})['teacher']
+        self.call('/api/teachers/'+teacher['id'],{'note':'先保存','base_revision':teacher['profile_revision']},'PATCH')
+        self.call('/api/teachers/'+teacher['id'],{'name':'过期保存','base_revision':teacher['profile_revision']},'PATCH',409)
+        row=self.call('/api/audiences',{'kind':'student','name':'资料冲突学生'})['audience']
+        self.call('/api/audiences/'+row['id'],{'note':'先保存','base_revision':row['profile_revision']},'PATCH')
+        self.call('/api/audiences/'+row['id'],{'code':'STALE','base_revision':row['profile_revision']},'PATCH',409)
+        self.assertIsNone(db.one('SELECT code FROM audience WHERE id=?',(row['id'],))['code'])
+
 if __name__=='__main__':unittest.main()

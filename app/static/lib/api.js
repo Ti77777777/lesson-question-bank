@@ -1,11 +1,12 @@
 /* 接口调用：统一解析 {error:{code,message}}，错误信息原样抛给页面。 */
 
 export class ApiError extends Error {
-  constructor(message, code = 'error', status = 0) {
+  constructor(message, code = 'error', status = 0, detail = null) {
     super(message || '请求失败');
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
+    this.detail = detail;
   }
 }
 
@@ -57,7 +58,7 @@ export async function api(path, options = {}) {
     const message = data?.error?.message
       || (text && text.length <= 400 ? text : '')
       || `请求失败（HTTP ${response.status}）`;
-    throw new ApiError(message, data?.error?.code || `http_${response.status}`, response.status);
+    throw new ApiError(message, data?.error?.code || `http_${response.status}`, response.status, data?.error?.detail);
   }
 
   if (data === null) {

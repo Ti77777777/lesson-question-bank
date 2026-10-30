@@ -332,6 +332,7 @@ CREATE TABLE IF NOT EXISTS audience (
 CREATE TABLE IF NOT EXISTS teacher (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    code TEXT,
     note TEXT,
     created_at TEXT NOT NULL
 );
@@ -349,6 +350,14 @@ CREATE TABLE IF NOT EXISTS roster_member (
     CHECK (container_id <> student_id)
 );
 CREATE INDEX IF NOT EXISTS ix_roster_student ON roster_member(student_id, container_id);
+
+CREATE TABLE IF NOT EXISTS identity_request (
+    operation_id TEXT PRIMARY KEY,
+    action TEXT NOT NULL,
+    payload_hash TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS assignment (
     id            TEXT PRIMARY KEY,

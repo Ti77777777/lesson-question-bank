@@ -73,3 +73,7 @@
 @media(max-width:760px) { .visual-editor{grid-template-columns:1fr;} .editor-preview{position:static;max-height:45vh;} .modal.modal-question-drawer{width:100vw;border-radius:0;} .modal-question-drawer .modal-body{padding:20px;} }
 /* Long database names must not widen the page on phones. */
 .app-foot > span { min-width: 0; overflow-wrap: anywhere; }
+.identity-candidates { display: grid; gap: 12px; max-height: 380px; overflow: auto; }
+.identity-candidates > div { padding: 14px; border: 1px solid var(--line); border-radius: 8px; overflow-wrap: anywhere; }
+.identity-candidates p { margin: 6px 0 10px; }
+.roster-checklist label { overflow-wrap: anywhere; }
