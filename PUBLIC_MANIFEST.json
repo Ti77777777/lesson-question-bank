@@ -168,8 +168,8 @@
       "sha256": "f316d4e5ed41dd08890d319304809c72276fe2d3a420dd655f08226a902444b6"
     },
     "app/static/experience.css": {
-      "bytes": 14034,
-      "sha256": "cf779f96e45514ccd83d2f4463cde83aabc077a027bf6a92a931ff0e8c5d780e"
+      "bytes": 14200,
+      "sha256": "f34ab7555f2d651a8e15206db0c64b372f8518c745216daff9085fcfa81bb148"
     },
     "app/static/index.html": {
       "bytes": 1899,
@@ -284,8 +284,8 @@
       "sha256": "45b9328f2b993a06a7815774b90c7522708112618261fd8f54e4783c0aa7377d"
     },
     "app/static/lib/swap-question.js": {
-      "bytes": 10799,
-      "sha256": "6e131aae2a87eb546dcb9050551391d5f5d86f8d094df1006a7269e227ea90dd"
+      "bytes": 11487,
+      "sha256": "25d280dc9adf71f8f71307cbf0eca54c0405c65c83db4e1899f851ebaaee736d"
     },
     "app/static/lib/tag-sidebar.js": {
       "bytes": 10752,
@@ -364,8 +364,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 36022,
-      "sha256": "de13fbc3c8cffdbce4b136c51be7e07da98d81d3f2894e30d6290e69de97a53f"
+      "bytes": 36992,
+      "sha256": "91655360e3d3d4b3810c6eb59971595dd9bd3bde34ef29eedf9a2795152cfaa8"
     },
     "data/schema.sql": {
       "bytes": 23385,
@@ -468,8 +468,8 @@
       "sha256": "6d82d2d35ccfd09cbd6094a36c5c61f1e39c8e5cc9a017c460dbc93584cbcfbf"
     },
     "docs/编辑与草稿.md": {
-      "bytes": 8058,
-      "sha256": "61d8172da32cae041c4ffee3b8d8dafe8394bd5acf64d57835128a902524c2e8"
+      "bytes": 8348,
+      "sha256": "63676bde70f2499b3f451832d8c2ecf1ae6d7a77c37f0f833160252af39ca759"
     },
     "docs/讲义排版预览.md": {
       "bytes": 2686,
@@ -493,7 +493,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "544b7f759e85388bae6b89d0942d92c1f2db72b2e989820114e99a1c0e2818f5"
+      "sha256": "42464a4257a09020f6eae0389fca008cc4f380f865462b750605ea9fb2976635"
     },
     "README.md": {
       "bytes": 4822,
@@ -656,8 +656,8 @@
       "sha256": "8fa1f9463e8afbe22bdaa53585a3f7132dc137703702d792990e8ac7cefa8bf2"
     },
     "tests/test_swap_question.mjs": {
-      "bytes": 2355,
-      "sha256": "d09c1874302c19362918fa6a814aa9f898b86c766dbe1133c837268073364549"
+      "bytes": 2941,
+      "sha256": "ae63af1da0ddf2fe40864155516978df41829ddc5270ab59eb88a2010084c34b"
     },
     "tests/test_tag_taxonomy.mjs": {
       "bytes": 3357,

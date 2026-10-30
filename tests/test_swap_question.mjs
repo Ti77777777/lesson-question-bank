@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {originalVersion,comparisonContent} from '../app/static/lib/swap-question.js';
+import {originalVersion,comparisonContent,prepareComparison} from '../app/static/lib/swap-question.js';
 import {contextHelp} from '../app/static/lib/ui.js';
 
 test('comparison reads the exact collection version even when a newer version exists',async()=>{
@@ -26,4 +26,15 @@ test('comparison includes full text, options and subquestions with answers initi
 test('supplementary help is collapsed by default and its label is escaped',()=>{
   const html=contextHelp('<说明>','<p>必要说明</p>');
   assert.match(html,/<summary>&lt;说明&gt;<\/summary>/);assert.doesNotMatch(html,/<details[^>]+open/);
+});
+
+test('comparison waits for math readiness and produces finished markup for a single commit',async()=>{
+  let release,rendered=false;
+  const pending=prepareComparison({question:{id:'Q1'},current_version:{stem:'$x^2$'}},{
+    ready:()=>new Promise(resolve=>release=resolve),
+    render:text=>{rendered=true;return `<span class="ready-math">${text}</span>`;},
+  });
+  await Promise.resolve();assert.equal(rendered,false);
+  release(true);const html=await pending;
+  assert.equal(rendered,true);assert.match(html,/ready-math/);assert.doesNotMatch(html,/data-rich/);
 });

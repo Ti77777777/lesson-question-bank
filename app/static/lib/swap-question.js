@@ -2,7 +2,7 @@ import {api} from './api.js';
 import {esc} from './dom.js';
 import {QTYPES} from './constants.js';
 import {openModal} from './ui.js';
-import {upgradeMath} from './math.js';
+import {upgradeMath,loadKatex,richToHtml} from './math.js';
 import {latestSelection, usageOperations} from './usage-state.js';
 
 // The original must be the version used by this collection, not today's latest.
@@ -18,9 +18,9 @@ export async function originalVersion(item, read=api) {
   return {...detail,current_version:version};
 }
 
-export function comparisonContent(detail) {
+export function comparisonContent(detail,render=null) {
   const q=detail.current_version || {}, question=detail.question || {};
-  const rich=text=>`<div data-rich>${esc(text || '')}</div>`;
+  const rich=text=>render?`<div>${render(text || '')}</div>`:`<div data-rich>${esc(text || '')}</div>`;
   const sources=(detail.occurrences || []).filter(o=>!o.question_version_id||o.question_version_id===q.id);
   return `<div class="swap-question-heading"><h3>${esc(question.short_name || question.id || '未命名题目')}</h3>
     <div class="swap-meta"><span>${esc(QTYPES[q.qtype] || q.qtype || '题型未知')}</span><span>第 ${esc(q.version_no || 1)} 版</span><span>${esc(question.id || '')}</span></div></div>
@@ -33,6 +33,12 @@ export function comparisonContent(detail) {
       ${(q.solutions || []).map(s=>`<h4>${esc(s.label || '解析')}</h4>${rich(s.approach)}${rich(s.steps)}${s.conditions?rich('条件：'+s.conditions):''}`).join('')}
       ${q.analysis && !(q.solutions || []).some(s=>(s.steps || '').trim()===q.analysis.trim())?`<h4>分析</h4>${rich(q.analysis)}`:''}</div></details>
     ${sources.length?`<div class="swap-source">${sources.map(o=>esc(o.source_name || '来源待补充')+(o.qno?`，第 ${esc(o.qno)} 题`:'')).join('<br>')}</div>`:''}`;
+}
+
+// Prepare formulas before changing the visible pane, avoiding a plain-TeX frame.
+export async function prepareComparison(detail,{ready=loadKatex,render=richToHtml}={}) {
+  await ready();
+  return comparisonContent(detail,render);
 }
 
 export function openSwapQuestion({item,existingIds,baseRevision,current=()=>true,onSwapped}) {
@@ -61,29 +67,37 @@ export function openSwapQuestion({item,existingIds,baseRevision,current=()=>true
   }
   const canApply=()=>originalReady&&picked&&!already.has(picked.question.id)&&!saving;
   function updateApply(){apply.disabled=!canApply();}
-  function paintDetail(target,detail){target.innerHTML=comparisonContent(detail);target.scrollTop=0;upgradeMath(target);}
+  async function paintDetail(target,detail,valid=alive){
+    const markup=await prepareComparison(detail);
+    if(!alive()||!valid())return false;
+    target.innerHTML=markup;target.scrollTop=0;
+    target.removeAttribute('aria-busy');
+    return true;
+  }
   async function loadOriginal(){
     original.innerHTML='<div class="swap-placeholder" role="status">正在读取原题…</div>';
-    try{const detail=await originalVersion(item);if(!alive())return;originalReady=true;paintDetail(original,detail);updateApply();}
+    try{const detail=await originalVersion(item);if(!await paintDetail(original,detail))return;originalReady=true;updateApply();}
     catch(e){if(!alive())return;original.innerHTML=`<div class="swap-placeholder"><p>${esc(e.message)}</p><button type="button" class="btn" data-retry-original>重新读取原题</button></div>`;$('[data-retry-original]').onclick=loadOriginal;}
   }
   async function selectQuestion(id){
-    if(saving)return;
+    if(saving||picked?.question.id===id)return;
     const valid=detailReads.start();picked=null;updateApply();showError('');
     results.querySelectorAll('[data-pick]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pick===id)));
     selectedStatus('读取中…');
-    selected.innerHTML='<div class="swap-placeholder" role="status">正在读取候选题全文…</div>';
+    selected.setAttribute('aria-busy','true');
+    if(!selected.querySelector('.swap-question-heading'))selected.innerHTML='<div class="swap-placeholder" role="status">正在读取候选题全文…</div>';
     try{
       const detail=await api(`/api/questions/${encodeURIComponent(id)}`);if(!alive()||!valid())return;
       if(!detail.current_version?.id||detail.question?.id!==id)throw new Error('题目内容不完整，请重新读取。');
-      picked=detail;paintDetail(selected,detail);
+      if(!await paintDetail(selected,detail,valid))return;
+      picked=detail;
       selectedStatus(already.has(id)?'已在题单中，不能重复替换':'已选择',already.has(id));updateApply();
-    }catch(e){if(!alive()||!valid())return;selectedStatus('读取失败');selected.innerHTML=`<div class="swap-placeholder"><p>${esc(e.message)}</p><button type="button" class="btn" data-retry-detail>重新读取候选题</button></div>`;$('[data-retry-detail]').onclick=()=>selectQuestion(id);}
+    }catch(e){if(!alive()||!valid())return;selected.removeAttribute('aria-busy');selectedStatus('读取失败');selected.innerHTML=`<div class="swap-placeholder"><p>${esc(e.message)}</p><button type="button" class="btn" data-retry-detail>重新读取候选题</button></div>`;$('[data-retry-detail]').onclick=()=>selectQuestion(id);}
   }
   async function search(nextPage=0){
     if(saving)return;
     const valid=searchReads.start();detailReads.invalidate();page=nextPage;picked=null;rows=[];updateApply();showError('');
-    selected.innerHTML='<div class="swap-placeholder">选择一道候选题，与原题对照。</div>';selectedStatus('');
+    selected.innerHTML='<div class="swap-placeholder">选择一道候选题，与原题对照。</div>';selected.removeAttribute('aria-busy');selectedStatus('');
     results.innerHTML='<div class="swap-placeholder" role="status">正在查找…</div>';$('[data-count]').textContent='';$('[data-page]').textContent='';$('[data-prev]').disabled=true;$('[data-next]').disabled=true;
     try{
       const data=await api('/api/questions',{query:{keyword:keyword||undefined,limit,offset:page*limit}});if(!alive()||!valid())return;
