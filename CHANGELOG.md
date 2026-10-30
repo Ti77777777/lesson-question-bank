@@ -1,5 +1,12 @@
 # 更新记录
 
+## 修复：公式组件多源回退 — 2026-10-30
+
+- 现象：前端所有 `$...$` 显示成 LaTeX 源码（不是个别字段，整页都退回源码）。
+- 原因：`app/static/lib/math.js` 只从 `cdn.jsdelivr.net` 加载 KaTeX 0.19.1。实测本机到该主机的连接被重置（ECONNRESET），而 fastly.jsdelivr.net、unpkg、registry.npmmirror.com 均可访问，且三处 `katex.min.js` 的 SHA-384 与内置 SRI 完全一致。加载失败后加载器按设计静默回退为源码，界面上只看到代码。
+- 修复：加载器改为按 `cdn.jsdelivr.net → fastly.jsdelivr.net → registry.npmmirror.com → unpkg.com` 顺序回退；样式表独立回退；全部失败时在控制台留一条可排查的警告。SRI 校验、`crossOrigin` 与版本 pin 保留。
+- 验证：新增「主源被屏蔽时回退到下一源」测试并注册到 `scripts/test_frontend.mjs`；13 个前端测试模块全部通过（含原有的版本/SRI 校验）。模拟首个源 onerror、第二源 onload，断言脚本与样式都换到备用源。
+- 使用：刷新页面（Ctrl+F5）即生效；静态文件无构建步骤，不需要重启服务。仍未做本地内置 KaTeX，完全离线时依旧显示源码。
 ## 后端安全审核报告 1.0 — 2026-10-30
 
 - 新增 [后端安全审核报告](docs/后端安全审核报告-2026-10-30.md)：静态审阅 73 个后端模块与 130 条路由，并用临时库起真实服务发恶意请求、用真实 XeLaTeX 做沙箱试验。

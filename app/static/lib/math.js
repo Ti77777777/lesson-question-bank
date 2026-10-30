@@ -5,46 +5,90 @@ import { esc } from './dom.js';
 import {normaliseMathBody} from './math-notation.js';
 
 const KATEX_VERSION = '0.19.1';
-const KATEX_BASE = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/`;
-// SHA-384 of the official release, also checked against the pinned CDN files.
+// 同一份文件在多个 CDN 上逐字节一致，加载失败时按顺序回退。
+// 2026-10-30 实测：cdn.jsdelivr.net 在本机被连接重置（ECONNRESET），
+// 只写这一个源会让公式全部退回 LaTeX 源码。
+const KATEX_SOURCES = [
+  `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/`,
+  `https://fastly.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/`,
+  `https://registry.npmmirror.com/katex/${KATEX_VERSION}/files/dist/`,
+  `https://unpkg.com/katex@${KATEX_VERSION}/dist/`,
+];
+// SHA-384 of the official release; all mirrors above serve identical bytes.
 const KATEX_INTEGRITY = {
   js: 'sha384-a1WQdjRj162i159OYq041X6I4K8NenkrI09LlPmiHg0YOb7CR+wJOraXwK9abpnE',
   css: 'sha384-WwGtaC6ywCHxA5cstpj/3+xIZvTez8dq2IcBQaXRkenHZ7FVVq1ZROtURwfbtTlG',
 };
 
+const SOURCE_TIMEOUT = 5000;
 let loader = null;
 
-export function loadKatex() {
-  if (loader) return loader;
-
-  loader = new Promise((resolve) => {
+function loadScript(base) {
+  return new Promise((resolve) => {
     let settled = false;
     const finish = (ok) => {
       if (settled) return;
       settled = true;
       resolve(Boolean(ok));
     };
-
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `${KATEX_BASE}katex.min.css`;
-    link.integrity = KATEX_INTEGRITY.css;
-    link.crossOrigin = 'anonymous';
-    document.head.appendChild(link);
-
     const script = document.createElement('script');
-    script.src = `${KATEX_BASE}katex.min.js`;
+    script.src = `${base}katex.min.js`;
     script.integrity = KATEX_INTEGRITY.js;
     script.crossOrigin = 'anonymous';
     script.async = true;
     script.onload = () => finish(Boolean(window.katex));
     script.onerror = () => finish(false);
     document.head.appendChild(script);
-
-    // 慢网络下不无限等待：页面继续显示原始源码。
-    setTimeout(() => finish(Boolean(window.katex)), 8000);
+    setTimeout(() => finish(Boolean(window.katex)), SOURCE_TIMEOUT);
   });
+}
 
+function loadStylesheet(base) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      resolve(Boolean(ok));
+    };
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `${base}katex.min.css`;
+    link.integrity = KATEX_INTEGRITY.css;
+    link.crossOrigin = 'anonymous';
+    link.onload = () => finish(true);
+    link.onerror = () => finish(false);
+    document.head.appendChild(link);
+    setTimeout(() => finish(true), SOURCE_TIMEOUT);
+  });
+}
+
+async function loadStylesheetWithFallback(from) {
+  const order = KATEX_SOURCES.slice(KATEX_SOURCES.indexOf(from)).concat(KATEX_SOURCES.slice(0, KATEX_SOURCES.indexOf(from)));
+  for (const base of order) {
+    if (await loadStylesheet(base)) return true;
+  }
+  return false;
+}
+
+async function boot() {
+  // 先按首个源放一份样式（同步创建，便于页面尽早应用）；失败再逐源回退。
+  const css = loadStylesheet(KATEX_SOURCES[0])
+    .then((ok) => (ok ? true : loadStylesheetWithFallback(KATEX_SOURCES[1] || KATEX_SOURCES[0])));
+  for (const base of KATEX_SOURCES) {
+    if (await loadScript(base)) {
+      css.catch(() => {});
+      return true;
+    }
+  }
+  css.catch(() => {});
+  // 全部源都失败时保留原始源码，并在控制台留一条可排查的线索。
+  console.warn('[题库] 公式组件 KaTeX 未能从任何 CDN 加载，页面会显示 LaTeX 源码；请检查网络或代理。');
+  return false;
+}
+
+export function loadKatex() {
+  if (!loader) loader = boot();
   return loader;
 }
 
