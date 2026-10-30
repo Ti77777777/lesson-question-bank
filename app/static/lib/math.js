@@ -3,8 +3,13 @@
 
 import { esc } from './dom.js';
 
-const KATEX_VERSION = '0.16.9';
+const KATEX_VERSION = '0.19.1';
 const KATEX_BASE = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/`;
+// SHA-384 of the official release, also checked against the pinned CDN files.
+const KATEX_INTEGRITY = {
+  js: 'sha384-a1WQdjRj162i159OYq041X6I4K8NenkrI09LlPmiHg0YOb7CR+wJOraXwK9abpnE',
+  css: 'sha384-WwGtaC6ywCHxA5cstpj/3+xIZvTez8dq2IcBQaXRkenHZ7FVVq1ZROtURwfbtTlG',
+};
 
 let loader = null;
 
@@ -22,10 +27,14 @@ export function loadKatex() {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = `${KATEX_BASE}katex.min.css`;
+    link.integrity = KATEX_INTEGRITY.css;
+    link.crossOrigin = 'anonymous';
     document.head.appendChild(link);
 
     const script = document.createElement('script');
     script.src = `${KATEX_BASE}katex.min.js`;
+    script.integrity = KATEX_INTEGRITY.js;
+    script.crossOrigin = 'anonymous';
     script.async = true;
     script.onload = () => finish(Boolean(window.katex));
     script.onerror = () => finish(false);
@@ -47,6 +56,8 @@ function renderTex(tex, display) {
       throwOnError: false,
       strict: 'ignore',
       trust: false,
+      maxExpand: 1000,
+      maxSize: 50,
     });
   } catch {
     const wrapped = display ? `$$${source}$$` : `$${source}$`;

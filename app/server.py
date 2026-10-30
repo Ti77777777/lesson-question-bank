@@ -13,6 +13,7 @@ import socket
 import sys
 import traceback
 import urllib.parse
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -26,6 +27,10 @@ ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 ROUTES: list[tuple[str, re.Pattern, callable, str]] = []
+
+
+def _reject_json_constant(value):
+    raise ValueError('JSON numbers must be finite')
 
 
 class ApiError(Exception):
@@ -70,9 +75,9 @@ class Request:
                 self._json = {}
             else:
                 try:
-                    self._json = json.loads(self._raw.decode("utf-8"))
-                except (ValueError, UnicodeDecodeError) as exc:
-                    raise ApiError(400, "bad_json", f"请求体不是合法 JSON：{exc}")
+                    self._json = json.loads(self._raw.decode("utf-8"), parse_constant=_reject_json_constant)
+                except (ValueError, UnicodeDecodeError, RecursionError):
+                    raise ApiError(400, "bad_json", "请求体不是合法 JSON，或嵌套层数过深") from None
         if not isinstance(self._json, dict):
             raise ApiError(400, "bad_json", "请求体必须是 JSON 对象")
         return self._json
@@ -100,6 +105,14 @@ def json_response(data, status: int = 200):
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "QBank/1.0"
+    request_timeout = 30
+
+    def version_string(self):
+        return self.server_version
+
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(self.request_timeout)
 
     def finish(self):
         try:
@@ -114,28 +127,43 @@ class Handler(BaseHTTPRequestHandler):
 
     # -------------------------------------------------------- 分发
     def _dispatch(self):
-        parsed = urllib.parse.urlparse(self.path)
-        path = urllib.parse.unquote(parsed.path)
-        query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
-        if self.headers.get('Host','').split(':')[0] not in ('127.0.0.1','localhost'):
+        hosts = self.headers.get_all('Host', [])
+        host = hosts[0].lower() if len(hosts) == 1 else ''
+        port = self.server.server_port
+        allowed_hosts = {f'127.0.0.1:{port}', f'localhost:{port}'}
+        if port == 80:
+            allowed_hosts.update(('127.0.0.1', 'localhost'))
+        if host not in allowed_hosts:
             return self._send(*json_response({'error':{'code':'host','message':'仅允许本机访问'}},403))
+        try:
+            if not self.path.startswith('/') or self.path.startswith('//'):
+                raise ValueError('invalid request target')
+            parsed = urllib.parse.urlsplit(self.path)
+            path = urllib.parse.unquote(parsed.path)
+            if any(ord(c) < 32 for c in path):
+                raise ValueError('invalid path')
+            query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query, max_num_fields=1000).items()}
+        except ValueError:
+            return self._send(*json_response({'error':{'code':'bad_path','message':'请求路径或查询参数无效'}},400))
+
+        if self.command not in ('GET','HEAD'):
+            origins = self.headers.get_all('Origin', [])
+            if origins and (len(origins) != 1 or origins[0].lower() != 'http://' + host):
+                return self._send(*json_response({'error':{'code':'origin','message':'拒绝跨站写入请求'}},403))
+            if self.headers.get('Sec-Fetch-Site') == 'cross-site':
+                return self._send(*json_response({'error':{'code':'origin','message':'拒绝跨站写入请求'}},403))
 
         if path.startswith("/files/"):
+            if self.command not in ('GET', 'HEAD'):
+                return self._send(*json_response({'error':{'code':'method','message':'附件仅支持读取'}},405))
             return self._serve_file(path[len("/files/"):])
 
         if self.command in ("GET", "HEAD") and not path.startswith("/api/"):
             return self._serve_static(path)
 
-        host = self.headers.get('Host', '')
-        if host.split(':')[0] not in ('127.0.0.1', 'localhost'):
-            return self._send(*json_response({'error':{'code':'host','message':'仅允许本机访问'}},403))
-        if self.command not in ('GET','HEAD'):
-            origin = self.headers.get('Origin')
-            if origin and urllib.parse.urlparse(origin).netloc != host:
-                return self._send(*json_response({'error':{'code':'origin','message':'拒绝跨站写入请求'}},403))
-            if self.headers.get('Sec-Fetch-Site') == 'cross-site':
-                return self._send(*json_response({'error':{'code':'origin','message':'拒绝跨站写入请求'}},403))
         try:
+            if len(self.headers.get_all('Content-Length', [])) > 1:
+                raise ValueError('duplicate content length')
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:
             return self._send(*json_response({'error':{'code':'body_size','message':'请求长度无效'}},400))
@@ -143,7 +171,14 @@ class Handler(BaseHTTPRequestHandler):
         if length < 0 or length > limit or self.headers.get('Transfer-Encoding'):
             self.close_connection = True
             return self._send(*json_response({'error':{'code':'body_size','message':'请求超过允许大小或格式不受支持'}},413))
-        raw = self.rfile.read(length) if length else b""
+        try:
+            raw = self.rfile.read(length) if length else b""
+        except TimeoutError:
+            self.close_connection = True
+            return self._send(*json_response({'error':{'code':'request_timeout','message':'接收请求超时，请重新提交'}},408))
+        if len(raw) != length:
+            self.close_connection = True
+            return self._send(*json_response({'error':{'code':'bad_body','message':'请求内容未完整传输'}},400))
 
         for method, regex, fn, _pattern in ROUTES:
             if method != self.command:
@@ -161,9 +196,12 @@ class Handler(BaseHTTPRequestHandler):
                     payload["error"]["detail"] = exc.detail
                 return self._send(*json_response(payload, exc.status))
             except Exception as exc:  # noqa: BLE001
+                reference = uuid.uuid4().hex[:12]
+                print(f'Internal request error [{reference}]', file=sys.stderr)
                 traceback.print_exc()
                 return self._send(*json_response(
-                    {"error": {"code": "internal", "message": f"{type(exc).__name__}: {exc}"}}, 500))
+                    {"error": {"code": "internal", "message": "处理失败，请查看本地服务日志（编号：" + reference + "）",
+                               "reference": reference}}, 500))
             if isinstance(result, tuple) and len(result) == 3 and isinstance(result[0], int):
                 return self._send(*result)
             return self._send(*json_response(result if result is not None else {"ok": True}))
@@ -173,11 +211,17 @@ class Handler(BaseHTTPRequestHandler):
                 {"error": {"code": "not_found", "message": f"没有这个接口：{self.command} {path}"}}, 404))
         return self._serve_static(path)
 
-    def _send(self, status: int, ctype: str, payload: bytes):
+    def _send(self, status: int, ctype: str, payload: bytes, *, headers=None):
         self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(payload)))
         self.send_header("Cache-Control", "no-store")
+        safe_headers = {'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN',
+                        'Content-Security-Policy': "frame-ancestors 'self'", 'Referrer-Policy': 'no-referrer',
+                        'Cross-Origin-Resource-Policy': 'same-origin'}
+        safe_headers.update(headers or {})
+        for name, value in safe_headers.items():
+            self.send_header(name, value)
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(payload)
@@ -199,9 +243,17 @@ class Handler(BaseHTTPRequestHandler):
         if not target.is_relative_to(root) or not target.is_file() or target.relative_to(root).parts[0] not in ('sources','assets','releases'):
             return self._send(404, "text/plain; charset=utf-8", b"Not Found")
         ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+        inline_types = {'application/pdf', 'image/png', 'image/jpeg', 'image/gif',
+                        'image/webp', 'image/bmp', 'image/x-icon', 'text/plain'}
+        headers = {}
+        if ctype not in inline_types:
+            # Uploaded documents must never become scripts/pages on the app's origin.
+            ctype = 'application/octet-stream'
+            headers = {'Content-Disposition': "attachment; filename=download; filename*=UTF-8''" + urllib.parse.quote(target.name, safe=''),
+                       'Content-Security-Policy': "sandbox; default-src 'none'; frame-ancestors 'self'"}
         if ctype.startswith("text/"):
             ctype += "; charset=utf-8"
-        self._send(200, ctype, target.read_bytes())
+        self._send(200, ctype, target.read_bytes(), headers=headers)
 
     do_GET = _dispatch
     do_POST = _dispatch

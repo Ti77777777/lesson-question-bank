@@ -7,3 +7,4 @@ await import('../tests/test_experience.mjs');
 await import('../tests/test_search_selection.mjs');
 await import('../tests/test_math_editor.mjs');
 await import('../tests/test_usage_state.mjs');
+await import('../tests/test_math_security.mjs');
