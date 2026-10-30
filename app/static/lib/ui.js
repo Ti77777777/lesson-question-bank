@@ -29,6 +29,11 @@ export function clearFlash() {
   bar.replaceChildren();
 }
 
+/** Collapsed, keyboard-accessible help; content is trusted application markup. */
+export function contextHelp(label, content) {
+  return `<details class="context-help"><summary>${esc(label)}</summary><div>${content}</div></details>`;
+}
+
 const PENDING_FLASH = 'qbank.pendingFlash';
 
 /** 成功提示要在 hash 跳转后仍然可见；路由渲染完成后取用。 */

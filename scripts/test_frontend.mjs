@@ -9,3 +9,4 @@ await import('../tests/test_math_editor.mjs');
 await import('../tests/test_usage_state.mjs');
 await import('../tests/test_math_security.mjs');
 await import('../tests/test_identity.mjs');
+await import('../tests/test_swap_question.mjs');

@@ -9,12 +9,13 @@ import {
   COLLECTION_PURPOSES, HINT_LEVELS, BUILD_THEMES, BUILD_FORMATS, RELEASE_STATUS, RELEASE_TONE,
 } from '../lib/constants.js';
 import {
-  flash, openModal, runSubmit, confirmDialog,
+  flash, openModal, runSubmit, confirmDialog, contextHelp,
 } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { upgradeMath } from '../lib/math.js';
 import { createHistory, sendCommand, applyAll } from '../lib/collection-history.js';
 import { rememberCollection } from '../lib/recent-work.js';
+import {openSwapQuestion} from '../lib/swap-question.js';
 
 export default async function mount(root, ctx) {
   const cid = ctx.params.id;
@@ -27,6 +28,8 @@ export default async function mount(root, ctx) {
   let revision = '';
   let busyStep = false;
   let staleItems = [];
+  let swapModal=null;
+  ctx.onCleanup(()=>swapModal?.close());
 
   function sortedSections() {
     return [...sections].sort((a, b) => Number(a.order_no ?? 0) - Number(b.order_no ?? 0));
@@ -168,7 +171,7 @@ export default async function mount(root, ctx) {
       <div>
         <div class="mini-title"><span>时间预算</span><span class="mono" style="font-size:10.5px;color:${over ? 'var(--ochre)' : 'var(--faint)'};">${esc(num(total))} / ${esc(num(budget))} 分</span></div>
         <div class="time-bar"><div class="fill ${over ? 'over' : ''}" style="width:${Math.min(100, Math.round(ratio * 100))}%;"></div></div>
-        <div class="hint" style="margin-top:5px;">预算包含练习、讲解、过渡与预留，不只看做题时间。${over ? '已超过预算的 90%。' : ''}</div>
+        ${over ? '<div class="item-warn">已超过时间预算的 90%。</div>' : ''}
       </div>
 
       <div>
@@ -189,7 +192,7 @@ export default async function mount(root, ctx) {
           const a = itemById(dup.a);
           const b = itemById(dup.b);
           return `<li>${esc(a ? itemLabel(a) : dup.a)} 与 ${esc(b ? itemLabel(b) : dup.b)}：${esc(dup.reason || '题面相似')}</li>`;
-        }).join('')}</ul>` : '<div class="check-empty">未发现疑似重复。重复只提示，是否保留由教师决定。</div>'}
+        }).join('')}</ul>` : '<div class="check-empty">未发现疑似重复。</div>'}
       </div>
 
       <div>
@@ -286,8 +289,8 @@ export default async function mount(root, ctx) {
         <aside class="check-col">
           <section class="card">
             <div class="card-head">
-              <h2>组题检查</h2>
-              <button type="button" class="btn btn-sm" data-act="check-refresh">刷新检查</button>
+              <h2>组题检查</h2>${contextHelp('检查说明','<p>时间预算包含练习、讲解、过渡与预留。</p><p>疑似重复供核对，请根据教学需要决定是否保留。</p>')}
+              <button type="button" class="btn btn-sm" data-act="check-refresh">刷新</button>
             </div>
             <div class="check-body" id="check-body">${loading('正在检查…')}</div>
           </section>
@@ -299,91 +302,16 @@ export default async function mount(root, ctx) {
     upgradeMath(root);
   }
 
-  /** N07 换一道：原位替换，条目编号、分节、顺序与角色都不变。 */
   function openSwapModal(itemId) {
-    const item = items.find((row) => row.id === itemId);
-    const modal = openModal({
-      title: '换一道题',
-      width: 'modal-wide',
-      body: `<div class="modal-error" hidden data-error></div>
-        <p class="hint">换题只改这一条引用的题目，题目本身不会被删除，分节与顺序也不动。
-        这一条已有的指定解法、小问范围、提示级别与逐题留白会清空，需要在新题上重设。</p>
-        <div class="inline-fields two">
-          <label class="field"><span>按关键词找题</span>
-            <input type="text" data-keyword placeholder="如 单调性、含参二次函数">
-          </label>
-          <label class="field"><span>　</span>
-            <button type="button" class="btn" data-search>查找</button>
-          </label>
-        </div>
-        <div class="usage-items" data-results><p class="hint">输入关键词后点「查找」。</p></div>`,
-      footer: `<button type="button" class="btn" data-close>取消</button>
-               <button type="button" class="btn btn-primary" data-apply disabled>换成选中的题</button>`,
-    });
-
-    const err = modal.body.querySelector('[data-error]');
-    const results = modal.body.querySelector('[data-results]');
-    const applyBtn = modal.foot.querySelector('[data-apply]');
-    let picked = '';
-
-    async function runSearch() {
-      const keyword = modal.body.querySelector('[data-keyword]').value.trim();
-      results.innerHTML = '<p class="hint">正在查找…</p>';
-      try {
-        const data = await api('/api/questions', { query: { keyword: keyword || undefined, limit: 10 } });
-        // 题单里已有的题不能再换进来，否则会出现两条同题
-        const already = new Set(items.map((row) => row.question_id));
-        const rows = (data.items || []).filter((row) => !item || row.id !== item.question_id);
-        results.innerHTML = rows.length ? rows.map((row) => {
-          const used = already.has(row.id);
-          return `
-          <label class="check usage-item ${used ? 'is-disabled' : ''}">
-            <input type="radio" name="swap-pick" value="${esc(row.id)}" ${used ? 'disabled' : ''}>
-            <span>${esc(row.short_name || row.id)}${used ? '<span class="hint">　已在题单</span>' : ''}
-              <br><span class="hint swap-stem" data-rich>${esc((row.stem || row.stem_preview || '').trim())}</span>
-            </span>
-          </label>`;
-        }).join('') : '<p class="hint">没有找到别的题，换个关键词或先录入新题。</p>';
-        // 题面里是 LaTeX，必须渲染，否则显示成 $f(x)=...$ 原文
-        upgradeMath(results);
-      } catch (e) {
-        results.innerHTML = `<p class="hint">查找失败：${esc(e.message || String(e))}</p>`;
-      }
-    }
-
-    modal.body.querySelector('[data-search]').addEventListener('click', runSearch);
-    modal.body.querySelector('[data-keyword]').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') { event.preventDefault(); runSearch(); }
-    });
-    results.addEventListener('change', (event) => {
-      const radio = event.target.closest('input[name="swap-pick"]');
-      picked = radio ? radio.value : '';
-      applyBtn.disabled = !picked;
-    });
-
-    applyBtn.addEventListener('click', async () => {
-      if (!picked) return;
-      applyBtn.disabled = true;
-      try {
-        const out = await api(`/api/items/${encodeURIComponent(itemId)}/swap`, {
-          method: 'POST',
-          body: { operation_id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
-                  base_revision: revision, question_id: picked },
-        });
-        revision = out.revision || revision;
-        modal.close();
-        flash(out.dropped.length
-          ? `已换题；${out.dropped.join('、')}已清空，请在这条上重设`
-          : '已换题。', 'ok');
-        await reloadPreserve();
-        loadCheck();
-      } catch (e) {
-        err.hidden = false;
-        err.textContent = e.code === 'revision_conflict'
-          ? '题单在操作期间被改过，请关闭后重新打开本窗口。'
-          : (e.message || String(e));
-        applyBtn.disabled = false;
-      }
+    const item=items.find(row=>row.id===itemId);
+    if(!item)return;
+    swapModal?.close();
+    swapModal=openSwapQuestion({item,existingIds:items.map(row=>row.question_id),baseRevision:revision,current:ctx.current,
+      async onSwapped(out){
+        revision=out.revision || revision;
+        flash(out.dropped?.length ? `已换题；${out.dropped.join('、')}已清空，请在新题上重设。` : '已换题。','ok');
+        await reloadPreserve();loadCheck();
+      },
     });
   }
 

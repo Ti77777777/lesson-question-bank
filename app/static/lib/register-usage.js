@@ -5,7 +5,7 @@
  * 导出本身不算使用，下载也不算发放——这里必须由教师确认日期与对象后才写入。
  */
 import { api } from './api.js';
-import { openModal, flash } from './ui.js';
+import { openModal, flash, contextHelp } from './ui.js';
 import { esc } from './dom.js';
 import { usageOperations, snapshotUsageItems } from './usage-state.js';
 import { identityLabel } from './identity.js';
@@ -18,7 +18,7 @@ const today = () => {
 
 export function openRegisterUsage(releaseId, { onDone } = {}) {
   openModal({
-    title: '登记这次使用',
+    title: '登记讲义使用',
     width: 'modal-wide',
     body: `<form class="form" id="register-usage">
       <div class="modal-error" hidden data-error></div>
@@ -41,11 +41,10 @@ export function openRegisterUsage(releaseId, { onDone } = {}) {
       </div>
       <div class="field"><span>这次实际用了哪些题</span>
         <div class="usage-items" data-items></div>
-        <p class="hint">只勾选真正讲过或布置过的题目；全部取消勾选会被视为没有条目，不能提交。</p>
       </div>
       <label class="field"><span>备注</span><input type="text" data-note placeholder="如：只讲了例 1、例 2，其余留作课后"></label>
     </form>`,
-    footer: `<button type="button" class="btn" data-close>取消</button>
+    footer: `${contextHelp('登记说明','<p>选择实际讲过或布置过的题目，至少保留一道。保存的是使用记录，不会发送讲义。</p>')}<button type="button" class="btn" data-close>取消</button>
              <button type="button" class="btn btn-primary" data-submit disabled>登记使用</button>`,
     onMount({ body, foot, close }) {
       const form = body.querySelector('#register-usage');

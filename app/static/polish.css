@@ -178,7 +178,3 @@ input[type=checkbox],input[type=radio] { accent-color:var(--indigo); }
 }
 .math-preview.has-error { border-left-color: #c0392b; background: #fffafa; }
 .math-preview-body { line-height: 1.8; }
-
-/* 换一道：候选题面按四行截断，公式仍照常渲染 */
-.swap-stem { display: block; max-height: 5.2em; overflow: hidden; line-height: 1.3; }
-.usage-item.is-disabled { opacity: .55; }

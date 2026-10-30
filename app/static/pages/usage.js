@@ -7,7 +7,7 @@ import {
 import {
   AUDIENCE_KINDS, ASSIGNMENT_STATUS, ASSIGNMENT_TONE, USAGE_PURPOSES,
 } from '../lib/constants.js';
-import { flash, openModal, runSubmit } from '../lib/ui.js';
+import { flash, openModal, runSubmit, contextHelp } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { mountRoster } from '../lib/roster.js';
 import { identityLabel } from '../lib/identity.js';
@@ -29,13 +29,13 @@ export default async function mount(root, ctx) {
         <h1 class="page-title">使用与反馈</h1>
         <p class="page-sub">管理班级、小组与学生，记录练习安排、讲义使用情况和课堂反馈。</p>
       </div>
+      <div class="page-head-actions">${contextHelp('使用说明','<p>姓名可以重复，请按学号、工号或系统编号区分。选择教师可筛选其班级和学生，不代表登录权限。</p><p>练习安排记录计划；登记使用记录实际用过的讲义和题目。</p><p>班级、小组和学生的使用记录分别统计，不互相继承；没有记录不代表学生从未做过。</p><p>改名保留原档案。转班时选用已有学生加入新班，再从旧班移出，历史记录保留。</p>')}</div>
     </div>
 
     <div style="display:grid;gap:28px;">
       <section>
         <div class="spread" style="margin-bottom:10px;">
           <h2 class="section-title">班级、小组与学生</h2>
-          <span class="hint">登记授课班级、学习小组或学生代号</span>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="audience-list">${loading()}</div></section>
@@ -60,7 +60,6 @@ export default async function mount(root, ctx) {
       <section>
         <div class="spread" style="margin-bottom:10px;">
           <h2 class="section-title">练习安排</h2>
-          <span class="hint">记录发给谁、用哪份题单以及计划日期</span>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="assignment-list">${loading()}</div></section>
@@ -91,7 +90,6 @@ export default async function mount(root, ctx) {
       <section>
         <div class="spread" style="margin-bottom:10px;">
           <h2 class="section-title">讲义使用与反馈</h2>
-          <span class="hint">讲义导出后，可登记使用情况并补充课堂反馈；使用记录按班级、小组或学生分别统计，不会互相继承</span>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="usage-list">${loading()}</div></section>
@@ -126,7 +124,6 @@ export default async function mount(root, ctx) {
       <section>
         <div class="spread" style="margin-bottom:10px;">
           <h2 class="section-title">查询已用题目</h2>
-          <span class="hint">按班级、小组或学生查看近期使用记录</span>
         </div>
         <section class="card">
           <div class="card-head">
@@ -651,7 +648,7 @@ export default async function mount(root, ctx) {
     }
 
     if (!questions.length && !recentCollections.length && !usageRows.length) {
-      container.innerHTML = `<div class="hint">近 ${esc(days)} 天没有记录。历史缺失时显示无记录，不代表学生从未做过这些题。</div>`;
+      container.innerHTML = `<div class="hint">近 ${esc(days)} 天没有使用记录。</div>`;
       return;
     }
 

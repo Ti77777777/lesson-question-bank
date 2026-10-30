@@ -4,7 +4,7 @@ import { openRegisterUsage } from '../lib/register-usage.js';
 import { api, fileUrl } from '../lib/api.js';
 import { esc, badge, fmtDateTime, $, emptyState, errorCard, loading, num } from '../lib/dom.js';
 import { RELEASE_STATUS, RELEASE_TONE } from '../lib/constants.js';
-import { flash, openModal, confirmDialog } from '../lib/ui.js';
+import { flash, openModal, confirmDialog, contextHelp } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { mountBackupPanel } from '../lib/backup-panel.js';
 
@@ -26,17 +26,11 @@ export default async function mount(root, ctx) {
         <p class="page-sub">查看已生成讲义，下载文件或按原快照重新导出。</p>
       </div>
       <div class="page-head-actions">
+        ${contextHelp('导出与使用说明','<p>快速预览和 PDF 校样用于检查排版；在题单中导出后，正式讲义才会归档到这里。</p><p>「登记使用」记录讲义实际用于哪个班级或学生，不会发送文件。</p>')}
         <button type="button" class="btn" id="release-refresh">刷新</button>
         <a class="btn btn-primary" href="#/collections">去题单生成</a>
       </div>
     </div>
-    <section class="card">
-      <div class="card-body">
-        <p class="hint"><b>预览</b>　排版页的「快速预览」与「PDF校样」只检查版式，不生成讲义，也不会出现在本页。</p>
-        <p class="hint"><b>导出</b>　题单页点「导出三版讲义」才生成可发放的学生版、解答版、解析版，并作为一条记录进入本页。</p>
-        <p class="hint"><b>补记一次使用</b>　讲义发出后在这里补记，属于事后记录，不代表本页完成了发放。</p>
-      </div>
-    </section>
     <div class="results-head" style="margin-top:16px;"><span class="total" id="release-total"></span></div>
     <section class="card">
       <div id="release-list">${loading()}</div>
@@ -50,12 +44,12 @@ export default async function mount(root, ctx) {
 
   function render() {
     if (!items.length) {
-      listEl.innerHTML = `<div class="card-body">${emptyState('还没有导出记录', '从题单进入「排版与导出」，生成的三版讲义会归档到这里，并保留当时使用的题目版本。')}</div>`;
+      listEl.innerHTML = `<div class="card-body">${emptyState('还没有导出记录', '在题单中完成导出后，可在这里下载讲义。')}</div>`;
       return;
     }
     listEl.innerHTML = `<div class="table-wrap"><table class="table">
       <thead><tr>
-        <th>导出编号</th><th>题单</th><th>生成时间</th><th>页数（学生/解答/解析）</th><th>状态</th><th>文件</th><th>导出时的记录</th>
+        <th>导出编号</th><th>题单</th><th>生成时间</th><th>页数（学生/解答/解析）</th><th>状态</th><th>文件</th><th>操作</th>
       </tr></thead>
       <tbody>
         ${items.map((row) => {
@@ -89,9 +83,9 @@ export default async function mount(root, ctx) {
             </div></td>
             <td>
               <div class="row-actions">
-                <button type="button" class="btn btn-sm" data-detail="${esc(id)}" title="看这次导出的检查结果与文件">看详情</button>
-                <button type="button" class="btn btn-sm" data-register="${esc(id)}" ${status === 'failed' ? 'disabled title="编译失败，不能补记使用"' : 'title="讲义已发出时，在这里补记一次使用"'}>补记一次使用</button>
-                <a class="btn-link" href="/api/releases/${encodeURIComponent(id)}/snapshot" download title="下载这次导出当时使用的题目内容">这次导出用的内容</a>
+                <button type="button" class="btn btn-sm" data-detail="${esc(id)}" title="查看检查结果与文件">详情</button>
+                <button type="button" class="btn btn-sm" data-register="${esc(id)}" ${status === 'failed' ? 'disabled title="编译失败，不能登记使用"' : ''}>登记使用</button>
+                <a class="btn-link" href="/api/releases/${encodeURIComponent(id)}/snapshot" download title="下载导出时的完整题目内容">内容快照</a>
               </div>
             </td>
           </tr>`;
