@@ -118,6 +118,8 @@
 .swap-preview { display:flex; flex-direction:column; background:white; }
 .swap-original { border-right:1px solid var(--line); }
 .swap-selected .swap-panel-heading { background:#edf5f1; }
+.swap-selected .swap-panel-heading.is-blocked { background:#fff1f0; border-bottom-color:#edb3ad; }
+.swap-panel-heading > .swap-status-blocked { padding:6px 10px; border:1px solid #e3a39b; border-radius:6px; background:#fde1de; color:#962727; font-size:13px; font-weight:600; line-height:1.6; }
 .swap-preview-content { padding:24px; overflow:auto; flex:1; min-height:0; scrollbar-gutter:stable; overflow-wrap:anywhere; }
 .swap-question-heading h3 { font-size:17px; line-height:1.7; margin:0 0 8px; }
 .swap-meta { display:flex; flex-wrap:wrap; gap:6px 14px; color:var(--muted); font-size:13px; margin-bottom:24px; }

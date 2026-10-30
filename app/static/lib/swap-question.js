@@ -45,7 +45,7 @@ export function openSwapQuestion({item,existingIds,baseRevision,current=()=>true
       <div class="swap-workspace">
         <aside class="swap-candidates" aria-label="候选题列表"><div class="swap-panel-heading"><h3>候选题</h3><span data-count role="status" aria-live="polite"></span></div><div class="swap-candidate-list" data-results></div><div class="swap-pagination"><button type="button" class="btn btn-sm" data-prev disabled>上一页</button><span data-page></span><button type="button" class="btn btn-sm" data-next disabled>下一页</button></div></aside>
         <section class="swap-preview swap-original" aria-label="原题"><div class="swap-panel-heading"><h3>原题</h3><span>题单所用版本</span></div><div class="swap-preview-content" data-original></div></section>
-        <section class="swap-preview swap-selected" aria-label="候选题全文"><div class="swap-panel-heading"><h3>候选题全文</h3><span data-selected-status></span></div><div class="swap-preview-content" data-selected><div class="swap-placeholder">选择一道候选题，与原题对照。</div></div></section>
+        <section class="swap-preview swap-selected" aria-label="候选题全文"><div class="swap-panel-heading"><h3>候选题全文</h3><span data-selected-status role="status" aria-live="polite"></span></div><div class="swap-preview-content" data-selected><div class="swap-placeholder">选择一道候选题，与原题对照。</div></div></section>
       </div>`,
     footer:`<details class="context-help swap-help"><summary>换题说明</summary><div><p>题目在题单中的位置、分节和教学角色保留。</p><p>换题会清空本条的指定解法、小问范围、提示、留白及题前换页设置。</p></div></details><span class="swap-error" data-error role="alert" hidden></span><button type="button" class="btn" data-close>取消</button><button type="button" class="btn btn-primary" data-apply disabled>替换原题</button>`,
     onClose(){closed=true;searchReads.invalidate();detailReads.invalidate();},
@@ -53,6 +53,12 @@ export function openSwapQuestion({item,existingIds,baseRevision,current=()=>true
   const alive=()=>!closed&&current(),$=selector=>modal.modal.querySelector(selector);
   const apply=$('[data-apply]'),results=$('[data-results]'),original=$('[data-original]'),selected=$('[data-selected]'),error=$('[data-error]');
   const showError=message=>{error.textContent=message;error.hidden=!message;};
+  function selectedStatus(text,blocked=false){
+    const status=$('[data-selected-status]');
+    status.textContent=text;
+    status.classList.toggle('swap-status-blocked',blocked);
+    status.parentElement.classList.toggle('is-blocked',blocked);
+  }
   const canApply=()=>originalReady&&picked&&!already.has(picked.question.id)&&!saving;
   function updateApply(){apply.disabled=!canApply();}
   function paintDetail(target,detail){target.innerHTML=comparisonContent(detail);target.scrollTop=0;upgradeMath(target);}
@@ -65,19 +71,19 @@ export function openSwapQuestion({item,existingIds,baseRevision,current=()=>true
     if(saving)return;
     const valid=detailReads.start();picked=null;updateApply();showError('');
     results.querySelectorAll('[data-pick]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pick===id)));
-    $('[data-selected-status]').textContent='读取中…';
+    selectedStatus('读取中…');
     selected.innerHTML='<div class="swap-placeholder" role="status">正在读取候选题全文…</div>';
     try{
       const detail=await api(`/api/questions/${encodeURIComponent(id)}`);if(!alive()||!valid())return;
       if(!detail.current_version?.id||detail.question?.id!==id)throw new Error('题目内容不完整，请重新读取。');
       picked=detail;paintDetail(selected,detail);
-      $('[data-selected-status]').textContent=already.has(id)?'已在题单中，不能重复替换':'已选择';updateApply();
-    }catch(e){if(!alive()||!valid())return;$('[data-selected-status]').textContent='读取失败';selected.innerHTML=`<div class="swap-placeholder"><p>${esc(e.message)}</p><button type="button" class="btn" data-retry-detail>重新读取候选题</button></div>`;$('[data-retry-detail]').onclick=()=>selectQuestion(id);}
+      selectedStatus(already.has(id)?'已在题单中，不能重复替换':'已选择',already.has(id));updateApply();
+    }catch(e){if(!alive()||!valid())return;selectedStatus('读取失败');selected.innerHTML=`<div class="swap-placeholder"><p>${esc(e.message)}</p><button type="button" class="btn" data-retry-detail>重新读取候选题</button></div>`;$('[data-retry-detail]').onclick=()=>selectQuestion(id);}
   }
   async function search(nextPage=0){
     if(saving)return;
     const valid=searchReads.start();detailReads.invalidate();page=nextPage;picked=null;rows=[];updateApply();showError('');
-    selected.innerHTML='<div class="swap-placeholder">选择一道候选题，与原题对照。</div>';$('[data-selected-status]').textContent='';
+    selected.innerHTML='<div class="swap-placeholder">选择一道候选题，与原题对照。</div>';selectedStatus('');
     results.innerHTML='<div class="swap-placeholder" role="status">正在查找…</div>';$('[data-count]').textContent='';$('[data-page]').textContent='';$('[data-prev]').disabled=true;$('[data-next]').disabled=true;
     try{
       const data=await api('/api/questions',{query:{keyword:keyword||undefined,limit,offset:page*limit}});if(!alive()||!valid())return;

@@ -168,8 +168,8 @@
       "sha256": "f316d4e5ed41dd08890d319304809c72276fe2d3a420dd655f08226a902444b6"
     },
     "app/static/experience.css": {
-      "bytes": 13740,
-      "sha256": "01280226f30e4a5734cbf3b45d9685187408939d7f44a0a02dca426d70230ef3"
+      "bytes": 14034,
+      "sha256": "cf779f96e45514ccd83d2f4463cde83aabc077a027bf6a92a931ff0e8c5d780e"
     },
     "app/static/index.html": {
       "bytes": 1899,
@@ -284,8 +284,8 @@
       "sha256": "45b9328f2b993a06a7815774b90c7522708112618261fd8f54e4783c0aa7377d"
     },
     "app/static/lib/swap-question.js": {
-      "bytes": 10589,
-      "sha256": "c63b5bb325c7bf1e766d4b46e98fb6b18e731f74797ce8237281263fc8d0a7f6"
+      "bytes": 10799,
+      "sha256": "6e131aae2a87eb546dcb9050551391d5f5d86f8d094df1006a7269e227ea90dd"
     },
     "app/static/lib/tag-sidebar.js": {
       "bytes": 10752,
@@ -364,8 +364,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 35514,
-      "sha256": "734eaf83e2626990bd49ec13c36d9f7a7d4e12d3a0f8105534ee39402f7abf60"
+      "bytes": 36022,
+      "sha256": "de13fbc3c8cffdbce4b136c51be7e07da98d81d3f2894e30d6290e69de97a53f"
     },
     "data/schema.sql": {
       "bytes": 23385,
@@ -493,7 +493,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "43587ae46ef7f7580f7301ac2350a737b9dd92d82e1ea5ad7a2098890a04d0a0"
+      "sha256": "544b7f759e85388bae6b89d0942d92c1f2db72b2e989820114e99a1c0e2818f5"
     },
     "README.md": {
       "bytes": 4822,
