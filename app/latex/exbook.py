@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 
 from app import db
+from app.math_notation import normalise_math_notation
 
 TEMPLATE_DIR = db.ROOT / "templates" / "exbook"
 CLASS_FILE = TEMPLATE_DIR / "ExBook.cls"
@@ -519,7 +520,7 @@ def render_body(snapshot: dict, options: dict | None, version: str,
     # font on some Windows machines. Draw the labels with TeX instead.
     for number in range(1,21):
         body = body.replace(chr(0x2460+number-1),r'\textcircled{'+str(number)+'}')
-    return body
+    return normalise_math_notation(body)
 
 
 # ---------------------------------------------------------------- 配置与主文件

@@ -2,6 +2,7 @@
    不可用时保持原始 LaTeX 源码，不阻塞页面、不报错。 */
 
 import { esc } from './dom.js';
+import {normaliseMathBody} from './math-notation.js';
 
 const KATEX_VERSION = '0.19.1';
 const KATEX_BASE = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/`;
@@ -51,7 +52,7 @@ function renderTex(tex, display) {
   const source = String(tex ?? '');
   if (!source.trim()) return '';
   try {
-    return window.katex.renderToString(source.trim(), {
+    return window.katex.renderToString(normaliseMathBody(source.trim()), {
       displayMode: display,
       throwOnError: false,
       strict: 'ignore',

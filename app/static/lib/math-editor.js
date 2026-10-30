@@ -21,6 +21,7 @@ export const SNIPPETS = [
   { group: '上下标', label: '上标', insert: '^{${}}' },
   { group: '上下标', label: '下标', insert: '_{${}}' },
   { group: '上下标', label: '同时上下标', insert: '_{${}}^{}' },
+  { group: '符号', label: '导数', insert: "f'(${})" },
   { group: '符号', label: '≤', insert: '\\leqslant ' },
   { group: '符号', label: '≥', insert: '\\geqslant ' },
   { group: '符号', label: '≠', insert: '\\neq ' },

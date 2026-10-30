@@ -210,7 +210,8 @@ def normalise(value):
         from app.ai.contracts import ALLOWED,ENVIRONMENTS,normalise_math_punctuation
         value=_normalise_tex_escapes(value,ALLOWED,ENVIRONMENTS)
         value=re.sub(r'(?<!\\)\\n(?=[^a-z]|$)',lambda m:'\n',value)
-        return normalise_math_punctuation(_normalise_display_dollars(value))
+        from app.math_notation import normalise_math_notation
+        return normalise_math_notation(normalise_math_punctuation(_normalise_display_dollars(value)))
     return value
 
 def call(job_id, question_id, stage, system, prompt, images=(), max_tokens=10000, thinking=True):

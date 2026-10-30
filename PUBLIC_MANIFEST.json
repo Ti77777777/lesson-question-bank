@@ -56,16 +56,16 @@
       "sha256": "255343a3037e0ee66a7b161b3348db62efd264070560e9a3f553f0779a7d5fb7"
     },
     "app/ai/prompts.py": {
-      "bytes": 4097,
-      "sha256": "3da5380696ef971a8042d8b296ff197c33a084caff260741cf1d6263cbb40edc"
+      "bytes": 4249,
+      "sha256": "697c88fdad15b3f9170b6cfd8349255de727dd098640202f99fc1693b4afce17"
     },
     "app/ai/protocols.py": {
       "bytes": 5517,
       "sha256": "9f526ff5513963a9a05b7ea0879b3212abbd01e935fe3b54b6a3f91fb151fdb7"
     },
     "app/ai/provider.py": {
-      "bytes": 18892,
-      "sha256": "5e970feeafe54647a6031d6ad52bc9ec12ce695df2162ace7cf3fed8cd4b34ee"
+      "bytes": 18979,
+      "sha256": "897723caac45f2dae936b9b9c644f4143ec28d53dc2deb87f0f25233820eda1d"
     },
     "app/ai/schema.sql": {
       "bytes": 2909,
@@ -140,12 +140,16 @@
       "sha256": "acbd7cb91ff6f4f87e94c56568585e56fddafc8e242fcba0bd8253b61c366057"
     },
     "app/latex/exbook.py": {
-      "bytes": 24811,
-      "sha256": "96f666d25b216afdd99d68bfab8aa49d16f294087813020126a05f10614d1dfe"
+      "bytes": 24891,
+      "sha256": "9f899767b8ae785d20d99a4b9955de3bd60fd47639fc09da6568fa85a7a886a1"
     },
     "app/layout.py": {
       "bytes": 3688,
       "sha256": "d52a06f27504a0dabc0f37d4ace7f0aa6694f9cbb11852d428f796f44f3f8c46"
+    },
+    "app/math_notation.py": {
+      "bytes": 1550,
+      "sha256": "e6d653234e63c5465c215314d9a113111e69f1e541beb8f9349504e03d9ef75c"
     },
     "app/provenance.py": {
       "bytes": 2310,
@@ -240,12 +244,16 @@
       "sha256": "c96a4e6a220366db769514161d46e93ed52ddc4e50afd091bf8021c7b0d4338b"
     },
     "app/static/lib/math-editor.js": {
-      "bytes": 6781,
-      "sha256": "0e36785ac521cc21a94b612f0ce6d1de79cbcb581faf6f551e7b6318b3555d5f"
+      "bytes": 6841,
+      "sha256": "8dd057c8ee20609c33aa2ddba24fa39276355b0b5e4d5354c7e876cbb28e1e4e"
+    },
+    "app/static/lib/math-notation.js": {
+      "bytes": 1132,
+      "sha256": "cdf258de7b49a57ba14945ddb370ecd67516e07aa1b416cb43b581a853517dda"
     },
     "app/static/lib/math.js": {
-      "bytes": 6213,
-      "sha256": "11307ef557a56d09a39bea3fd20d8b7409d29e064302c2adcbb1ef1a760c2dab"
+      "bytes": 6286,
+      "sha256": "2611027b72ad5fe9183ad26ea428be38e345fd6c7beb4c110123dab38b6407ac"
     },
     "app/static/lib/option-text.js": {
       "bytes": 1306,
@@ -356,16 +364,16 @@
       "sha256": "78ed7a497d0c05b438a8ba50ab9d5beb9ff981b234b5633efb5402ac9f93e7dd"
     },
     "app/static/style.css": {
-      "bytes": 88622,
-      "sha256": "386cdcccb35cc20385b3baf9a9f5905acd8d5c1e2091bde942087b28109fd8eb"
+      "bytes": 88615,
+      "sha256": "5a2b4d400c9a3e63e1c94cbedcd22feeddf9b21ef56e8400ff2397e3a9715a6e"
     },
     "app/text_preview.py": {
       "bytes": 1063,
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 36992,
-      "sha256": "91655360e3d3d4b3810c6eb59971595dd9bd3bde34ef29eedf9a2795152cfaa8"
+      "bytes": 38881,
+      "sha256": "8a5abd16a3c7b5324a9b79d0809357a524ec89631a87e9c6c7c3f6921afdc594"
     },
     "data/schema.sql": {
       "bytes": 23385,
@@ -420,12 +428,16 @@
       "sha256": "ea7ba78484fa1d8ed92f70df281ae06fc978d77ff01e44f4cb9dcb0c4c7b1070"
     },
     "docs/操作说明.md": {
-      "bytes": 5644,
-      "sha256": "028795cc6a238641ca2b3c930a930c1f466f7fd60cc53ac9396a3f4953bfbaf1"
+      "bytes": 5830,
+      "sha256": "38860c2a8fb337f4a5c93947e33d3b6dc2749e3858a462926417a1cf5c178c36"
     },
     "docs/教师与班级管理.md": {
       "bytes": 4521,
       "sha256": "5357a5a15043fad584a7b8e5988aafb7426e06f2be7bfba9e406dddc48c55967"
+    },
+    "docs/数学书写与显示规范.md": {
+      "bytes": 2253,
+      "sha256": "3ac9a9a8e4d4412783f387faf3f04f387413c5319295c801e0eebc345c1379ed"
     },
     "docs/数据与隐私.md": {
       "bytes": 2150,
@@ -480,8 +492,12 @@
       "sha256": "a3682970e114c15b43a6557dd632fe666171654a73220cef5d0300f0617f6c29"
     },
     "examples/demo.json": {
-      "bytes": 9071,
-      "sha256": "e92a60c4746fdd8b49bcf0109f4f56d355fdb6ebf3dd8fcf2bd4341571cea2af"
+      "bytes": 9282,
+      "sha256": "e2a343602434901372461769cefd341c62b315b61f4c3d7538f7a38714d9f4e0"
+    },
+    "examples/notation-cases.json": {
+      "bytes": 938,
+      "sha256": "16af0c7f5541ccea152e21afb7d32200e9739337c4617d9ceba91b94dcbad63d"
     },
     "LICENSE": {
       "bytes": 1096,
@@ -493,7 +509,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "42464a4257a09020f6eae0389fca008cc4f380f865462b750605ea9fb2976635"
+      "sha256": "4009dfd1da9b5eb3ffa597afba7fca76af3172fc33c734ba217629fea595a67e"
     },
     "README.md": {
       "bytes": 4822,
@@ -524,8 +540,8 @@
       "sha256": "300ab5c96451ef2e3438dceb1e076527a52f41c573a198989fa8ca235828491b"
     },
     "scripts/test_frontend.mjs": {
-      "bytes": 618,
-      "sha256": "14cb2f0b6d9df4871c77f9b62ca7b5549b7ae82552491049c51c6a6cccaeb298"
+      "bytes": 668,
+      "sha256": "f0527b43a665947fc3df99efdd30a5f96b366e42d886a70902cb83a74d74a6c1"
     },
     "templates/exbook/ExBook.cls": {
       "bytes": 71042,
@@ -606,6 +622,14 @@
     "tests/test_math_import.mjs": {
       "bytes": 1043,
       "sha256": "ecff3331cdeea66a2d56c885dd18372ed5d761b2a90a23029e7817181b4d7f13"
+    },
+    "tests/test_math_notation.mjs": {
+      "bytes": 1376,
+      "sha256": "028033e169f7272718ce5cb0bafa4e6c0573526c3d9f6bb34d1a9ce95a5b5506"
+    },
+    "tests/test_math_notation.py": {
+      "bytes": 1937,
+      "sha256": "206fb482d6f004f384487d833b0def53c90c30233d934aa61961c7426b91f109"
     },
     "tests/test_math_security.mjs": {
       "bytes": 1761,

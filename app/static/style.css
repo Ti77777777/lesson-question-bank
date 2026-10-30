@@ -650,7 +650,7 @@ input[type="checkbox"], input[type="radio"] {
 /* ---------------------------------------------------------------- 数学内容 */
 
 [data-rich] { line-height: 1.75; overflow-wrap: anywhere; }
-[data-rich] .katex { font-size: 1.03em; }
+body .katex { font-size: 1.03em; }
 [data-rich] .katex-display {
   margin: .5em 0;
   overflow-x: auto;
