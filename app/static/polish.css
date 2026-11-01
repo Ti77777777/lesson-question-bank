@@ -324,3 +324,134 @@ input[type=checkbox],input[type=radio] { accent-color:var(--indigo); }
 .search-workbench .search-filter-row { padding-top:8px; padding-bottom:8px; }
 .search-workbench .search-fold { padding-top:8px; padding-bottom:8px; }
 .search-workbench .search-results-head { margin-top:14px; }
+
+/* Astra visual audit V01–V08: screen tools only; paper metrics are unchanged. */
+@media screen {
+  .search-workbench .search-heading { margin-bottom:16px; }
+  .search-tools { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .search-tools .search-query-bar { flex:1; min-width:0; margin:0; }
+  .search-tools .saved-searches { flex-wrap:wrap; margin:0; padding:0; }
+  .search-tools [data-presets] { max-width:220px; }
+  .search-workbench .search-filters { background:transparent; border:0; overflow:visible; margin:0; }
+  .search-basic > summary { display:none; }
+  .search-workbench .search-filter-row { margin:0; padding:6px 0; align-items:center; }
+  .search-workbench .search-option { padding:5px 10px; }
+  .search-workbench .search-filter-label { padding:0; }
+  .search-extra-tools { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:start; padding:8px 0; border-bottom:1px solid var(--line); }
+  .search-extra-tools > details { margin:0; padding:0; border:0; background:transparent; }
+  .search-extra-tools > details > summary { min-height:36px; display:list-item; cursor:pointer; color:var(--ink-soft); padding:4px 0; }
+  .search-extra-tools > details[open] { flex-basis:100%; order:1; padding-bottom:12px; }
+  .search-extra-tools .search-filter-top { padding:4px 0; border:0; background:transparent; margin-left:auto; }
+  .search-extra-tools .search-filter-top > span { display:none; }
+  .search-workbench .search-active { padding:8px 0; background:transparent; }
+  .search-workbench .search-active:empty { display:none; }
+  .search-workbench .search-results-head { margin:8px 0 0; padding:8px 0 12px; }
+  #usage-scope-note:empty { display:none; }
+  .search-workbench .q-card { padding:16px 20px; }
+  .search-workbench .q-meta-top { margin-bottom:8px; }
+  .search-workbench .q-meta-top .name { font-weight:500; color:var(--ink-soft); }
+  .search-workbench .q-tags:empty,.search-workbench .diff-line:empty { display:none; }
+  .search-workbench .q-side { margin-top:12px; padding-top:12px; }
+  .search-workbench .q-side .is-selected { background:var(--indigo-soft); color:var(--indigo); border-color:var(--indigo-line); }
+  .collection-list { max-width:1120px; }
+  .collection-row { grid-template-columns:minmax(0,1fr) 70px 70px 160px 110px; padding:16px 20px; gap:16px; }
+  .collection-row .updated { display:block; white-space:nowrap; }
+  .collection-name { font-family:var(--sans); overflow-wrap:anywhere; }
+  .collection-meta { gap:8px 12px; }
+  .item-row { padding:16px; gap:12px; }
+  .item-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .item-actions .order-btn { width:36px; height:36px; }
+  .item-actions .btn { min-height:36px; }
+  .item-badges { gap:8px; }
+  .layout-toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:12px 16px; }
+  .layout-status { padding:6px 16px; }
+  .layout-page-nav { padding:6px 16px; gap:8px; }
+  .layout-page-thumb { min-height:32px; padding:4px 10px; }
+  .layout-stage,.layout-canvas { background:#e2e9e5; }
+  .layout-controls > section { margin-bottom:16px; }
+  .ai-workspace.is-empty { display:block; }
+  .ai-workspace.is-empty .ai-job-list { padding:16px 20px; }
+  .ai-workspace.is-empty .ai-job-list h2 { display:none; }
+  .ai-workspace.is-empty #ai-detail { display:none; }
+  .ai-create .ai-new-task { border:0; background:transparent; box-shadow:none; }
+  .provider-grid { gap:16px; }
+  .page-tabs { gap:8px; border-bottom:1px solid var(--line); margin-bottom:16px; }
+  .page-tabs .btn { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; min-height:44px; padding:8px 16px; }
+  .page-tabs .active { color:var(--indigo); border-bottom-color:var(--indigo); background:transparent; }
+  .scope-toolbar { display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin-bottom:16px; }
+}
+@media screen and (max-width:999px) {
+  .search-tools { flex-wrap:wrap; gap:8px; }
+  .search-tools .search-query-bar { flex-basis:100%; }
+  .search-tools .saved-searches { width:100%; }
+  .search-layout { gap:8px; }
+  .tag-side-heading { padding:8px 12px; }
+  .search-basic > summary { display:flex; justify-content:space-between; gap:12px; padding:10px 0; cursor:pointer; }
+  .search-basic > summary::before { content:'▸'; }
+  .search-basic[open] > summary::before { content:'▾'; }
+  .search-basic > summary span { margin-left:auto; color:var(--muted); }
+  .collection-row { grid-template-columns:minmax(0,1fr) 70px 110px; }
+  .collection-row .collection-stat:nth-of-type(3) { display:none; }
+  .collection-row .updated { grid-column:1; grid-row:2; }
+}
+@media screen and (max-width:640px) {
+  .search-heading { flex-wrap:nowrap; gap:8px; align-items:center; }
+  .search-heading .page-title { white-space:nowrap; }
+  .search-heading .row-actions { justify-content:flex-end; }
+  .search-heading .compact-actions > summary { padding:6px 8px; }
+  .search-extra-tools { gap:4px 16px; }
+  .search-extra-tools > details > summary,.search-extra-tools .context-help > summary { min-height:44px; }
+  .search-workbench .search-filter-row { padding:8px 0; }
+  .search-workbench .search-option { min-height:44px; }
+  .search-tools .btn,.search-workbench .q-side .btn,.item-actions .btn,.item-actions .order-btn { min-height:44px; }
+  .search-tools [data-presets] { max-width:100%; flex:1; min-width:0; }
+  .search-workbench .search-results-head { flex-wrap:wrap; gap:8px; }
+  .collection-row { grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; padding:16px; }
+  .collection-row > :first-child { grid-column:1 / -1; }
+  .collection-row .updated { grid-column:1; grid-row:auto; }
+  .collection-row > :last-child { grid-column:2; grid-row:2; }
+  .collection-row .collection-stat { display:none; }
+  .layout-toolbar { gap:8px; }
+  .layout-toolbar .btn,.layout-toolbar select { min-height:44px; }
+}
+@media screen {
+  .search-extra-tools .search-filter-top { min-height:0; }
+  .search-workbench .search-extra-tools { padding-top:4px; padding-bottom:4px; }
+  .search-workbench .search-results-head { padding-top:4px; }
+}
+@media screen and (max-width:640px) {
+  .search-extra-tools { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+  .search-extra-tools > details[open] { grid-column:1 / -1; }
+  .search-extra-tools .search-filter-top { margin-left:0; }
+}
+@media screen {
+  .search-extra-tools > details > summary { font-weight:500; }
+  .check-col .check-stat { background:transparent; border:0; border-radius:0; }
+  .check-col .check-stat + .check-stat { border-left:1px solid var(--line-soft); }
+  .layout-page-tools { display:flex; align-items:center; flex-wrap:wrap; background:#f5f8f6; border-bottom:1px solid var(--line); }
+  .layout-page-tools .layout-status,.layout-page-tools .layout-page-nav { background:transparent; border:0; }
+  #recent-work:has(.recent-list) { max-width:1120px; }
+}
+@media screen and (max-width:640px) {
+  .collection-row .collection-stat,.collection-row .collection-stat:nth-of-type(3) { display:flex; gap:8px; text-align:left; grid-row:2; }
+  .collection-row .collection-stat .k { display:inline; }
+  .collection-row .updated { grid-row:3; }
+  .collection-row > :last-child { grid-row:3; }
+}
+@media screen {
+  .ai-page .ai-create details { border:0; background:transparent; box-shadow:none; padding:0; }
+  .ai-page .ai-create .ai-new-task[open] > summary { margin-bottom:16px; }
+  .ai-page .ai-create .ai-form-row { margin:16px 0; gap:16px; }
+  #usage-list .empty { border:0; box-shadow:none; background:transparent; }
+}
+@media screen {
+  .search-workbench .q-stem { display:block; -webkit-line-clamp:unset; overflow:visible; }
+  .search-workbench .q-stem .katex-display { display:block; margin:12px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0; }
+}
+@media screen {
+  .search-tools .saved-searches { min-height:38px; }
+}
+@media screen and (max-width:640px) {
+  .search-tools .saved-searches { min-height:44px; }
+  .search-basic > summary span { min-width:0; overflow-wrap:anywhere; }
+}

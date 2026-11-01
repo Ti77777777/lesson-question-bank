@@ -123,6 +123,24 @@ export default async function mount(root, ctx) {
     <div class="q-list" id="results" aria-busy="false"></div><div class="pager" id="pager"></div>
     </div></div>`;
 
+  // Move existing controls without recreating fields or their state.
+  const tools = document.createElement('div'); tools.className = 'search-tools';
+  tools.append($('#search-form', root), $('#saved-searches', root));
+  $('.search-layout', root).before(tools);
+  const basic = document.createElement('details'); basic.className = 'search-basic';
+  basic.innerHTML = '<summary>基础筛选<span data-basic-summary></span></summary>';
+  const filter = $('.search-filters', root);
+  filter.prepend(basic);
+  [...filter.children].filter(el => el.classList.contains('search-filter-row')).forEach(el => basic.append(el));
+  const extras = document.createElement('div'); extras.className = 'search-extra-tools';
+  basic.after(extras);
+  extras.append($('#source-fold', root), $('#f-advanced', root), $('#usage-fold', root), $('.search-filter-top', root));
+  const compact = window.matchMedia('(max-width: 999px)');
+  basic.open = !compact.matches;
+  const adaptBasic = e => { basic.open = !e.matches; };
+  compact.addEventListener('change', adaptBasic);
+  ctx.onCleanup?.(() => compact.removeEventListener('change', adaptBasic));
+
   const resultsEl = $('#results', root), pagerEl = $('#pager', root);
   ctx.onCleanup?.(mountSavedSearches($('#saved-searches',root),()=>{state.keyword=$('#f-keyword',root).value.trim();return buildQuery();}));
   const totalEl = $('#results-total', root), noteEl = $('#results-note', root);
@@ -202,6 +220,7 @@ export default async function mount(root, ctx) {
     return list;
   }
   function renderControls() {
+    $('[data-basic-summary]',root).textContent = [selectionValues(state.grade).map(id=>grades.find(g=>g.id===id)?.name||id).join('、'), [...state.qtypes].map(id=>QTYPES[id]).join('、'), preset() ? '已设难度' : ''].filter(Boolean).join('，') || '不限';
     $('#f-audience',root).value=state.audience;
     $('#f-used-days',root).value=state.usedDays;
     $('#f-only-unused',root).checked=state.onlyUnused;
@@ -413,12 +432,12 @@ export default async function mount(root, ctx) {
         <div class="q-side">
           <div class="diff-line">
 
-            ${diffCell('思维', dif.think)}
+            ${dif.think != null ? diffCell('思维', dif.think) : ''}
 
           </div>
           <div class="used" data-used="${esc(item.id)}" ${state.audience ? '' : 'hidden'}></div>
 
-          <button type="button" class="btn btn-sm ${inBasketNow ? '' : 'btn-primary'}" data-add="${esc(item.id)}">
+          <button type="button" class="btn btn-sm ${inBasketNow ? 'is-selected' : ''}" data-add="${esc(item.id)}">
             ${inBasketNow ? '移出选题篮' : '加入选题篮'}
           </button>
           <details class="compact-actions"><summary class="btn btn-sm">更多</summary><div><button type="button" class="btn" data-correct="${esc(item.id)}" aria-label="纠错 ${esc(item.id)}">纠错${item.correction_count ? `（${item.correction_count}）` : ''}</button></div></details>
@@ -450,9 +469,10 @@ export default async function mount(root, ctx) {
       const id = btn.dataset.add;
       const active = basket.has(id);
       btn.textContent = active ? '移出选题篮' : '加入选题篮';
-      btn.classList.toggle('btn-primary', !active);
+      btn.classList.toggle('is-selected', active);
     });
     $('#search-add-collection', root).disabled = !basket.size;
+    $('#search-add-collection', root).hidden = !basket.size;
   }
 
   resultsEl.addEventListener('click', (event) => {

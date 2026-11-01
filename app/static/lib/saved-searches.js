@@ -3,7 +3,7 @@ import { esc } from './dom.js';
 import { flash, textDialog, confirmDialog } from './ui.js';
 
 export function searchConditions(query) {
-  return Object.fromEntries(Object.entries(query).filter(([k,v]) => !['status','limit','offset'].includes(k) && v !== undefined && v !== null && v !== '').map(([k,v])=>[k,String(v)]));
+  return Object.fromEntries(Object.entries(query).filter(([k,v]) => !['status','limit','offset','exclude_audience','exclude_days'].includes(k) && v !== undefined && v !== null && v !== '').map(([k,v])=>[k,String(v)]));
 }
 export function savedSearchUrl(query) {
   const params=new URLSearchParams(searchConditions(query));
@@ -15,7 +15,10 @@ export function mountSavedSearches(root,getQuery) {
   function paint() {
     if(disposed)return;
     root.innerHTML=`<select data-presets aria-label="常用检索方案"><option value="">选择已保存的方案…</option>${items.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('')}</select><button class="btn btn-sm" data-load>使用</button><details class="compact-actions"><summary class="btn btn-sm">检索方案</summary><div><button class="btn btn-sm" data-save>保存当前条件</button><button class="btn-link" data-update>更新方案</button><button class="btn-link" data-rename>改名</button><button class="btn-link danger" data-delete>删除</button></div></details>`;
-    const select=root.querySelector('[data-presets]');select.onchange=()=>{selected=select.value;};
+    const select=root.querySelector('[data-presets]'), use=root.querySelector('[data-load]');
+    select.hidden=!items.length; use.hidden=!items.length; use.disabled=!selected;
+    for(const action of ['update','rename','delete'])root.querySelector(`[data-${action}]`).disabled=!selected;
+    select.onchange=()=>{selected=select.value;use.disabled=!selected;for(const action of ['update','rename','delete'])root.querySelector(`[data-${action}]`).disabled=!selected;};
     root.querySelector('[data-load]').onclick=()=>{const item=items.find(x=>x.id===selected);if(item)location.hash=savedSearchUrl(item.query);else flash('请先选择一个检索方案。');};
     root.querySelector('[data-save]').onclick=async()=>{
       const name=await textDialog({title:'保存常用检索',label:'方案名称',placeholder:'例如 高三导数中档模拟题',confirmText:'保存'});if(name===null||disposed)return;

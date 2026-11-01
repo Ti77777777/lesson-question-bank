@@ -4,9 +4,9 @@ import { searchConditions, savedSearchUrl } from '../app/static/lib/saved-search
 import { normalBox } from '../app/static/lib/region-editor.js';
 
 test('saved searches omit paging but retain exclusions, grade and correction status',()=>{
-  const q={keyword:'导数 & 分类讨论',source_grade:'senior3',tags:'A,B',tag_mode:'exclude',think_min:'2',review:'pass',correction:'pending',offset:30,limit:30,status:'active',source_id:undefined};
+  const q={keyword:'导数 & 分类讨论',source_grade:'senior3',tags:'A,B',tag_mode:'exclude',think_min:'2',review:'pass',correction:'pending',offset:30,limit:30,status:'active',source_id:undefined,audience:'AUD000001',used_days:'30',only_unused:'1',exclude_audience:'AUD000001',exclude_days:30};
   const saved=searchConditions(q);
-  assert.equal(saved.offset,undefined);assert.equal(saved.source_id,undefined);
+  assert.equal(saved.exclude_days,undefined);assert.equal(saved.exclude_audience,undefined);assert.equal(saved.audience,'AUD000001');assert.equal(saved.only_unused,'1');assert.equal(saved.offset,undefined);assert.equal(saved.source_id,undefined);
   const url=savedSearchUrl(q);const restored=Object.fromEntries(new URLSearchParams(url.split('?')[1]));
   assert.deepEqual(restored,saved);assert.equal(restored.keyword,'导数 & 分类讨论');assert.equal(restored.tag_mode,'exclude');
 });

@@ -83,7 +83,8 @@ class FeatureTest(unittest.TestCase):
 
     def test_presets_keep_independent_multi_modes_and_unions(self):
         query={'multi':'category,grade,levels,year','source_category':'mock,monthly',
-               'source_grade':'senior1,senior3','think_levels':'basic,advanced,unrated','source_year':'2025,2026'}
+               'source_grade':'senior1,senior3','think_levels':'basic,advanced,unrated','source_year':'2025,2026',
+               'audience':'AUD000001','used_days':'30','only_unused':'1'}
         p=self.call('/api/search/presets',{'name':'多类别多选','query':query})
         rows=self.call('/api/search/presets')['items']
         self.assertEqual(next(r for r in rows if r['id']==p['id'])['query'],query)

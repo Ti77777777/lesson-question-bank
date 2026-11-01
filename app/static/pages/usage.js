@@ -148,7 +148,8 @@ export default async function mount(root, ctx) {
     </div>
   `;
 
-  bindPanels(root,{initial:ctx.query.view||'records',onChange:id=>{const url=new URL(location.href);url.hash='/usage?view='+id;history.replaceState(history.state,'',url);}});
+  $('[data-teacher-scope]',root).append($('.record-filter',root));
+  bindPanels(root,{initial:ctx.query.view||'records',onChange:id=>{$('.record-filter',root).hidden=id!=='records';const url=new URL(location.href);url.hash='/usage?view='+id;history.replaceState(history.state,'',url);}});
   $('[data-record-audience]',root).onchange=()=>renderUsages();
 
   const audienceList = $('#audience-list', root);
@@ -723,7 +724,7 @@ export default async function mount(root, ctx) {
   const meta=await api('/api/meta');if(!ctx.current())return;
   rosterPanel=mountRoster(audienceList,{scope:meta.draft_scope,current:()=>ctx.current(),onChange:({items,teacherId,teachers})=>{
     const teacherLabel=audienceList.querySelector('.roster-toolbar label');
-    if(teacherLabel)$('[data-teacher-scope]',root).replaceChildren(teacherLabel);
+    if(teacherLabel){const bar=$('[data-teacher-scope]',root);bar.querySelector(':scope > label:not(.record-filter)')?.remove();bar.prepend(teacherLabel);}
     const changedScope=selectedTeacher!==teacherId;
     audiences=items;selectedTeacher=teacherId;syncSelects();renderAssignments();renderUsages();
     const owner=$('#audience-teacher',root),previous=owner.value;

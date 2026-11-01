@@ -93,7 +93,7 @@ export default async function mount(root, ctx) {
     const display={...item,...(collection.layout_options?.items?.[item.id]||{})};
     const role = ROLES[item.role] || item.role || '未设角色';
     const warnings = Array.isArray(item.warnings) ? item.warnings : [];
-    const timeText = `作答 ${num(item.time_solve_min)} 分，讲解 ${num(item.time_explain_min)} 分`;
+    const timeText = [item.time_solve_min != null ? `作答 ${num(item.time_solve_min)} 分` : '', item.time_explain_min != null ? `讲解 ${num(item.time_explain_min)} 分` : ''].filter(Boolean).join('，');
     return `<li class="item-row" data-item="${esc(item.id)}">
       <div class="item-index">${String(itemNumbers.get(item.id) ?? index + 1).padStart(2, '0')}</div>
       <div class="item-main">
@@ -103,7 +103,7 @@ export default async function mount(root, ctx) {
           ${badge(QTYPES[q.qtype] || q.qtype || '题型未知', 'plain')}
           ${badge(role, 'info')}
           ${badge(reviewLabel(item.review_state), reviewTone(item.review_state))}
-          <span class="hint">${esc(timeText)}</span>
+          ${timeText ? `<span class="hint">${esc(timeText)}</span>` : ''}
           ${display.space_mm ? `<span class="hint">留白 ${esc(num(display.space_mm))} mm</span>` : ''}
           ${Number(item.required) === 0 ? badge('选做', 'plain') : ''}
           ${Number(display.page_break_before) ? badge('另起页', 'plain') : ''}
