@@ -20,7 +20,7 @@ export function mountTagSidebar(container, {onChange, onModeChange, onRetry} = {
         <label><span>主题</span><select data-side-topic aria-label="标签主题"><option value="">全部主题</option></select></label>
         <label><span>匹配方式</span><select data-side-mode aria-label="标签匹配方式">${MODES.map(([id, name]) => `<option value="${id}">${name}</option>`).join('')}</select></label>
       </div>
-      <p class="tag-side-mode-hint" data-side-mode-hint></p>
+
       <div class="tag-side-tools"><label class="check"><input type="checkbox" data-side-definitions>显示说明</label><button type="button" data-side-only class="btn-link" aria-pressed="false">只看已选</button></div>
       <section class="tag-side-selected" data-side-selection hidden><div><span data-side-selection-title></span><button type="button" class="btn-link" data-side-clear>清空标签</button></div><div data-side-chips></div></section>
       <p class="tag-side-status" data-side-status role="status" aria-live="polite"></p>
@@ -39,7 +39,7 @@ export function mountTagSidebar(container, {onChange, onModeChange, onRetry} = {
     container.querySelector('[data-side-count]').textContent = chosen.size;
     container.querySelector('[data-side-count]').setAttribute('aria-label', `已选 ${chosen.size} 个标签`);
     container.querySelector('[data-side-mode]').value = mode;
-    container.querySelector('[data-side-mode-hint]').textContent = MODE_HINTS[mode];
+    container.querySelector('[data-side-mode]').title = MODE_HINTS[mode];
     const nav = [['', '全部', ''], ...categories];
     const markup = nav.map(([id, name]) => `<button type="button" data-side-dimension="${id}" aria-pressed="false"><span>${esc(name)}</span><small>${directory.filter(e => !id || e.dimension === id).length}</small></button>`).join('');
     if (markup !== navMarkup) { container.querySelector('[data-side-categories]').innerHTML = markup; navMarkup = markup; }
@@ -62,8 +62,9 @@ export function mountTagSidebar(container, {onChange, onModeChange, onRetry} = {
     container.querySelector('[data-side-selection-title]').textContent = `已选 ${chosen.size} 个`;
     container.querySelector('[data-side-chips]').innerHTML = [...chosen].map(id => `<button type="button" data-side-remove="${esc(id)}" aria-label="移除标签：${esc(byId.get(id)?.tag.name || id)}"><span data-rich>${esc(byId.get(id)?.tag.name || id)}</span><span aria-hidden="true">×</span></button>`).join('');
     container.querySelector('[data-side-only]').setAttribute('aria-pressed', String(selectedOnly));
-    container.querySelector('[data-side-status]').textContent = loading ? '正在读取标签…' : error ? '标签暂不可用，仍可使用其他筛选条件' : `当前显示 ${visible.length} 个标签${selectedOnly ? '，只看已选' : ''}`;
+    container.querySelector('[data-side-status]').textContent = loading ? '正在读取标签…' : error ? '标签暂不可用，仍可使用其他筛选条件' : '';
 
+    container.querySelector('[data-side-status]').hidden = !loading && !error;
     const scroll = list.scrollTop;
     list.querySelectorAll('[data-side-group]').forEach(group => expanded.set(group.dataset.sideGroup, group.open));
     const groups = new Map();

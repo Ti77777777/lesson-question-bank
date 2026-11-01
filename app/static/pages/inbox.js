@@ -5,7 +5,7 @@ import {
   esc, badge, fmtDateTime, $, emptyState, errorCard, loading,
 } from '../lib/dom.js';
 import { INBOX_STATUS, INBOX_TONE } from '../lib/constants.js';
-import { flash } from '../lib/ui.js';
+import { flash, contextHelp } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { upgradeMath } from '../lib/math.js';
 import { validatedRecent } from '../lib/recent-work.js';
@@ -32,7 +32,7 @@ export default async function mount(root, ctx) {
     list.innerHTML = rows.map((row) => `
       <a class="recent-item" href="${row.mode === 'layout' ? '#/layout/' : '#/collection/'}${encodeURIComponent(row.id)}">
         <b>${esc(row.title)}</b>
-        <span>${esc(row.count)} 题${row.mode === 'layout' ? ' · 上次在排版' : ''}</span>
+        <span>${esc(row.count)} 题${row.mode === 'layout' ? '，上次在排版' : ''}</span>
       </a>`).join('');
     card.hidden = false;
   }
@@ -41,7 +41,7 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">收题箱</h1>
-        <p class="page-sub">暂存待整理的题目和资料，补充来源后再录入题库。</p>
+
       </div>
       <div class="page-head-actions">
         <span class="hint" id="inbox-total"></span>
@@ -49,7 +49,7 @@ export default async function mount(root, ctx) {
     </div>
 
     <section class="card" id="recent-work" hidden>
-      <div class="card-head"><h2>继续上次工作</h2><span class="hint">只记在本浏览器</span></div>
+      <div class="card-head"><h2>继续上次工作</h2></div>
       <div class="recent-list" id="recent-list"></div>
     </section>
 
@@ -67,14 +67,13 @@ export default async function mount(root, ctx) {
       <aside class="card inbox-form">
         <div class="card-head">
           <h2>登记一条资料</h2>
-          <span class="hint">此时不必补全题目</span>
+          ${contextHelp('录入说明','<p>粘贴原始文字，或登记文件名。识别不清的地方照原样保留。</p><p>来源线索不清楚时可以留空，整理入库前再核对。</p>')}
         </div>
         <form id="inbox-form" novalidate>
           <div class="card-body">
             <label class="field">
               <span>原始文字</span>
               <textarea name="raw_text" rows="7" placeholder="把题干、答案或截图里的文字原样贴进来，公式可用 $...$ 写 LaTeX。"></textarea>
-              <span class="field-hint">识别不清的地方照原样保留；只有文件时，至少填下面的文件名。</span>
             </label>
             <label class="field">
               <span>文件名</span>
@@ -83,7 +82,6 @@ export default async function mount(root, ctx) {
             <label class="field">
               <span>来源线索</span>
               <input type="text" name="source_hint" placeholder="如 2024 学年期末，第 12 题">
-              <span class="field-hint">不清楚时留空，系统会记为「待确认」。</span>
             </label>
             <label class="field">
               <span>备注</span>
@@ -116,8 +114,8 @@ export default async function mount(root, ctx) {
     if (!items.length) {
       const title = status ? `没有「${INBOX_STATUS[status]}」的条目` : '收题箱是空的';
       const hint = status
-        ? '换个状态看看，或在右侧登记新的原始资料。'
-        : '先在右侧贴入一段原文或登记一个文件名，不必等到题目整理完整。';
+        ? '可以切换状态，或登记新资料。'
+        : '粘贴原文或登记文件名后保存。';
       listEl.innerHTML = emptyState(title, hint);
       return;
     }

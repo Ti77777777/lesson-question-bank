@@ -27,7 +27,7 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">使用与反馈</h1>
-        <p class="page-sub">管理班级、小组与学生，记录练习安排、讲义使用情况和课堂反馈。</p>
+
       </div>
       <div class="page-head-actions">${contextHelp('使用说明','<p>姓名可以重复，请按学号、工号或系统编号区分。选择教师可筛选其班级和学生，不代表登录权限。</p><p>练习安排记录计划；登记使用记录实际用过的讲义和题目。</p><p>班级、小组和学生的使用记录分别统计，不互相继承；没有记录不代表学生从未做过。</p><p>改名保留原档案。转班时选用已有学生加入新班，再从旧班移出，历史记录保留。</p>')}</div>
     </div>

@@ -34,8 +34,7 @@ function renderLibrary(el, meta) {
     countRow('资料', counts.sources),
     countRow('发布物', counts.releases),
     countRow('待整理', counts.inbox_pending),
-  ])}
-  <p class="hint">这里看到的是当前打开的题库文件和各表记录数量。要新增或修改内容，请到收题箱、题库检索或题单页操作。</p>`;
+  ])}`;
 }
 
 function renderAi(el, data) {
@@ -52,16 +51,15 @@ function renderAi(el, data) {
     `<tr><th>输入单价</th><td>${price(cfg.input_price)}</td></tr>`,
     `<tr><th>输出单价</th><td>${price(cfg.output_price)}</td></tr>`,
   ])}
-  <p class="hint">密钥只写本机加密存储，不回显，本页也不显示密钥内容。单价按百万 tokens 计，用于估算费用；未填写单价时不能开始 AI 批量处理。</p>
-  <p class="hint">浏览本页不会发起任何模型请求。要改服务商、模型或密钥，请到 <a href="#/ai">AI 工作台</a> 的接口设置。</p>`;
+  <a class="btn" href="#/ai">配置模型接口</a>`;
 }
 
 export default async function mount(root, ctx) {
   root.innerHTML = `
     <div class="page-head">
       <div>
-        <h1 class="page-title">系统设置</h1>
-        <p class="page-sub">题库、备份与模型的信息集中在这里查看。本页不修改任何内容。</p>
+        <h1 class="page-title">系统信息</h1>
+
       </div>
       <div class="page-head-actions">
         <button type="button" class="btn" id="settings-refresh">刷新</button>
@@ -69,23 +67,19 @@ export default async function mount(root, ctx) {
     </div>
 
     <section class="card">
-      <div class="card-head"><h2>当前题库</h2><span class="hint">库文件与记录数量</span></div>
+      <div class="card-head"><h2>当前题库</h2></div>
       <div class="card-body" id="settings-library">${loading('正在读取题库信息…')}</div>
     </section>
 
     <section class="card">
-      <div class="card-head"><h2>备份</h2><span class="hint">放在哪、从哪里触发</span></div>
+      <div class="card-head"><h2>备份</h2></div>
       <div class="card-body">
-        <p>备份在项目 <span class="mono">backup</span> 目录，按时间命名：题库快照是
-        <span class="mono">qbank-20261027-003000.db</span> 这样的文件，完整备份是
-        <span class="mono">backup/full/QB-….zip</span>。</p>
-        <p class="hint">这里说明备份的位置和文件形态，不提供备份按钮。创建备份、校验与恢复都在
-        「导出与归档」页的备份与恢复区：<a class="btn-link" href="#/releases">打开导出与归档</a>。</p>
+        <a class="btn" href="#/releases">备份与恢复</a>
       </div>
     </section>
 
     <section class="card">
-      <div class="card-head"><h2>模型与费用</h2><span class="hint">当前接口配置，只读</span></div>
+      <div class="card-head"><h2>模型与费用</h2></div>
       <div class="card-body" id="settings-ai">${loading('正在读取模型配置…')}</div>
     </section>
   `;

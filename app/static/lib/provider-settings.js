@@ -12,7 +12,7 @@ export async function mountProviderSettings(root, onChanged = () => {}) {
     root.innerHTML = `<div class="provider-grid">
       <label class="field"><span>服务商预设</span><select data-config="preset">${options(Object.fromEntries(state.presets.map(p => [p.id,p.label])), cfg.preset)}</select></label>
       <label class="field"><span>接口协议</span><select data-config="protocol">${options(PROTOCOLS,cfg.protocol)}</select></label>
-      <label class="field provider-wide"><span>服务地址（Base URL，可修改为中转或私有部署地址）</span><input data-config="base_url" value="${esc(cfg.base_url)}" placeholder="https://…/v1" autocomplete="off"></label>
+      <label class="field provider-wide"><span>服务地址（Base URL）</span><input data-config="base_url" value="${esc(cfg.base_url)}" placeholder="https://…/v1" autocomplete="off"></label>
       <label class="field"><span>模型名称</span><input data-config="model" value="${esc(cfg.model)}" list="provider-models" placeholder="按服务商控制台填写，或读取模型列表" autocomplete="off"><datalist id="provider-models"></datalist></label>
       <label class="field"><span data-key-label>API密钥：${cfg.auth_mode === 'none' ? '无需密钥' : configured ? '当前地址已有密钥' : '未配置'}</span><input data-key type="password" autocomplete="new-password" placeholder="留空保留当前地址的密钥；不同地址分别保存"></label>
       <label class="field"><span>输入单价（元 / 百万tokens）</span><input data-config="input_price" type="number" min="0" step="0.01" value="${cfg.input_price ?? ''}" placeholder="按服务商价格换算成人民币"></label>
@@ -26,7 +26,7 @@ export async function mountProviderSettings(root, onChanged = () => {}) {
       <label class="field"><span>请求超时（秒）</span><input data-config="timeout" type="number" min="10" max="600" value="${cfg.timeout}"></label>
     </div></details>
     <div class="provider-actions"><button class="btn btn-primary" data-provider-save>保存接口与密钥</button><button class="btn" data-provider-test="models">读取模型列表</button><button class="btn" data-provider-test="text">验证文字与JSON</button><button class="btn" data-provider-test="vision">验证图片接口</button></div>
-    <p class="hint">文字和图片验证可能计费。</p><details class="compact-fold"><summary>连接与费用说明</summary><div class="compact-fold-body"><p class="hint">读取模型列表不生成内容。文字和图片验证会发送合成测试内容，可能计费，按所填单价预留不超过1元；不发送你的试卷。每个服务地址的密钥分别加密保存，页面不会显示已存密钥。</p>
+    <p class="hint">文字和图片验证可能计费。</p><details class="compact-fold"><summary>接口说明</summary><div class="compact-fold-body"><p class="hint">读取模型列表不生成内容。文字和图片验证会发送合成测试内容，可能计费，按所填单价预留不超过1元；不发送你的试卷。每个服务地址的密钥分别加密保存，页面不会显示已存密钥。</p>
     <p class="hint">自定义兼容接口可用于其他服务商、Azure OpenAI、局域网网关或本地模型；协议与模型能力以该服务的实际支持为准。只读模型不代表具备识图能力，请分别验证。</p></div></details><div data-provider-result role="status"></div>`;
     root.querySelector('[data-config="preset"]').onchange = e => {
       cfg = structuredClone(state.presets.find(p => p.id === e.target.value).config); configured = false; render();

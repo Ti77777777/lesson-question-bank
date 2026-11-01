@@ -14,7 +14,7 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">题单</h1>
-        <p class="page-sub">把题目整理成题单，调整顺序、分节和作答留白。</p>
+
       </div>
       <div class="page-head-actions">
         <button type="button" class="btn btn-primary" id="new-collection">新建题单</button>

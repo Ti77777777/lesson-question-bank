@@ -3,7 +3,7 @@ import { api, apiOptional } from '../lib/api.js';
 import { identityLabel } from '../lib/identity.js';
 import { esc, badge, $, $$, emptyState, errorCard, loading, num } from '../lib/dom.js';
 import { QTYPES, SOURCE_GRADES, reviewLabel, reviewTone } from '../lib/constants.js';
-import { flash } from '../lib/ui.js';
+import { flash, contextHelp } from '../lib/ui.js';
 import { mountTagSidebar } from '../lib/tag-sidebar.js';
 import { openBasket } from '../lib/bus.js';
 import { addToBasket, readBasket, removeFromBasket } from '../lib/basket.js';
@@ -54,7 +54,7 @@ export default async function mount(root, ctx) {
   root.innerHTML = `
     <div class="page-head search-heading">
       <div><h1 class="page-title">题库检索</h1>
-        <p class="page-sub">按知识点、题型或试卷查找题目。</p></div>
+        </div>
       <div class="row-actions"><a class="btn" href="#/sources">管理试卷信息</a><button type="button" class="btn" id="search-add-collection">加入已有题单</button><button type="button" class="btn" id="search-basket">查看选题篮</button></div>
     </div>
     <div class="search-layout">
@@ -67,7 +67,7 @@ export default async function mount(root, ctx) {
     </form>
     <div class="saved-searches" id="saved-searches"></div>
     <section class="card search-filters" aria-label="题目筛选">
-      <div class="search-filter-top"><span>筛选条件</span><span class="hint">切换条件后自动更新</span></div>
+      <div class="search-filter-top"><span>筛选条件</span>${contextHelp('筛选说明','<p>更改条件后自动检索。每类可单独切换多选；同类条件取任一，不同类别同时满足。</p><p>难度为1至5级，未标注题目不计入指定区间。已用情况只统计实际使用记录。</p>')}</div>
       <div class="search-filter-row"><span class="search-filter-label">来源类别</span><div class="search-options" id="f-categories"></div>${modeControl('category')}</div>
       <div class="search-filter-row"><span class="search-filter-label">适用年级</span><div class="search-options" id="f-grades"></div>${modeControl('grade')}</div>
       <div class="search-filter-row"><span class="search-filter-label">题型</span><div class="search-options" id="f-qtypes">
@@ -79,7 +79,7 @@ export default async function mount(root, ctx) {
         <span class="search-inline-hint" id="custom-level" hidden>自定义区间</span>
       </div>${modeControl('levels')}</div>
       <div class="search-source-area">
-        <div class="search-source-title">定位试卷 <span>按年份、地区或完整卷名缩小范围</span></div>
+        <div class="search-source-title">定位试卷</div>
         <div class="search-source-fields">
           <div class="field"><div class="search-field-heading"><label for="f-year">年份</label>${modeControl('year')}</div><select id="f-year"><option value="">全部年份</option></select><details class="search-multi-select" id="multi-year" hidden><summary></summary><div data-options></div></details></div>
           <div class="field"><div class="search-field-heading"><label for="f-region">地区 / 卷别</label>${modeControl('region')}</div><select id="f-region"><option value="">全部地区 / 卷别</option></select><details class="search-multi-select" id="multi-region" hidden><summary></summary><div data-options></div></details></div>
@@ -100,7 +100,7 @@ export default async function mount(root, ctx) {
             <label class="check"><input type="checkbox" id="f-usable"> 仅看审校通过</label>
             <label class="check"><input type="checkbox" id="f-corrections"> 仅看待纠错</label>
           </div>
-          <p class="hint">难度为题库中的 1–5 级标注；未标注的题目不会计入指定难度区间。</p>
+
         </div>
       </details>
       <div class="search-active" id="active-filters" aria-label="已选条件"></div>
@@ -112,7 +112,7 @@ export default async function mount(root, ctx) {
       </label>
       <label class="check">近 <input type="number" id="f-used-days" min="0" max="3650" step="1" value="${esc(state.usedDays)}" aria-label="观察天数" class="usage-days"> 天</label>
       <label class="check"><input type="checkbox" id="f-only-unused" ${state.onlyUnused ? 'checked' : ''}> 仅看未用过</label>
-      <span class="hint" id="usage-scope-note">只统计实际使用记录；计划与导出不算。</span>
+      <span class="hint" id="usage-scope-note" role="status"></span>
     </div>
     <div class="results-head search-results-head">
       <div class="search-result-count" id="results-total" role="status" aria-live="polite"></div>
@@ -221,7 +221,7 @@ export default async function mount(root, ctx) {
     $('#advanced-count', root).textContent = advancedOn ? `（${advancedOn} 项）` : '';
     renderSourceOptions();
     const filters = activeConditions();
-    $('#active-filters', root).innerHTML = filters.length ? `<span class="search-active-label">已选 ${filters.length} 项</span><div class="search-active-chips">${filters.map(f => `<button type="button" class="search-active-chip" data-remove="${esc(f.key)}" title="移除：${esc(f.name)}">${esc(f.name)}<span aria-hidden="true">×</span></button>`).join('')}</div><button type="button" class="btn-link" id="f-reset">清空条件</button>` : '<span class="hint">当前检索全部题目，可叠加多个条件。</span>';
+    $('#active-filters', root).innerHTML = filters.length ? `<span class="search-active-label">已选 ${filters.length} 项</span><div class="search-active-chips">${filters.map(f => `<button type="button" class="search-active-chip" data-remove="${esc(f.key)}" title="移除：${esc(f.name)}">${esc(f.name)}<span aria-hidden="true">×</span></button>`).join('')}</div><button type="button" class="btn-link" id="f-reset">清空条件</button>` : '';
   }
   function buildQuery(offset = 0) {
     return {
@@ -284,7 +284,8 @@ export default async function mount(root, ctx) {
     } catch (err) {
       if (!ctx.current() || current !== revision) return;
       totalEl.textContent = '检索未完成';
-      noteEl.textContent = ''; pagerEl.innerHTML = '';
+      noteEl.textContent = '';
+    $('#usage-scope-note', root).textContent = ''; pagerEl.innerHTML = '';
       resultsEl.replaceChildren(errorCard(err.message, search)); items = [];
       resultsEl.inert = false;
     } finally {
@@ -344,7 +345,7 @@ export default async function mount(root, ctx) {
       if (note) {
         note.textContent = state.onlyUnused
           ? `已隐藏${name}近 ${state.usedDays} 天用过的题。`
-          : `只统计实际使用记录；计划使用与导出不算。近 ${state.usedDays} 天。`;
+          : '';
       }
     } catch {
       if (note) note.textContent = '已用情况读取失败，不影响检索结果。';
@@ -354,6 +355,7 @@ export default async function mount(root, ctx) {
   function renderResults() {
     totalEl.innerHTML = `共 <b>${esc(total)}</b> 道`;
     noteEl.textContent = '';
+    $('#usage-scope-note', root).textContent = '';
     if (!items.length) {
       resultsEl.innerHTML = emptyState(
         '没有符合条件的题目',

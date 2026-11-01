@@ -326,14 +326,14 @@ export default async function mount(root, ctx) {
             <div class="card-body">
               ${solutions.length
                 ? solutions.map(renderSolution).join('')
-                : '<div class="hint">暂无独立解法。可在新建版本时补充，或直接在解析中写完整过程。</div>'}
+                : '<div class="hint">暂无独立解法。</div>'}
             </div>
           </section>
         </div>
 
         <div class="review-col" style="flex:0 1 312px;min-width:280px;">
           <section class="card review-panel">
-            <div class="card-head"><h2>审校</h2><span class="hint">逐项记录</span></div>
+            <div class="card-head"><h2>审校</h2></div>
             <div class="card-body">
               <div class="eligibility ${eligibility.usable ? 'ok' : ''}">
                 <div class="eli-title"><span class="eli-dot"></span>${eligibility.usable ? '可选用' : '暂不可选用'}</div>

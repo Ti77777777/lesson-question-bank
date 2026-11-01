@@ -35,7 +35,7 @@ const ROUTES = [
   { pattern: /^\/collection\/([^/]+)\/?$/, page: collectionPage, nav: 'collections', title: '题单编辑', keys: ['id'] },
   { pattern: /^\/releases\/?$/, page: releasesPage, nav: 'releases', title: '导出与归档' },
   { pattern: /^\/usage\/?$/, page: usagePage, nav: 'usage', title: '使用与反馈' },
-  { pattern: /^\/settings\/?$/, page: settingsPage, nav: 'settings', title: '系统设置' },
+  { pattern: /^\/settings\/?$/, page: settingsPage, nav: 'settings', title: '系统信息' },
 ];
 
 const view = document.getElementById('view');
@@ -134,8 +134,6 @@ async function loadMeta() {
   try {
     const meta = await api('/api/meta');
     const counts = meta.counts || {};
-    const databaseLabel=document.getElementById('foot-database');
-    if(databaseLabel)databaseLabel.textContent=meta.db_path||'当前题库';
     const parts = [
       ['题目', counts.questions ?? 0],
       ['题单', counts.collections ?? 0],
@@ -147,7 +145,7 @@ async function loadMeta() {
     el.title = `题目 ${counts.questions ?? 0}，版本 ${counts.versions ?? 0}，资料 ${counts.sources ?? 0}，题单 ${counts.collections ?? 0}，导出记录 ${counts.releases ?? 0}，待整理 ${counts.inbox_pending ?? 0}，标签 ${counts.tags ?? 0}`;
     if (foot) {
       foot.textContent = `${meta.today ?? ''}`;
-      foot.title = meta.root ? `根目录：${meta.root}` : '';
+      foot.title = '';
     }
   } catch (err) {
     el.textContent = '题库计数未就绪';

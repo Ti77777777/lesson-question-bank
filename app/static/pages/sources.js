@@ -1,7 +1,7 @@
 import { api } from '../lib/api.js';
 import { esc, loading } from '../lib/dom.js';
 import { EXAM_TYPES, SOURCE_GRADES } from '../lib/constants.js';
-import { flash, openModal, confirmDialog } from '../lib/ui.js';
+import { flash, openModal, confirmDialog, contextHelp } from '../lib/ui.js';
 
 const LABELS={name:'卷名',school:'学校',year:'年份',region:'地区 / 卷别',exam_type:'考试类别',grade:'年级'};
 const FIELDS=Object.keys(LABELS);
@@ -10,10 +10,10 @@ const display=(key,value)=>value?(key==='exam_type'?EXAM_TYPES[value]:key==='gra
 
 export default async function mount(root,ctx){
   let rows=[],drafts=new Map(),selected=new Set(),history=[],keyword='';
-  root.innerHTML=`<div class="page-head"><div><h1 class="page-title">试卷信息管理</h1><p class="page-sub">修改卷名、学校、考试类别和年级。</p></div><a class="btn" href="#/search">返回检索</a></div>
+  root.innerHTML=`<div class="page-head"><div><h1 class="page-title">试卷信息管理</h1></div><a class="btn" href="#/search">返回检索</a></div>
   <section class="card workspace-card"><div class="workspace-toolbar"><input type="search" data-keyword placeholder="按卷名、学校查找" aria-label="查找试卷"><span data-count></span><button class="btn btn-primary" data-preview>预览并保存修改</button></div>
   <details class="workspace-bulk"><summary>为勾选试卷统一填写</summary><div class="workspace-toolbar">${['school','year','region','exam_type','grade'].map(k=>`<label class="field"><span>${LABELS[k]}</span>${['exam_type','grade'].includes(k)?`<select data-bulk="${k}"><option value="__keep">不修改</option>${choices(k==='exam_type'?EXAM_TYPES:SOURCE_GRADES,'')}</select>`:`<input data-bulk="${k}" placeholder="留空不修改">`}</label>`).join('')}<button class="btn" data-fill>填入选中行</button></div></details>
-  <p class="hint">勾选需要修改的资料，再编辑各行。年份填写考试年份，学校可与完整卷名分别保存。最多一次保存100份。</p><div class="table-wrap" data-table>${loading()}</div></section>
+  ${contextHelp('修改说明','<p>勾选资料后编辑各行，最多一次保存100份。年份填考试年份，学校与完整卷名分别保存。</p>')}<div class="table-wrap" data-table>${loading()}</div></section>
   <section class="card workspace-card"><h2>最近修改与撤销</h2><div data-history></div></section>`;
   const $=s=>root.querySelector(s);
   function filtered(){return rows.filter(s=>`${s.name||''} ${s.school||''}`.toLowerCase().includes(keyword.toLowerCase()));}

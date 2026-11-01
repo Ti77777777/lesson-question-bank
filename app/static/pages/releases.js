@@ -23,7 +23,7 @@ export default async function mount(root, ctx) {
     <div class="page-head">
       <div>
         <h1 class="page-title">导出与归档</h1>
-        <p class="page-sub">查看已生成讲义，下载文件或按原快照重新导出。</p>
+
       </div>
       <div class="page-head-actions">
         ${contextHelp('导出与使用说明','<p>快速预览和 PDF 校样用于检查排版；在题单中导出后，正式讲义才会归档到这里。</p><p>「登记使用」记录讲义实际用于哪个班级或学生，不会发送文件。</p>')}

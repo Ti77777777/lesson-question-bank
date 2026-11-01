@@ -29,7 +29,7 @@ export default async function mount(root, ctx) {
   const store = draftStore(data.draft_scope, `layout:${cid}`), recovered = store.read();
   const $ = s => root.querySelector(s);
   const effective = item => ({ ...item, ...(overrides[item.id] || {}) });
-  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p><p class="page-sub" data-page-state role="status">改动已保存，当前是快速预览</p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status" title="改动自动保存到题库">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-save title="立即保存排版与留白，不生成讲义">保存改动</button><button class="btn btn-primary" data-publish title="生成学生版、解答版、解析版，并记入导出与归档" ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
+  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p><p class="page-sub" data-page-state role="status" hidden></p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status" title="改动自动保存到题库">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-save title="立即保存排版与留白，不生成讲义">保存改动</button><button class="btn btn-primary" data-publish title="生成学生版、解答版、解析版，并记入导出与归档" ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
     <div data-recovery></div><div class="layout-workspace"><aside class="layout-controls">
       <section class="card"><h2>讲义设置</h2>
         <label class="field"><span>讲义标题</span><input data-option="title" value="${esc(options.title||'')}" maxlength="300"></label>
@@ -42,8 +42,8 @@ export default async function mount(root, ctx) {
         </div></details>
       </section>
       <section class="card"><h2>当前题目</h2><div class="layout-item-list" data-item-list></div><div data-item-settings></div></section>
-      <details class="card compact-card"><summary>整套样式：套用到这份题单，或存为我的样式</summary><div class="compact-card-body"><p class="hint">「套用」只改这份题单的通用版式与每题留白；「保存当前样式」是把当前排版存成可复用样式，供以后套用。两者都不产生导出记录。</p><div data-templates></div></div></details>
-      <details class="compact-fold layout-help"><summary>操作帮助</summary><div class="compact-fold-body"><p>拖动题目左侧把手排序，拖动作答区底边调整留白；也可使用方向键。Esc取消拖动。</p><p>修改自动保存，PDF校样不新增发布记录。快速预览估算分页，最终位置以PDF校样为准。</p><p>需要正式文件时点击「导出三版讲义」，导出记录可在「导出与归档」中查看；实际用过后可登记使用。</p></div></details>
+      <details class="card compact-card"><summary>讲义样式</summary><div class="compact-card-body"><div data-templates></div></div></details>
+      <details class="compact-fold layout-help"><summary>操作帮助</summary><div class="compact-fold-body"><p>拖动题目左侧把手排序，拖动作答区底边调整留白；也可使用方向键。Esc取消拖动。</p><p>修改自动保存，PDF校样不新增发布记录。快速预览估算分页，最终位置以PDF校样为准。</p><p>「讲义样式」中的套用只修改这份题单；保存样式供以后复用，两者都不产生导出记录。</p><p>需要正式文件时点击「导出三版讲义」，导出记录可在「导出与归档」中查看；实际用过后可登记使用。</p></div></details>
     </aside><section class="layout-stage"><div class="layout-toolbar"><div class="layout-modes"><button class="btn btn-sm active" data-mode="quick">快速预览</button><button class="btn btn-sm" data-mode="pdf" data-compile ${snap.items.length ? '' : 'disabled'}>PDF校样</button></div><select data-version aria-label="预览版本">${selectOptions(VERSIONS, version)}</select><label class="layout-zoom">缩放<select data-zoom aria-label="预览缩放"><option value="0.65">65%</option><option value="0.8" selected>80%</option><option value="1">100%</option></select></label></div>
       <div class="layout-status"><span data-status role="status">分页为估算</span><span data-interaction role="status"></span></div><div class="layout-page-nav" data-page-nav aria-label="预览页码"></div><div class="layout-canvas" data-canvas><div data-pages></div><div data-pdf hidden></div></div><div data-export role="status"></div></section></div>`;
   // Friendly labels without binding model values to arbitrary HTML.
@@ -74,9 +74,9 @@ export default async function mount(root, ctx) {
 
   function updateHeadState() {
     if (disposed) return;
-    const saveText = { saved: '改动已保存', pending: '有改动待保存', saving: '正在保存', unprotected: '草稿无法留在本机，正在写入题库', error: '保存失败，修改只在本页' }[saveState] || '改动已保存';
-    const outputText = exportedId ? `已导出，记录 ${exportedId}` : pdf ? '当前是PDF校样，尚未导出' : '当前是快速预览，尚未导出';
-    $('[data-page-state]').textContent = `${saveText}，${outputText}`;
+    const stateNode=$('[data-page-state]');
+    stateNode.textContent = exportedId ? `已导出：${exportedId}` : '';
+    stateNode.hidden = !exportedId;
   }
   function markDirty() {
     dirty = true; pdf = null; exportedId = '';
@@ -158,7 +158,7 @@ export default async function mount(root, ctx) {
     stage.innerHTML = cover + pages.map((page,n) => `<div class="layout-paper"><div class="paper-header">${label}</div><div class="paper-body">${page.map(b => b.html).join('')}</div><div class="paper-footer">第 ${n+1} 页（快速预览）</div></div>`).join('');
     canvas.scrollTop=scrollTop;canvas.scrollLeft=scrollLeft;
     if (!blocks.length) stage.innerHTML = '<div class="layout-empty">题单中还没有题目，请返回题单添加。</div>';
-    if (mode === 'quick') $('[data-status]').textContent = `约${pages.length + (options.cover ? 1 : 0)}页，最终分页以PDF校样为准`;
+    if (mode === 'quick') $('[data-status]').textContent = `预计 ${pages.length + (options.cover ? 1 : 0)} 页`;
     const papers=[...stage.querySelectorAll('.layout-paper')];
     $('[data-page-nav]').innerHTML=papers.map((paper,n)=>`<button class="layout-page-thumb ${paper.querySelector('.paper-question.selected')?'active':''}" data-page-index="${n}" aria-label="跳到${paper.classList.contains('paper-cover')?'封面':'第'+(n+(options.cover?0:1))+'页'}"><span aria-hidden="true">▤</span>${paper.classList.contains('paper-cover')?'封面':'第'+(n+(options.cover?0:1))+'页'}</button>`).join('');
     $('[data-page-nav]').hidden=mode!=='quick'||papers.length<2;
@@ -184,7 +184,7 @@ export default async function mount(root, ctx) {
         $('[data-status]').textContent = '当前版本尚未生成PDF校样';
       } else {
         const warnings = Number(pdf.checks?.overfull || 0) + Number(pdf.checks?.missing_char || 0);
-        $('[data-status]').textContent = warnings ? `PDF校样已生成，有${warnings}项溢出或缺字提示，请检查` : `PDF校样已生成，${pdf.pages || '?'}页，与正式导出共用排版引擎`;
+        $('[data-status]').textContent = warnings ? `PDF校样已生成，有${warnings}项溢出或缺字提示，请检查` : `PDF校样已生成，${pdf.pages || '?'}页`;
       }
     }
     if (mode === 'quick') paint();
@@ -209,7 +209,7 @@ export default async function mount(root, ctx) {
     if(pdf&&!force){showMode('pdf');return;}
     const button = $('[data-compile]'), requestedVersion = version, signature = JSON.stringify(payload());
     if(button.disabled)return;
-    button.disabled = true; button.textContent = '正在生成…'; $('[data-status]').textContent = '正在使用正式排版引擎生成校样…';
+    button.disabled = true; button.textContent = '正在生成…'; $('[data-status]').textContent = '正在生成PDF校样…';
     try {
       const result = await api(`/api/collections/${encodeURIComponent(cid)}/layout/pdf`, { method: 'POST', body: { version, layout: payload() } });
       if (disposed) return;

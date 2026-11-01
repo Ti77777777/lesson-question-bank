@@ -168,16 +168,16 @@
       "sha256": "abf3135864f73239f71be20b64e8d02ef958d9f57da26488055f770f94c330ba"
     },
     "app/static/app.js": {
-      "bytes": 11791,
-      "sha256": "c23e0991e336d4cd660780ddb735bc5ca26c3307767e694ed92e949c64585500"
+      "bytes": 11605,
+      "sha256": "c162ed2330bb40665e7c7a27ea9ac1f49d315da80e0449ee2797275031b46f3b"
     },
     "app/static/experience.css": {
       "bytes": 15276,
       "sha256": "1fa7e5552a186087315b40ae6dc47eb9b43ef6a4c5cec668b7e053f78cf8e621"
     },
     "app/static/index.html": {
-      "bytes": 1899,
-      "sha256": "497e10dca3aa25903c3e262022896715a9064ab3242345ddfa51dbb836b15d76"
+      "bytes": 1770,
+      "sha256": "c220ee6e9bd387cd45cf58396b2fa3a49b47645cf8d1bdae63beb45c11e0b1bb"
     },
     "app/static/layout.css": {
       "bytes": 9003,
@@ -260,8 +260,8 @@
       "sha256": "32724e6291ed3970afeff4d363a8da9b7c0ef83d919a81592e68ad6214d2884c"
     },
     "app/static/lib/provider-settings.js": {
-      "bytes": 7735,
-      "sha256": "ad526129b57a479689c444fbfbd6c36594cef9685105a56762f976386fe52f96"
+      "bytes": 7684,
+      "sha256": "517c3aa09a4ed4e37dc16a7c6840e83a08a5093ba5a7f7158b7dd5d7cf74be62"
     },
     "app/static/lib/question-drawer.js": {
       "bytes": 4472,
@@ -296,8 +296,8 @@
       "sha256": "25d280dc9adf71f8f71307cbf0eca54c0405c65c83db4e1899f851ebaaee736d"
     },
     "app/static/lib/tag-sidebar.js": {
-      "bytes": 10752,
-      "sha256": "b082c07f475f82223aaefcc83d3991f313a1ceee0ce8bb148683444395282e61"
+      "bytes": 10680,
+      "sha256": "46f463191175c60f817be3b07e6511f94d94a4e273dee2f6078deab5f5ed1b7f"
     },
     "app/static/lib/tag-taxonomy.js": {
       "bytes": 6244,
@@ -316,56 +316,56 @@
       "sha256": "5c74aaaaea50e8ca246cbb41acd924e25b5e7bfb85f5759970a2f26e50ceb925"
     },
     "app/static/pages/ai.js": {
-      "bytes": 18514,
-      "sha256": "b35b7195daf3bb4a607606424e97b197adadb3dd810b318ffdac53237cd8e08e"
+      "bytes": 18187,
+      "sha256": "e919d7750781ce13f9bb3a0df4cfe8d8cd74a98d2ef1b3a794530c0cff1aa19f"
     },
     "app/static/pages/collection.js": {
       "bytes": 49880,
       "sha256": "739b8f136d8b927cd6f651e7584167fdc8cb3fb5755923841f73c1a2b34ba30b"
     },
     "app/static/pages/collections.js": {
-      "bytes": 6198,
-      "sha256": "7ae4a7a0f183420cfe4e3559c3a04f565f561fb793bdcc067c05c6125bebb896"
+      "bytes": 6100,
+      "sha256": "adba3eb99db4ba105f1767b50e89340f0dbd3658613f61a8bbdecef5ab78b9aa"
     },
     "app/static/pages/inbox.js": {
-      "bytes": 12881,
-      "sha256": "b4e3960f02db1533be6a43dfb33d41edaf8bae9af20c5516eec4c7447eb80e4d"
+      "bytes": 12586,
+      "sha256": "a7f4af8c9aafb658f1283709825e73e4abca488c305bbe6afa819e197836f3b3"
     },
     "app/static/pages/layout.js": {
-      "bytes": 27723,
-      "sha256": "01846a1cf5a3c038727ba8b18f1c32e37a640badff36a4a8eb68afdeb073b1b9"
+      "bytes": 27164,
+      "sha256": "8a3309e0668ac83fa2ad0abc4751266fe9021e71274bbe317efc53ef7c914024"
     },
     "app/static/pages/question-new.js": {
-      "bytes": 37110,
-      "sha256": "be0908b484aaffb6725466f578f82c61cdff5dfcfcbd71393e6fc92bed9670ca"
+      "bytes": 35987,
+      "sha256": "fe33156e51bde3fe32aa5c1975c773f2d53bb181e6db37698dff07f0152cb12f"
     },
     "app/static/pages/question.js": {
-      "bytes": 45636,
-      "sha256": "5199a51d3b4269f58007161e5fe43374e426d0c1fdd9b787b58ea5026336eabe"
+      "bytes": 45529,
+      "sha256": "c1b0a626a3f367b309685eef55a29ae9c2be3bda1dd57dee7ba82861c51a067b"
     },
     "app/static/pages/releases.js": {
-      "bytes": 11628,
-      "sha256": "5e87b9071a4b62cb88c4e5c11d1c4aefadf68f31307a1026a3aa3e4f3428c330"
+      "bytes": 11530,
+      "sha256": "b79347f071d8982e9017a756716d383411723acbeb6c8e37cbe0cc5c1cca3788"
     },
     "app/static/pages/search.js": {
-      "bytes": 38290,
-      "sha256": "e33b1989f2f0de23970f2edf04723b265d0858012f56917316a224e6f55ebdbd"
+      "bytes": 38159,
+      "sha256": "62bc71690facf155ae1f1ef1bfeaedf1b3e3896ea3ddd2d3e4147e360c187938"
     },
     "app/static/pages/settings.js": {
-      "bytes": 5220,
-      "sha256": "f8e79685e8cded44d48114f1e3071c6396d8f5338a0fb24cbdca75a8644316dc"
+      "bytes": 4010,
+      "sha256": "6fe93f098b2ea3c817bb22edd48d5797f1749095dc1100fa59b1014160041e13"
     },
     "app/static/pages/sources.js": {
-      "bytes": 7776,
-      "sha256": "ef83f2946e11b3a9de8753b5015daa34c94e91737444e0aa17fd75991f85ca73"
+      "bytes": 7713,
+      "sha256": "4bb21d0d4bf1ccb65b9baa1ab5d47e886f06b456ff148be52d5288f95389bcdf"
     },
     "app/static/pages/usage.js": {
-      "bytes": 34530,
-      "sha256": "98be3c7b589f23f1130b988e3bfea189571880c2b275552f35ea1ffc3d826997"
+      "bytes": 34408,
+      "sha256": "1d373448a63659dc8a12ead58da38de2dc051905e66c74eed52cf7e8fb1c9238"
     },
     "app/static/polish.css": {
-      "bytes": 11499,
-      "sha256": "feceaa30bda507cd4aa0b913f3f8fd1b476f91c444cb41932c9c9ffb9a762b39"
+      "bytes": 17377,
+      "sha256": "28d01513a3dd977b15a688843a0ab72b3771bcbf13de64c8c61152ef08c5b5ce"
     },
     "app/static/style.css": {
       "bytes": 91251,
@@ -376,8 +376,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 46472,
-      "sha256": "f904407af41461b2e222f33a7bbef808543096ed1ca94f97b6df472b918b0e9e"
+      "bytes": 47822,
+      "sha256": "ee7a8721b279b03119ae4ac9b905da5355f227adbdb89a0edbeedf6b7f7da24d"
     },
     "data/schema.sql": {
       "bytes": 23385,
@@ -444,8 +444,8 @@
       "sha256": "ea7ba78484fa1d8ed92f70df281ae06fc978d77ff01e44f4cb9dcb0c4c7b1070"
     },
     "docs/操作说明.md": {
-      "bytes": 6956,
-      "sha256": "8949a4d638287b38e86807f0648355aed188d68f7efcd21b477f8c99d222b337"
+      "bytes": 7219,
+      "sha256": "a8acd26be365b4ce0bc774da1743bde0a1d4eb7cb4eaa1282a87f33267b6a4a5"
     },
     "docs/教师与班级管理.md": {
       "bytes": 4521,
@@ -484,8 +484,8 @@
       "sha256": "bbd2ed65bb3ec0ac5fb8c96c274636127d40fbb4a776fbb955e9bcd414013943"
     },
     "docs/界面样式与回滚.md": {
-      "bytes": 2325,
-      "sha256": "a1669795a774687d7f9d189f5aa56837d9c013eb5ab906d1e7b0a2a4b89bfca3"
+      "bytes": 3140,
+      "sha256": "6ae90d0faca908f488d7351925c1205c68f794aff62d509cd3e3b2b78a554ebf"
     },
     "docs/简单漏洞测试-2026-10-30.md": {
       "bytes": 4780,
@@ -529,7 +529,7 @@
     },
     "package.json": {
       "bytes": 193,
-      "sha256": "4d1094ad98f380a6c55103a801f3b20059fb3245a5436fd12384846260314d81"
+      "sha256": "c9dc2f55e231ae9437820a189c7a97f2aa12491d92fd6a0b746468cc78b048f8"
     },
     "README.md": {
       "bytes": 5137,

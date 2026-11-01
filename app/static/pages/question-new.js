@@ -6,7 +6,7 @@ import { esc, $, $$, optionLetter } from '../lib/dom.js';
 import {
   QTYPES, REC_LEVELS,
 } from '../lib/constants.js';
-import { flash, flashAfterNavigation, pickTags } from '../lib/ui.js';
+import { flash, flashAfterNavigation, pickTags, contextHelp } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { upgradeMath } from '../lib/math.js';
 import { draftStore } from '../lib/drafts.js';
@@ -87,10 +87,10 @@ export default async function mount(root, ctx) {
       <div class="page-head">
         <div>
           <h1 class="page-title">新建题目</h1>
-          <p class="page-sub">录入题面、答案、解析和来源，保存后可检索与组题。</p>
+
         </div>
         <div class="page-head-actions">
-          <a class="btn" href="${inboxId ? '#/inbox' : '#/search'}">取消</a>
+          ${contextHelp('录题说明','<p>题面和答案中的公式使用 $...$，可用公式工具栏插入。</p><p>选择题在选项处勾选正确答案；小问拆用需要填写依赖关系。</p><p>方法标签标在解法上；题目至少选择一个主要知识点，点击标签上的「主要/辅助」可切换。来源暂不清楚时保留待确认，之后补充。</p>')}<a class="btn" href="${inboxId ? '#/inbox' : '#/search'}">取消</a>
         </div>
       </div>
 
@@ -105,24 +105,22 @@ export default async function mount(root, ctx) {
           <div class="card-head">
             <h3>出处</h3>
             <div class="row-actions">
-              <span class="hint">可选填，也可稍后补</span>
+
               <button type="button" class="btn btn-sm" data-add-occ>再添一处出处</button>
             </div>
           </div>
           <div class="card-body">
             ${sourceError ? `<div class="prefill-note" style="border-color:#ecd5c7;background:#fbf5f1;color:#7b3c1f;">资料接口暂不可用：${esc(sourceError)}。可先把出处标为待确认。</div>` : ''}
             <div class="occ-editor" id="occ-list"></div>
-            <span class="field-hint">先记下资料、页码与题号即可；来源不明时保留「待确认」，不要编造资料名称。</span>
           </div>
         </section>
 
         <section class="card form-section">
-          <div class="card-head"><h3>基本信息</h3><span class="hint">题目 ID 与版本由系统分配</span></div>
+          <div class="card-head"><h3>基本信息</h3></div>
           <div class="card-body">
             <div class="inline-fields two">
               <label class="field"><span>简短名称</span>
                 <input type="text" name="short_name" placeholder="如 含参二次方程根的分布">
-                <span class="field-hint">用于列表与题单，不必与题干完全相同。</span>
               </label>
               <div class="field">
                 <span>题型</span>
@@ -133,7 +131,6 @@ export default async function mount(root, ctx) {
             </div>
             <label class="field"><span>题干<span class="req">*</span></span>
               <textarea name="stem" rows="7" placeholder="已知 $a\\in\\mathbb{R}$，方程 $x^2-2ax+1=0$。">${esc(prefillText)}</textarea>
-              <span class="field-hint">公式用 $...$ 写 LaTeX；换行会保留。</span>
             </label>
           </div>
         </section>
@@ -148,16 +145,15 @@ export default async function mount(root, ctx) {
             <div>
               <span class="field-label">正确选项</span>
               <div class="chips" id="answer-key-list"></div>
-              <span class="field-hint">单选点一个；多选可点多个。选项文本可用 $...$；选项标识稳定不变，显示时映射为 A/B/C/D。</span>
             </div>
           </div>
         </section>
 
         <section class="card form-section" id="sec-answer">
-          <div class="card-head"><h3>答案</h3><span class="hint">答案与解析分开保存</span></div>
+          <div class="card-head"><h3>答案</h3></div>
           <div class="card-body">
             <div id="answer-choice" class="hidden">
-              <p class="hint">选择题的答案取上方勾选的正确选项，可在下方补充简答。</p>
+
             </div>
             <label class="field" id="answer-text-wrap"><span>简明答案</span>
               <textarea name="answer" rows="2" placeholder="如 $a<-1$ 或 $a>1$；多小问可按小问分行。"></textarea>
@@ -175,7 +171,6 @@ export default async function mount(root, ctx) {
           </div>
           <div class="card-body">
             <div class="sub-editor" id="subq-list"></div>
-            <span class="field-hint">拆用小问进入题单时会检查依赖，请如实填写小问依赖。</span>
           </div>
         </section>
 
@@ -186,12 +181,11 @@ export default async function mount(root, ctx) {
           </div>
           <div class="card-body">
             <div class="sol-editor" id="solution-list"></div>
-            <span class="field-hint">方法标签标在具体解法上，检索时按方法找题会命中对应解法。</span>
           </div>
         </section>
 
         <section class="card form-section">
-          <div class="card-head"><h3>教学说明</h3><span class="hint">可按教师版配置显示</span></div>
+          <div class="card-head"><h3>教学说明</h3></div>
           <div class="card-body">
             <div class="inline-fields two">
               <label class="field"><span>为什么想到</span><textarea name="teach_why" rows="2" placeholder="观察到的结构 → 可尝试的方法"></textarea></label>
@@ -204,14 +198,14 @@ export default async function mount(root, ctx) {
         </section>
 
         <section class="card form-section">
-          <div class="card-head"><h3>分类、难度与推荐</h3><span class="hint">三维难度各自独立</span></div>
+          <div class="card-head"><h3>分类、难度与推荐</h3></div>
           <div class="card-body">
             <div>
               <span class="field-label">标签</span>
               <div class="chips" id="tag-chips"></div>
               <div class="row-actions" style="margin-top:8px;">
                 <button type="button" class="btn btn-sm" id="add-tags">选择标签</button>
-                <span class="hint">至少选一个主要知识点；点击「主要/辅助」可切换。</span>
+
               </div>
             </div>
             <div class="inline-fields four">
@@ -243,7 +237,7 @@ export default async function mount(root, ctx) {
 
         <div class="form-actions">
           <label class="check"><input type="checkbox" id="ai-after-save">保存后自动交给 AI 补全、分类与复核（本题预算上限 2 元，结果待确认）</label>
-          <span class="left">${inbox ? '保存后收题条目会置为「已整理」' : '保存后进入题目详情，可继续审校与补标签'}</span>
+          ${inbox ? '<span class="left">保存后收题条目会置为「已整理」</span>' : ''}
           <div class="row-actions">
             <a class="btn" href="${inboxId ? '#/inbox' : '#/search'}">取消</a>
             <button type="submit" class="btn btn-primary btn-lg" id="save-question">${inbox ? '保存并整理' : '保存题目'}</button>
@@ -304,7 +298,7 @@ export default async function mount(root, ctx) {
 
   function renderSubquestions() {
     if (!subquestions.length) {
-      subqList.innerHTML = '<div class="hint">暂无小问。整题使用时可留空。</div>';
+      subqList.innerHTML = '<div class="hint">暂无小问。</div>';
       return;
     }
     subqList.innerHTML = subquestions.map((sub, index) => `<div class="sub-edit">
@@ -386,7 +380,7 @@ export default async function mount(root, ctx) {
   function renderTags() {
     if(draftReady)keepDraft();
     if (!tags.length) {
-      tagChips.innerHTML = '<span class="hint">未选择标签。知识点标签会影响检索与组题检查。</span>';
+      tagChips.innerHTML = '<span class="hint">未选择标签。</span>';
       return;
     }
     tagChips.innerHTML = tags.map((tag) => `<span class="chip on">${esc(tag.name)}
