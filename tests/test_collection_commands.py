@@ -180,5 +180,82 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(status, 400)
 
 
+    def set_layout(self, cid, items):
+        return self.ok("PUT", "/api/collections/%s/layout" % cid,
+                       {"options": {"cover": False}, "items": items})
+
+    def get_layout(self, cid):
+        return self.ok("GET", "/api/collections/%s/layout" % cid)["layout"]["items"]
+
+    def test_remove_undo_redo_restores_layout_and_selected_subquestions(self):
+        cid, sid, ids = self.fixture("完整恢复")
+        q = self.ok("POST", "/api/questions", {"qtype": "solve", "stem": "合成题",
+            "subquestions": [{"key": "a", "text": "问a", "depends_on": []}]})
+        iid = self.ok("POST", "/api/collections/%s/items" % cid,
+                      {"question_id": q["question"]["id"], "subq_keys": ["a"]})["item"]["id"]
+        for override in [None, {}, {"space_mm":75,"keep_together":True,"options_layout":"vertical"}]:
+            with self.subTest(override=override):
+                layout = {ids[0]: {"space_mm": 35}}
+                if override is not None: layout[iid] = override
+                self.set_layout(cid, layout)
+                out = self.ok("POST", "/api/collections/%s/commands" % cid, self.command(cid,"remove",iid))
+                self.assertNotIn(iid,self.get_layout(cid))
+                back = self.ok("POST", "/api/collections/%s/commands" % cid,
+                               self.command(cid,"restore",iid,out["inverse"]["payload"]))
+                self.assertEqual(self.get_layout(cid),layout)
+                item = next(i for i in self.ok("GET","/api/collections/%s" % cid)["items"] if i["id"]==iid)
+                self.assertEqual(item["subq_keys"],["a"])
+                again = self.ok("POST", "/api/collections/%s/commands" % cid,
+                                self.command(cid,"remove",iid,back["inverse"]["payload"]))
+                self.ok("POST", "/api/collections/%s/commands" % cid,
+                        self.command(cid,"restore",iid,again["inverse"]["payload"]))
+                self.assertEqual(self.get_layout(cid),layout)
+
+    def test_settings_undo_restores_override_and_rejects_tampered_inverse(self):
+        cid, sid, ids = self.fixture("设置恢复")
+        layout = {ids[0]: {"space_mm":75,"keep_together":True},ids[1]:{"space_mm":90}}
+        self.set_layout(cid,layout)
+        out=self.ok("POST","/api/collections/%s/commands" % cid,
+                    self.command(cid,"settings",ids[0],{"space_mm":45}))
+        self.assertEqual(self.get_layout(cid)[ids[0]],{"keep_together":True})
+        fake={**out["inverse"]["payload"],"space_mm":199}
+        status,err=self.call("POST","/api/collections/%s/commands" % cid,self.command(cid,"settings",ids[0],fake))
+        self.assertEqual(status,409)
+        self.assertEqual(err["error"]["code"],"undo_conflict")
+        back=self.ok("POST","/api/collections/%s/commands" % cid,
+                     self.command(cid,"settings",ids[0],out["inverse"]["payload"]))
+        self.assertEqual(self.get_layout(cid),layout)
+        self.ok("POST","/api/collections/%s/commands" % cid,
+                self.command(cid,"settings",ids[0],back["inverse"]["payload"]))
+        self.assertEqual(self.get_layout(cid)[ids[0]],{"keep_together":True})
+
+    def test_revision_covers_all_columns_except_explicit_context_and_timestamps(self):
+        from app import db, commands
+        cid,sid,ids=self.fixture("修订字段矩阵")
+        matrix=[("collection",cid,commands._COLLECTION_FIELDS,{"created_at","updated_at"}),
+                ("collection_section",sid,commands._SECTION_FIELDS,set()),
+                ("collection_item",ids[0],commands._ITEM_FIELDS,{"created_at","collection_id"})]
+        for table,key,fields,excluded in matrix:
+            columns={r["name"] for r in db.all_("PRAGMA table_info("+table+")")}
+            self.assertEqual(columns,set(fields)|excluded,table)
+        # These previously omitted writable fields must invalidate stale edits.
+        cases=[("collection","prereqs","先学集合"),("collection","objectives","掌握定义"),
+               ("collection","coverage","知识点范围"),("collection","template","alternate"),
+               ("collection","note",'{"x": 1}'),("collection_section","note","分节备注"),
+               ("collection_item","time_solve_min",19),("collection_item","time_explain_min",23)]
+        for table,field,value in cases:
+            key=cid if table=="collection" else sid if table=="collection_section" else ids[0]
+            before=commands.collection_revision(cid)
+            with db.transaction() as conn:conn.execute("UPDATE "+table+" SET "+field+"=? WHERE id=?",(value,key))
+            self.assertNotEqual(commands.collection_revision(cid),before,(table,field))
+        # Canonical JSON object order is immaterial; ordinary prose remains literal.
+        with db.transaction() as conn:conn.execute("UPDATE collection SET layout_options=? WHERE id=?", ('{"items":{},"options":{}}',cid))
+        before=commands.collection_revision(cid)
+        with db.transaction() as conn:conn.execute("UPDATE collection SET layout_options=? WHERE id=?", ('{ "options": {}, "items": {} }',cid))
+        self.assertEqual(commands.collection_revision(cid),before)
+        with db.transaction() as conn:conn.execute("UPDATE collection SET note=? WHERE id=?",('{"x":1}',cid))
+        self.assertNotEqual(commands.collection_revision(cid),before)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

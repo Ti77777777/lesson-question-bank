@@ -188,7 +188,7 @@ class BatchAddTest(unittest.TestCase):
     def test_06_revision_is_deterministic(self):
         cid = self.ok("POST", "/api/collections", {"title": "修订稳定性"})["collection"]["id"]
         first = self.revision(cid)
-        self.assertTrue(first.startswith("cr1:"))
+        self.assertTrue(first.startswith("cr2:"))
         self.assertEqual(first, self.revision(cid), "没有写入时修订不应变化")
         q1 = self.new_question("修订变化题")
         self.ok("POST", "/api/collections/%s/items" % cid, {"question_id": q1})

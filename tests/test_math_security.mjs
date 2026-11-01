@@ -16,6 +16,7 @@ test('math loading pins its release and requires browser integrity checks for JS
       assert.match(element.integrity,/^sha384-[A-Za-z0-9+/]{64}$/);
       assert.equal(element.crossOrigin,'anonymous');
     }
+    css.onload();
     script.onload();
     assert.equal(await loading,true);
   } finally {

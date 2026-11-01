@@ -16,23 +16,23 @@ import json
 from app import db
 from app.server import ApiError
 
-REVISION_PREFIX = "cr1:"
+REVISION_PREFIX = "cr2:"
 
 # 参与聚合修订的字段。updated_at 故意不入摘要：它因任何写入而变，
 # 会让「只改了标题时间戳」也判定为冲突。
 _ITEM_FIELDS = (
     "id", "section_id", "order_no", "question_id", "question_version_id",
-    "role", "hint_level", "required", "points", "space_mm",
+    "role", "hint_level", "required", "points", "space_mm", "time_solve_min", "time_explain_min",
     "page_break_before", "subq_keys", "solution_id", "note",
 )
-_SECTION_FIELDS = ("id", "title", "kind", "order_no", "intro")
+_SECTION_FIELDS = ("id", "collection_id", "title", "kind", "order_no", "intro", "note")
 _COLLECTION_FIELDS = ("id", "title", "topic", "level", "duration_min", "purpose",
-                      "status", "layout_options")
+                      "status", "layout_options", "prereqs", "objectives", "coverage", "template", "note")
 
 
-def _canonical(value):
+def _canonical(value, field=None):
     """把行数据规范成可哈希结构：JSON 字段统一成对象，其余转字符串或数字。"""
-    if isinstance(value, str) and value[:1] in "{[":
+    if field in db.JSON_COLUMNS and isinstance(value, str):
         try:
             return json.loads(value)
         except ValueError:
@@ -48,15 +48,15 @@ def collection_revision(cid: str, conn=None) -> str:
         (cid,)).fetchone()
     if row is None:
         return ""
-    parts = {"collection": {k: _canonical(row[k]) for k in _COLLECTION_FIELDS}}
+    parts = {"collection": {k: _canonical(row[k], k) for k in _COLLECTION_FIELDS}}
     parts["sections"] = [
-        {k: _canonical(r[k]) for k in _SECTION_FIELDS}
+        {k: _canonical(r[k], k) for k in _SECTION_FIELDS}
         for r in conn.execute(
             "SELECT %s FROM collection_section WHERE collection_id = ? "
             "ORDER BY order_no, id" % ", ".join(_SECTION_FIELDS), (cid,))
     ]
     parts["items"] = [
-        {k: _canonical(r[k]) for k in _ITEM_FIELDS}
+        {k: _canonical(r[k], k) for k in _ITEM_FIELDS}
         for r in conn.execute(
             "SELECT %s FROM collection_item WHERE collection_id = ? "
             "ORDER BY order_no, id" % ", ".join(_ITEM_FIELDS), (cid,))

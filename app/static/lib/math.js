@@ -22,77 +22,61 @@ const KATEX_INTEGRITY = {
 
 const SOURCE_TIMEOUT = 5000;
 let loader = null;
+let renderingFailed = false;
 
-function loadScript(base) {
+function loadResource(base, tag) {
   return new Promise((resolve) => {
     let settled = false;
     let timer;
+    const node = document.createElement(tag);
     const finish = (ok) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      node.onload = node.onerror = null;
+      if (!ok) node.remove?.();
       resolve(Boolean(ok));
     };
-    const script = document.createElement('script');
-    script.src = `${base}katex.min.js`;
-    script.integrity = KATEX_INTEGRITY.js;
-    script.crossOrigin = 'anonymous';
-    script.async = true;
-    script.onload = () => finish(Boolean(window.katex));
-    script.onerror = () => finish(false);
-    timer = setTimeout(() => finish(Boolean(window.katex)), SOURCE_TIMEOUT);
-    document.head.appendChild(script);
+    node.integrity = KATEX_INTEGRITY[tag === 'script' ? 'js' : 'css'];
+    node.crossOrigin = 'anonymous';
+    if (tag === 'script') {
+      node.src = `${base}katex.min.js`;
+      node.async = true;
+    } else {
+      node.rel = 'stylesheet';
+      node.href = `${base}katex.min.css`;
+    }
+    node.onload = () => finish(tag !== 'script' || Boolean(window.katex));
+    node.onerror = () => finish(false);
+    timer = setTimeout(() => finish(false), SOURCE_TIMEOUT);
+    document.head.appendChild(node);
   });
 }
 
-function loadStylesheet(base) {
-  return new Promise((resolve) => {
-    let settled = false;
-    let timer;
-    const finish = (ok) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve(Boolean(ok));
-    };
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `${base}katex.min.css`;
-    link.integrity = KATEX_INTEGRITY.css;
-    link.crossOrigin = 'anonymous';
-    link.onload = () => finish(true);
-    link.onerror = () => finish(false);
-    timer = setTimeout(() => finish(true), SOURCE_TIMEOUT);
-    document.head.appendChild(link);
-  });
-}
-
-async function loadStylesheetWithFallback(from) {
-  const order = KATEX_SOURCES.slice(KATEX_SOURCES.indexOf(from)).concat(KATEX_SOURCES.slice(0, KATEX_SOURCES.indexOf(from)));
-  for (const base of order) {
-    if (await loadStylesheet(base)) return true;
+async function loadFromSources(tag) {
+  for (const base of KATEX_SOURCES) {
+    if (await loadResource(base, tag)) return true;
   }
   return false;
 }
 
 async function boot() {
-  // 先按首个源放一份样式（同步创建，便于页面尽早应用）；失败再逐源回退。
-  const css = loadStylesheet(KATEX_SOURCES[0])
-    .then((ok) => (ok ? true : loadStylesheetWithFallback(KATEX_SOURCES[1] || KATEX_SOURCES[0])));
-  for (const base of KATEX_SOURCES) {
-    if (await loadScript(base)) {
-      css.catch(() => {});
-      return true;
-    }
-  }
-  css.catch(() => {});
-  // 全部源都失败时保留原始源码，并在控制台留一条可排查的线索。
-  console.warn('[题库] 公式组件 KaTeX 未能从任何 CDN 加载，页面会显示 LaTeX 源码；请检查网络或代理。');
-  return false;
+  // Layout callers must wait for both resources, not just the rendering script.
+  const [scriptReady, styleReady] = await Promise.all([
+    loadFromSources('script'), loadFromSources('link'),
+  ]);
+  const ok = scriptReady && styleReady;
+  renderingFailed = !ok;
+  if (!ok) console.warn('[题库] 公式脚本或样式加载失败，暂时显示 LaTeX 源码；恢复网络后重新打开页面可重试。');
+  return ok;
 }
 
 export function loadKatex() {
-  if (!loader) loader = boot();
+  if (!loader) loader = boot().then(ok => {
+    // A later page visit can recover after a temporary outage.
+    if (!ok) loader = null;
+    return ok;
+  });
   return loader;
 }
 
@@ -100,6 +84,7 @@ function renderTex(tex, display) {
   const source = String(tex ?? '');
   if (!source.trim()) return '';
   try {
+    if (renderingFailed) throw new Error('Math resources unavailable');
     return window.katex.renderToString(normaliseMathBody(source.trim()), {
       displayMode: display,
       throwOnError: false,
@@ -213,5 +198,5 @@ export function upgradeMath(root = document) {
 }
 
 export function katexState() {
-  return Boolean(window.katex);
+  return !renderingFailed && Boolean(window.katex);
 }

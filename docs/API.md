@@ -281,7 +281,7 @@
                "ok": true, "item_id": "ITM000007", "order_no": 3}],
   "added": 1,
   "section_id": "SEC000001",
-  "revision": "cr1:9f2c…",
+  "revision": "cr2:9f2c…",
   "replayed": false
 }
 ```
@@ -297,7 +297,7 @@
 | `reorder` | `{"items":[{"id","order_no","section_id"}]}` | `reorder`（还原每个条目原来的位置） |
 | `settings` | 条目设置字段 | `settings`（原有值） |
 
-返回 `{"action","label","inverse","revision","replayed"}`。撤销只是把 `inverse` 原样再发一次，因此同样受操作编号幂等与修订校验保护；`restore` 时编号已被占用则返回 409 `already_exists`，不会悄悄换号。
+返回 `{"action","label","inverse","revision","replayed"}`（可附服务端恢复记录）。撤销只是把 `inverse` 原样再发一次，因此同样受操作编号幂等与修订校验保护；`restore` 时编号已被占用则返回 409 `already_exists`，不会悄悄换号。
 
 `revision` 是题单、分节、条目与排版的聚合摘要（`app/commands.py`）。它只用于题单结构写入的并发校验；题目自身版本变化另行核对，不混进这个摘要。
 
@@ -476,7 +476,18 @@
 ### 换题与更新版本
 
 - `POST /api/items/{iid}/swap`：提交 `question_id`、可选 `question_version_id`、`operation_id` 和 `base_revision`。原位换题，保留条目位置与角色；专属设置清空项见返回的 `dropped`。
-- `GET /api/collections/{cid}/version-updates`：查询题单的新版候选；`POST /api/collections/{cid}/version-updates/apply` 提交 `updates:[{item_id,question_version_id?}]`（1–100 条）及操作编号、修订号，逐条结果见 `results`，成功数量见 `updated`。前端必须展示每条结果，不能只按 HTTP 200 判断全部成功。
+- `GET /api/collections/{cid}/version-updates`：在一致的只读快照中返回 `contract:2`、`revision`、旧版与新版信息；新版含 `content_digest`、完整题目内容与解法，旧版附原小问选择。
+- `POST /api/collections/{cid}/version-updates/apply`：必须提交 `contract:2`、`operation_id`、`base_revision` 和 1–100 条 `updates`。每条形如：
+
+```json
+{"item_id":"ITM000001","from_version_id":"QV000001","question_version_id":"QV000002",
+ "content_digest":"从预览原样取得的摘要",
+ "subquestions":{"mode":"selected","keys":["a"]},"solution_id":null}
+```
+
+`mode` 为 `all` 或 `selected`；后者必须非空且满足依赖，前者不带部分键。`solution_id:null` 明确确认全部解法／整题解析；指定解法必须属于目标版本。缺少确认字段的旧客户端应刷新，不能省略目标版本后自动取最新。
+
+服务端在同一写事务内重新核对原引用、目标是否仍为当前版、内容／解法摘要、题单修订与选择合法性。任一条失败返回 409 `version_update_conflict`，`error.detail.results` 定位问题条目，整批不写入；成功返回 `updated`、`results`、`revision`。同操作编号同输入重试返回首次结果，改变输入则 `operation_conflict`。
 - `POST /api/collections/{cid}/commands`：题单操作入口。换题、换版及相关题单修改由操作编号防重复、修订号防覆盖；具体操作参数沿用各接口实现与测试，冲突时重新读取题单。
 
 ### 逐题反馈
@@ -516,3 +527,10 @@
 - 姓名、编号和备注编辑不更换 ID，不改写既有使用记录与练习安排。名单及教师关系的 `revision` 与资料 `profile_revision` 分别校验，不可混用。读取名单/归属使用一致性读事务，不提前获取写锁。
 
 系统没有按姓名合并档案、硬删除人员或认证教师身份。操作编号由前端在当前页面/弹窗生命周期内保存，跨刷新不保证恢复。
+
+
+### 0.9.8 修订与撤销兼容
+
+题单摘要升级为 `cr2:`，覆盖全部题单、分节和条目的内容字段，包括预计作答／讲解时间、前置要求、目标、备注与模板。时间戳和已由题单上下文限定的归属字段按实现说明排除。JSON 对象键顺序规范化，普通标题和备注按文字原样区分。旧 `cr1:` 页面写入时会冲突，需刷新后重新核对。
+
+新生成的移除／设置逆操作中，`payload.undo_of` 引用原操作编号。服务端核验该编号在同一题单内保存的逆操作，恢复原条目以及该条目排版覆盖，区分没有覆盖与空覆盖，不回滚其他题目或全卷设置；客户端须原样回传，不自行拼造。移除恢复也保留原小问选择、条目身份和创建时间。旧会话逆操作没有排版记录，不能补造丢失的历史设置；升级后应刷新页面清空旧撤销栈。

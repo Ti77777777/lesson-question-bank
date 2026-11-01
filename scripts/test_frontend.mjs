@@ -12,3 +12,4 @@ await import('../tests/test_math_fallback.mjs');
 await import('../tests/test_identity.mjs');
 await import('../tests/test_swap_question.mjs');
 await import('../tests/test_math_notation.mjs');
+await import('../tests/test_version_updates.mjs');
