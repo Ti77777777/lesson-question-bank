@@ -3,7 +3,7 @@ import { bindMenus, importTabs } from './lib/navigation.js';
 
 import { api } from './lib/api.js';
 import {
-  esc, errorCard, emptyState, loading, $, truncate,
+  esc, errorCard, emptyState, loading, $,
 } from './lib/dom.js';
 import { flash, clearFlash, consumePendingFlash, flashAfterNavigation, openModal, textDialog } from './lib/ui.js';
 import {
@@ -164,11 +164,12 @@ async function openBasketModal() {
         <div class="main">
           <a class="mono" href="#/question/${esc(id)}" style="font-size:var(--font-14);">${esc(id)}</a>
           <span class="name"> ${esc(q.short_name || '')}</span>
-          <div class="stem">${esc(truncate(version.stem || q.stem_preview || '', 90) || '（题目详情暂不可用）')}</div>
+          <div class="stem" data-rich>${esc(version.stem || q.stem_preview || '（题目详情暂不可用）')}</div>
         </div>
         <button type="button" class="rm" data-remove="${esc(id)}">移除</button>
       </div>`;
     }).join('')}</div>`;
+    upgradeMath(modal.body);
   };
 
   if (ids.length) {

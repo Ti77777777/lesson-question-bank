@@ -455,3 +455,10 @@ input[type=checkbox],input[type=radio] { accent-color:var(--indigo); }
   .search-tools .saved-searches { min-height:44px; }
   .search-basic > summary span { min-width:0; overflow-wrap:anywhere; }
 }
+
+/* Basket previews retain complete TeX expressions. */
+@media screen {
+  .basket-row .stem { display:block; -webkit-line-clamp:unset; overflow:visible; overflow-wrap:anywhere; font-size:var(--font-16); line-height:1.9; }
+  .basket-row .stem .katex-display { overflow-x:auto; overflow-y:hidden; padding:4px 0; }
+  .basket-row .rm { flex:none; min-height:44px; }
+}

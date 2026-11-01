@@ -168,8 +168,8 @@
       "sha256": "abf3135864f73239f71be20b64e8d02ef958d9f57da26488055f770f94c330ba"
     },
     "app/static/app.js": {
-      "bytes": 10826,
-      "sha256": "429d68ca89d56a3468926381f3a0002c9aa0cb6f297f53d803ad699e46046ac9"
+      "bytes": 10836,
+      "sha256": "ee0686d1cd2e2321f95dfe9109d5b867da2ef9104c8d4b2efac385976c80a360"
     },
     "app/static/experience.css": {
       "bytes": 15276,
@@ -372,8 +372,8 @@
       "sha256": "2fd2f9d286dee1efdf7a646509a5f089507b49c9c80dbc23463fdde1e9b8b277"
     },
     "app/static/polish.css": {
-      "bytes": 28524,
-      "sha256": "c2007e604f15cfe6f7f67d659bb6b3ca29ca968b795331960133a7779a65f736"
+      "bytes": 28895,
+      "sha256": "6881546234d6e122cc4e2edddaee46eaf428b96bbaa70ac7fe6342008849a131"
     },
     "app/static/style.css": {
       "bytes": 91251,
@@ -384,8 +384,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 55393,
-      "sha256": "0b9bcdcd6510195f2198d1393dfbdffa7906afafd7d9b91a4c6782dcb3830f44"
+      "bytes": 56125,
+      "sha256": "7ae53605c193143725f21790b50cc593b40d2a0af3a3fe95160c6eb8c2beb611"
     },
     "data/schema.sql": {
       "bytes": 23385,
@@ -545,7 +545,7 @@
     },
     "package.json": {
       "bytes": 194,
-      "sha256": "7c5e59ad425aa1a6b6d9342ef465f74f7dd9e31fd4af84b4f30955f40cfe80cd"
+      "sha256": "461082468e2cd11210ba7f8deb69201645908e4765c19a1a71431b26b1fb9d58"
     },
     "README.md": {
       "bytes": 5747,
