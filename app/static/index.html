@@ -13,20 +13,20 @@
 <body>
   <header class="app-bar">
     <div class="app-bar-inner">
-      <a class="brand" href="#/inbox" aria-label="回到收题箱">
+      <a class="brand" href="#/search" aria-label="回到题库">
         <span class="brand-name">习题课题库</span>
       </a>
       <nav class="main-nav" id="main-nav" aria-label="主导航">
-        <a href="#/ai" data-nav="ai">AI 工作台</a>
-        <a href="#/inbox" data-nav="inbox">收题箱</a>
-        <a href="#/search" data-nav="search">题库检索</a>
+        <a href="#/search" data-nav="search">题库</a>
         <a href="#/collections" data-nav="collections">题单</a>
-        <a href="#/releases" data-nav="releases">导出与归档</a>
-        <a href="#/usage" data-nav="usage">使用与反馈</a>
-        <a href="#/settings" data-nav="settings">系统</a>
+        <a href="#/ai" data-nav="import">导入</a>
+        <details class="nav-more"><summary>更多</summary><div>
+          <a href="#/releases" data-nav="releases">讲义归档</a>
+          <a href="#/usage" data-nav="usage">使用记录</a>
+          <a href="#/settings" data-nav="settings">系统信息</a>
+        </div></details>
       </nav>
       <div class="bar-right">
-        <span class="meta-counts" id="meta-counts" title="题库规模"></span>
         <button type="button" class="btn btn-quiet basket-btn" id="basket-btn">
           选题篮<span class="count mono" id="basket-count">0</span>
         </button>
@@ -37,11 +37,6 @@
   <div class="flash" id="flash" role="alert" hidden></div>
 
   <main id="view" class="view" aria-live="polite"></main>
-
-  <footer class="app-foot">
-    <a href="#/settings">系统信息</a>
-    <span id="foot-meta"></span>
-  </footer>
 
   <div id="modal-root"></div>
 

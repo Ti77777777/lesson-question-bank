@@ -1,3 +1,4 @@
+import { bindPanels, panelLinks } from '../lib/navigation.js';
 /* 使用与反馈：班级、小组或学生、练习安排、使用记录与反馈，以及查询已用题目。 */
 
 import { api } from '../lib/api.js';
@@ -26,20 +27,22 @@ export default async function mount(root, ctx) {
   root.innerHTML = `
     <div class="page-head">
       <div>
-        <h1 class="page-title">使用与反馈</h1>
+        <h1 class="page-title">使用记录</h1>
 
       </div>
       <div class="page-head-actions">${contextHelp('使用说明','<p>姓名可以重复，请按学号、工号或系统编号区分。选择教师可筛选其班级和学生，不代表登录权限。</p><p>练习安排记录计划；登记使用记录实际用过的讲义和题目。</p><p>班级、小组和学生的使用记录分别统计，不互相继承；没有记录不代表学生从未做过。</p><p>改名保留原档案。转班时选用已有学生加入新班，再从旧班移出，历史记录保留。</p>')}</div>
     </div>
 
+    ${panelLinks([['records','使用记录'],['roster','名单管理'],['plans','练习安排'],['recent','已用题查询']])}
+    <div class="scope-toolbar" data-teacher-scope></div>
     <div style="display:grid;gap:28px;">
-      <section>
+      <section data-panel="roster">
         <div class="spread" style="margin-bottom:10px;">
           <h2 class="section-title">班级、小组与学生</h2>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="audience-list">${loading()}</div></section>
-          <aside class="card panel-form">
+          <aside><details class="card panel-form compact-card" data-create-fold="audience"><summary>添加班级或学生</summary>
             <div class="card-head"><h3 id="audience-form-title">添加班级</h3></div>
             <form id="audience-form" class="card-body">
               <label class="field"><span>添加类型</span>
@@ -53,17 +56,17 @@ export default async function mount(root, ctx) {
               <label class="field"><span>备注</span><textarea name="note" rows="2" placeholder="如 届别、校区或其他区分说明"></textarea></label>
               <button type="submit" class="btn btn-primary">添加班级</button>
             </form>
-          </aside>
+</details></aside>
         </div>
       </section>
 
-      <section>
+      <section data-panel="plans">
         <div class="spread" style="margin-bottom:10px;">
           <h2 class="section-title">练习安排</h2>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="assignment-list">${loading()}</div></section>
-          <aside class="card panel-form">
+          <aside><details class="card panel-form compact-card" data-create-fold="assignment"><summary>新建练习安排</summary>
             <div class="card-head"><h3>新建练习安排</h3></div>
             <form id="assignment-form" class="card-body">
               <label class="field"><span>练习名称<span class="req">*</span></span>
@@ -83,17 +86,17 @@ export default async function mount(root, ctx) {
               </label>
               <button type="submit" class="btn btn-primary">保存安排</button>
             </form>
-          </aside>
+</details></aside>
         </div>
       </section>
 
-      <section>
+      <section data-panel="records">
         <div class="spread" style="margin-bottom:10px;">
-          <h2 class="section-title">讲义使用与反馈</h2>
+          <h2 class="section-title">实际使用</h2><label class="record-filter">教学对象<select data-record-audience data-audience-select><option value="">全部对象</option></select></label>
         </div>
         <div class="panel-grid">
           <section class="card"><div id="usage-list">${loading()}</div></section>
-          <aside class="card panel-form">
+          <aside><details class="card panel-form compact-card" data-create-fold="usage"><summary>登记使用</summary>
             <div class="card-head"><h3>登记讲义使用</h3></div>
             <form id="usage-form" class="card-body">
               <label class="field"><span>班级、小组或学生<span class="req">*</span></span>
@@ -117,11 +120,11 @@ export default async function mount(root, ctx) {
               <label class="field"><span>备注</span><textarea name="note" rows="2" placeholder="如 只讲了例题，练习留作作业"></textarea></label>
               <button type="submit" class="btn btn-primary" disabled>登记使用</button>
             </form>
-          </aside>
+</details></aside>
         </div>
       </section>
 
-      <section>
+      <section data-panel="recent">
         <div class="spread" style="margin-bottom:10px;">
           <h2 class="section-title">查询已用题目</h2>
         </div>
@@ -145,6 +148,9 @@ export default async function mount(root, ctx) {
     </div>
   `;
 
+  bindPanels(root,{initial:ctx.query.view||'records',onChange:id=>{const url=new URL(location.href);url.hash='/usage?view='+id;history.replaceState(history.state,'',url);}});
+  $('[data-record-audience]',root).onchange=()=>renderUsages();
+
   const audienceList = $('#audience-list', root);
   const assignmentList = $('#assignment-list', root);
   const usageList = $('#usage-list', root);
@@ -166,7 +172,7 @@ export default async function mount(root, ctx) {
   function syncSelects() {
     $$('select[data-audience-select]', root).forEach((select) => {
       const previous = select.value;
-      const options = ['<option value="">选择班级、小组或学生</option>', ...audiences.map((row) => (
+      const options = [select.hasAttribute('data-record-audience') ? '<option value="">全部对象</option>' : '<option value="">选择班级、小组或学生</option>', ...audiences.map((row) => (
         `<option value="${esc(row.id)}">${esc(identityLabel(row))}（${esc(AUDIENCE_KINDS[row.kind] || row.kind || '')}）</option>`
       ))];
       select.innerHTML = options.join('');
@@ -368,7 +374,8 @@ export default async function mount(root, ctx) {
   }
 
   function renderUsages() {
-    const shownUsages=usages.filter(row=>!selectedTeacher||audiences.some(a=>a.id===row.audience_id));
+    const filter=$('[data-record-audience]',root).value;
+    const shownUsages=usages.filter(row=>(!selectedTeacher||audiences.some(a=>a.id===row.audience_id))&&(!filter||row.audience_id===filter));
     if (!shownUsages.length) {
       usageList.innerHTML = `<div class="card-body">${emptyState('还没有讲义使用记录', '讲义导出后，在这里登记发给谁、使用日期和实际用到的题目。')}</div>`;
       return;
@@ -715,6 +722,8 @@ export default async function mount(root, ctx) {
 
   const meta=await api('/api/meta');if(!ctx.current())return;
   rosterPanel=mountRoster(audienceList,{scope:meta.draft_scope,current:()=>ctx.current(),onChange:({items,teacherId,teachers})=>{
+    const teacherLabel=audienceList.querySelector('.roster-toolbar label');
+    if(teacherLabel)$('[data-teacher-scope]',root).replaceChildren(teacherLabel);
     const changedScope=selectedTeacher!==teacherId;
     audiences=items;selectedTeacher=teacherId;syncSelects();renderAssignments();renderUsages();
     const owner=$('#audience-teacher',root),previous=owner.value;

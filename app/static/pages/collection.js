@@ -114,8 +114,8 @@ export default async function mount(root, ctx) {
         <button type="button" class="order-btn" data-move="up" data-item-id="${esc(item.id)}" title="上移" ${index === 0 ? 'disabled' : ''}>↑</button>
         <button type="button" class="order-btn" data-move="down" data-item-id="${esc(item.id)}" title="下移" ${index === groupLength - 1 ? 'disabled' : ''}>↓</button>
         <button type="button" class="btn btn-sm" data-settings="${esc(item.id)}">设置</button>
-        <button type="button" class="btn-link" data-swap="${esc(item.id)}">换一道</button>
-        <button type="button" class="btn-link danger" data-del-item="${esc(item.id)}">删除</button>
+        <details class="compact-actions"><summary class="btn btn-sm">更多</summary><div><button type="button" class="btn-link" data-swap="${esc(item.id)}">换一道</button>
+        <button type="button" class="btn-link danger" data-del-item="${esc(item.id)}">移除</button></div></details>
       </div>
     </li>`;
   }
@@ -177,18 +177,6 @@ export default async function mount(root, ctx) {
       </div>
 
       <div>
-        <div class="mini-title"><span>难度分布</span><span class="hint" style="font-size:var(--font-13);">思维难度 1–5</span></div>
-        ${[1, 2, 3, 4, 5].map((n) => {
-          const value = Number(spread[String(n)] ?? spread[n] ?? 0);
-          return `<div class="bar-row">
-            <span class="mono">${n}</span>
-            <div class="bar-track"><div class="bar-fill" style="width:${Math.round((value / maxCount) * 100)}%;"></div></div>
-            <span class="n">${esc(value)}</span>
-          </div>`;
-        }).join('')}
-      </div>
-
-      <div>
         <div class="mini-title"><span>重复提示</span><span class="hint" style="font-size:var(--font-13);">${duplicates.length} 组</span></div>
         ${duplicates.length ? `<ul class="check-list warn">${duplicates.map((dup) => {
           const a = itemById(dup.a);
@@ -207,6 +195,22 @@ export default async function mount(root, ctx) {
       </div>
 
       <div>
+        <div class="mini-title"><span>缺项提示</span></div>
+        ${missing.length ? `<ul class="check-list warn">${missing.map((text) => `<li>${esc(text)}</li>`).join('')}</ul>` : '<div class="check-empty">未发现缺项。</div>'}
+      </div>
+      <details class="compact-fold"><summary>难度与覆盖统计</summary>      <div>
+        <div class="mini-title"><span>难度分布</span><span class="hint" style="font-size:var(--font-13);">思维难度 1–5</span></div>
+        ${[1, 2, 3, 4, 5].map((n) => {
+          const value = Number(spread[String(n)] ?? spread[n] ?? 0);
+          return `<div class="bar-row">
+            <span class="mono">${n}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round((value / maxCount) * 100)}%;"></div></div>
+            <span class="n">${esc(value)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div>
         <div class="mini-title"><span>覆盖统计</span></div>
         <div class="coverage-block">
           <div class="hint" style="margin-bottom:3px;">知识点</div>
@@ -218,10 +222,7 @@ export default async function mount(root, ctx) {
         </div>
       </div>
 
-      <div>
-        <div class="mini-title"><span>缺项提示</span></div>
-        ${missing.length ? `<ul class="check-list warn">${missing.map((text) => `<li>${esc(text)}</li>`).join('')}</ul>` : '<div class="check-empty">未发现缺项。</div>'}
-      </div>
+</details>
     `;
   }
 
@@ -259,9 +260,8 @@ export default async function mount(root, ctx) {
         <div class="detail-actions">
           <button type="button" class="btn" data-act="undo" ${history.canUndo() ? '' : 'disabled'} title="${esc(history.peekUndo()?.label || '没有可撤销的操作')}">撤销${history.canUndo() ? '：' + esc(history.peekUndo().label) : ''}</button>
           <button type="button" class="btn" data-act="redo" ${history.canRedo() ? '' : 'disabled'} title="${esc(history.peekRedo()?.label || '没有可重做的操作')}">重做${history.canRedo() ? '：' + esc(history.peekRedo().label) : ''}</button>
-          <button type="button" class="btn" data-act="edit-collection">改题单信息</button>
           <a class="btn btn-primary" href="#/layout/${encodeURIComponent(cid)}">排版与导出</a>
-          <details class="compact-actions"><summary class="btn">更多操作</summary><div><button type="button" class="btn" data-act="build">快速导出</button><a class="btn" href="#/releases">查看归档</a></div></details>
+          <details class="compact-actions"><summary class="btn">更多操作</summary><div><button type="button" class="btn" data-act="edit-collection">改题单信息</button><button type="button" class="btn" data-act="build">快速导出</button><a class="btn" href="#/releases">查看归档</a></div></details>
         </div>
       </div>
 

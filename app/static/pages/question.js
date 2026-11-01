@@ -152,7 +152,7 @@ export default async function mount(root, ctx) {
     const methodTags = asArray(sol.method_tags || sol.tags || sol.methods).map((tag) => (
       typeof tag === 'string' ? tag : (tag?.name || tag?.id || '')
     )).filter(Boolean);
-    return `<div class="solution">
+    return `<details class="solution" ${sol.is_primary ? 'open' : ''}><summary class="solution-head">${esc(sol.label || `解法${index+1}`)}${sol.is_primary ? '（选用）' : ''}${sol.conditions ? `，适用条件：${esc(sol.conditions)}` : ''}</summary>
       <div class="solution-head">
         <span class="solution-label">${esc(sol.label || `解法${index + 1}`)}</span>
         ${sol.is_primary ? badge('选用解法', 'pass') : ''}
@@ -162,7 +162,7 @@ export default async function mount(root, ctx) {
       <div class="steps" data-rich>${esc(sol.steps || '（步骤待补）')}</div>
       ${sol.conditions ? `<div class="cond">适用条件：<span data-rich>${esc(sol.conditions)}</span></div>` : ''}
       ${sol.teacher_tip ? `<div class="cond">讲评提示：<span data-rich>${esc(sol.teacher_tip)}</span></div>` : ''}
-    </div>`;
+    </details>`;
   }
 
   function renderReviewRow(item, label) {
@@ -173,13 +173,13 @@ export default async function mount(root, ctx) {
         <span class="review-name">${esc(label)}</span>
         ${badge(reviewLabel(result), reviewTone(result))}
       </div>
-      <div class="review-controls">
+      <details class="review-edit compact-fold"><summary>进行审校</summary><div class="review-controls">
         <select data-review-select="${item}" aria-label="${esc(label)}审校结论">
           ${Object.entries(REVIEW_RESULTS).map(([value, text]) => `<option value="${value}" ${value === result ? 'selected' : ''}>${text}</option>`).join('')}
         </select>
         <button type="button" class="btn btn-sm" data-review="${item}">提交</button>
       </div>
-      <input type="text" class="review-note" data-review-note="${item}" placeholder="${last?.note ? esc(last.note) : '备注（可选）'}" aria-label="${esc(label)}审校备注">
+      <input type="text" class="review-note" data-review-note="${item}" placeholder="${last?.note ? esc(last.note) : '备注（可选）'}" aria-label="${esc(label)}审校备注"></details>
       <div class="review-last">${last ? `最近：${esc(last.reviewer || '教师')}，${esc(fmtDateTime(last.created_at))}` : '尚无审校记录'}</div>
     </div>`;
   }
@@ -257,14 +257,14 @@ export default async function mount(root, ctx) {
           ${question.status === 'inactive' && question.status_reason ? `<div class="hint" style="margin-top:8px;">停用原因：${esc(question.status_reason)}</div>` : ''}
         </div>
         <div class="detail-actions">
-            <a class="btn" href="#/ai?qid=${encodeURIComponent(question.id)}">AI 补全与复核</a>
-          <button type="button" class="btn" data-act="new-version">新建版本</button>
-          <button type="button" class="btn" data-act="diff">查看差异</button>
+
+          <button type="button" class="btn" data-act="new-version">修订题目</button>
           <button type="button" class="btn" data-act="corrections">纠错与处理记录</button>
-          ${question.status === 'inactive'
+<details class="compact-actions"><summary class="btn">管理操作</summary><div>            <a class="btn" href="#/ai?qid=${encodeURIComponent(question.id)}">AI 补全与复核</a>          ${question.status === 'inactive'
             ? '<button type="button" class="btn" data-act="activate">恢复启用</button>'
             : '<button type="button" class="btn btn-danger" data-act="deactivate">停用</button>'}
           <button type="button" class="btn btn-danger" data-act="merge">合并</button>
+</div></details>
         </div>
       </div>
 
@@ -368,7 +368,7 @@ export default async function mount(root, ctx) {
         </section>
 
         <details class="card compact-card">
-          <summary>版本历史（${versions.length}）</summary>
+          <summary>版本历史（${versions.length}）</summary><div class="row-actions"><button type="button" class="btn btn-sm" data-act="diff">查看差异</button></div>
           <div class="card-body tight">
             ${versions.length ? `<div class="table-wrap"><table class="table">
               <thead><tr><th>版本</th><th>时间</th><th>题型</th><th>修订说明</th><th>解法</th></tr></thead>

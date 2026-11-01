@@ -14,7 +14,7 @@ export function mountSavedSearches(root,getQuery) {
   let items=[],disposed=false,selected='';
   function paint() {
     if(disposed)return;
-    root.innerHTML=`<span class="hint">常用检索</span><select data-presets aria-label="常用检索方案"><option value="">选择已保存的方案…</option>${items.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('')}</select><button class="btn btn-sm" data-load>使用</button><button class="btn btn-sm" data-save>保存当前条件</button><button class="btn-link" data-update>更新方案</button><button class="btn-link" data-rename>改名</button><button class="btn-link danger" data-delete>删除</button>`;
+    root.innerHTML=`<select data-presets aria-label="常用检索方案"><option value="">选择已保存的方案…</option>${items.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('')}</select><button class="btn btn-sm" data-load>使用</button><details class="compact-actions"><summary class="btn btn-sm">检索方案</summary><div><button class="btn btn-sm" data-save>保存当前条件</button><button class="btn-link" data-update>更新方案</button><button class="btn-link" data-rename>改名</button><button class="btn-link danger" data-delete>删除</button></div></details>`;
     const select=root.querySelector('[data-presets]');select.onchange=()=>{selected=select.value;};
     root.querySelector('[data-load]').onclick=()=>{const item=items.find(x=>x.id===selected);if(item)location.hash=savedSearchUrl(item.query);else flash('请先选择一个检索方案。');};
     root.querySelector('[data-save]').onclick=async()=>{

@@ -56,5 +56,8 @@ export function updateBasketBadge(ids = readBasket()) {
   const node = document.getElementById('basket-count');
   if (node) node.textContent = String(ids.length);
   const btn = document.getElementById('basket-btn');
-  if (btn) btn.classList.toggle('has-items', ids.length > 0);
+  if (btn) {
+    btn.classList.toggle('has-items', ids.length > 0);
+    btn.hidden = !ids.length && !/^\/(search|question)(\/|$)/.test(document.body.dataset.context || '');
+  }
 }

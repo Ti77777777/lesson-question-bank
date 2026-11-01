@@ -1,3 +1,4 @@
+import { validatedRecent } from '../lib/recent-work.js';
 /* 题单列表：查看题量、课时与发布次数，新建题单后进入编辑。 */
 
 import { api } from '../lib/api.js';
@@ -10,6 +11,20 @@ export default async function mount(root, ctx) {
   let items = [];
   let total = 0;
 
+  async function paintRecent() {
+    const card = $('#recent-work', root);
+    const list = $('#recent-list', root);
+    if (!card || !list) return;
+    const rows = await validatedRecent(3);
+    if (!ctx.current() || !rows.length) return;
+    list.innerHTML = rows.map((row) => `
+      <a class="recent-item" href="${row.mode === 'layout' ? '#/layout/' : '#/collection/'}${encodeURIComponent(row.id)}">
+        <b>${esc(row.title)}</b>
+        <span>${esc(row.count)} 题${row.mode === 'layout' ? '，上次在排版' : ''}</span>
+      </a>`).join('');
+    card.hidden = false;
+  }
+
   root.innerHTML = `
     <div class="page-head">
       <div>
@@ -20,6 +35,7 @@ export default async function mount(root, ctx) {
         <button type="button" class="btn btn-primary" id="new-collection">新建题单</button>
       </div>
     </div>
+    <section class="card" id="recent-work" hidden><div class="card-head"><h2>继续上次工作</h2></div><div class="recent-list" id="recent-list"></div></section>
     <div class="results-head" style="margin-top:0;">
       <span class="total" id="collection-total"></span>
     </div>
@@ -83,7 +99,7 @@ export default async function mount(root, ctx) {
         <label class="field"><span>题单名称<span class="req">*</span></span>
           <input type="text" data-title placeholder="如 函数的单调性（习题课）">
         </label>
-        <div class="inline-fields two">
+        <details class="compact-fold"><summary>可选设置</summary><div class="inline-fields two">
           <label class="field"><span>用途</span>
             <select data-purpose>${Object.entries(COLLECTION_PURPOSES).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select>
           </label>
@@ -96,7 +112,7 @@ export default async function mount(root, ctx) {
         </label>
         <label class="field"><span>备注</span>
           <textarea rows="2" data-note placeholder="如 面向高一（3）班，需保留概念回顾"></textarea>
-        </label>`,
+        </label></details>`,
       footer: `<button type="button" class="btn" data-close>取消</button>
                <button type="button" class="btn btn-primary" data-create>建立题单</button>`,
     });
@@ -125,10 +141,12 @@ export default async function mount(root, ctx) {
         } else {
           flash('题单已建立。', 'ok');
           await load();
+  paintRecent();
         }
       });
     });
   });
 
   await load();
+  paintRecent();
 }

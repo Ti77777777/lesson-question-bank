@@ -1,3 +1,4 @@
+import { bindMenus, importTabs } from './lib/navigation.js';
 /* 应用外壳：hash 路由、题库规模计数、全局提示与选题篮。 */
 
 import { api } from './lib/api.js';
@@ -25,10 +26,10 @@ import settingsPage from './pages/settings.js';
 
 const ROUTES = [
   { pattern: /^\/sources\/?$/, page: sourcesPage, nav: 'search', title: '试卷信息管理' },
-  { pattern: /^\/ai\/?$/, page: aiPage, nav: 'ai', title: 'AI 题目工作台' },
-  { pattern: /^\/inbox\/?$/, page: inboxPage, nav: 'inbox', title: '收题箱' },
+  { pattern: /^\/ai\/?$/, page: aiPage, nav: 'import', title: 'AI 题目工作台' },
+  { pattern: /^\/inbox\/?$/, page: inboxPage, nav: 'import', title: '收题箱' },
   { pattern: /^\/search\/?$/, page: searchPage, nav: 'search', title: '题库检索' },
-  { pattern: /^\/question\/new\/?$/, page: questionNewPage, nav: 'search', title: '新建题目' },
+  { pattern: /^\/question\/new\/?$/, page: questionNewPage, nav: 'import', title: '新建题目' },
   { pattern: /^\/question\/([^/]+)\/?$/, page: questionPage, nav: 'search', title: '题目详情', keys: ['id'] },
   { pattern: /^\/layout\/([^/]+)\/?$/, page: layoutPage, nav: 'collections', title: '讲义排版预览', keys: ['id'] },
   { pattern: /^\/collections\/?$/, page: collectionsPage, nav: 'collections', title: '题单' },
@@ -43,7 +44,7 @@ let renderToken = 0;
 let cleanups = [];
 
 function parseHash() {
-  const raw = location.hash.replace(/^#/, '') || '/inbox';
+  const raw = location.hash.replace(/^#/, '') || '/search';
   const [pathPart, queryPart = ''] = raw.split('?');
   const path = pathPart.startsWith('/') ? pathPart : `/${pathPart}`;
   const query = {};
@@ -61,6 +62,7 @@ function decode(value) {
 }
 
 function setActiveNav(key) {
+  document.querySelector('.nav-more')?.classList.toggle('active', ['releases','usage','settings'].includes(key));
   document.querySelectorAll('#main-nav a').forEach((link) => {
     link.classList.toggle('active', link.dataset.nav === key);
   });
@@ -87,6 +89,9 @@ async function route() {
   closeModals();
   clearFlash();
   setActiveNav(match ? match.entry.nav : '');
+  document.body.dataset.context = path;
+  updateBasketBadge();
+  document.querySelectorAll('details.nav-more').forEach(menu => menu.open = false);
   document.title = match ? `习题课题库 - ${match.entry.title}` : '习题课题库';
 
   const token = ++renderToken;
@@ -103,7 +108,7 @@ async function route() {
   };
 
   if (!match) {
-    pageRoot.replaceChildren(errorCard(`没有这个页面：${path}`, () => { location.hash = '#/inbox'; }));
+    pageRoot.replaceChildren(errorCard(`没有这个页面：${path}`, () => { location.hash = '#/search'; }));
     return;
   }
 
@@ -114,6 +119,7 @@ async function route() {
   try {
     await match.entry.page(pageRoot, ctx);
     if (token === renderToken) {
+      if (match.entry.nav === 'import') pageRoot.querySelector('.page-head')?.insertAdjacentHTML('afterend', importTabs(path));
       upgradeMath(pageRoot);
       consumePendingFlash();
       window.scrollTo(0, 0);
@@ -122,35 +128,6 @@ async function route() {
     if (token !== renderToken) return;
     flash(err.message || '页面渲染失败');
     pageRoot.replaceChildren(errorCard(err.message || '页面渲染失败', () => route()));
-  }
-}
-
-// ---------------------------------------------------------------- 题库规模
-
-async function loadMeta() {
-  const el = document.getElementById('meta-counts');
-  const foot = document.getElementById('foot-meta');
-  if (!el) return;
-  try {
-    const meta = await api('/api/meta');
-    const counts = meta.counts || {};
-    const parts = [
-      ['题目', counts.questions ?? 0],
-      ['题单', counts.collections ?? 0],
-      ['待整理', counts.inbox_pending ?? 0],
-    ];
-    el.innerHTML = parts
-      .map(([label, value]) => `${esc(label)} <b>${esc(value)}</b>`)
-      .join('<span class="sep" aria-hidden="true"></span>');
-    el.title = `题目 ${counts.questions ?? 0}，版本 ${counts.versions ?? 0}，资料 ${counts.sources ?? 0}，题单 ${counts.collections ?? 0}，导出记录 ${counts.releases ?? 0}，待整理 ${counts.inbox_pending ?? 0}，标签 ${counts.tags ?? 0}`;
-    if (foot) {
-      foot.textContent = `${meta.today ?? ''}`;
-      foot.title = '';
-    }
-  } catch (err) {
-    el.textContent = '题库计数未就绪';
-    el.title = err?.message || 'GET /api/meta 暂不可用';
-    if (foot) foot.textContent = '';
   }
 }
 
@@ -285,14 +262,13 @@ async function openBasketModal() {
 function init() {
   updateBasketBadge();
   document.addEventListener('basket:change', () => updateBasketBadge());
-  document.addEventListener('meta:refresh', loadMeta);
+  bindMenus();
   document.addEventListener('basket:open', openBasketModal);
 
   const basketBtn = document.getElementById('basket-btn');
   if (basketBtn) basketBtn.addEventListener('click', openBasketModal);
 
   window.addEventListener('hashchange', route);
-  loadMeta();
   route();
 }
 

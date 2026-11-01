@@ -85,7 +85,6 @@ export default async function mount(root, ctx) {
               <div class="row-actions">
                 <button type="button" class="btn btn-sm" data-detail="${esc(id)}" title="查看检查结果与文件">详情</button>
                 <button type="button" class="btn btn-sm" data-register="${esc(id)}" ${status === 'failed' ? 'disabled title="编译失败，不能登记使用"' : ''}>登记使用</button>
-                <a class="btn-link" href="/api/releases/${encodeURIComponent(id)}/snapshot" download title="下载导出时的完整题目内容">内容快照</a>
               </div>
             </td>
           </tr>`;

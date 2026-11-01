@@ -1,3 +1,4 @@
+import { foldSection, bindFoldSummaries, revealField } from '../lib/field-folds.js';
 /* 新建题目：按题型切换选项、答案与小问区域；可多解、多出处、标签与三维难度。 */
 
 import { enhanceMathFields } from '../lib/math-editor.js';
@@ -69,7 +70,7 @@ export default async function mount(root, ctx) {
     { key: 'D', text: '' },
   ];
   let subquestions = [];
-  let solutions = [{ label: '', approach: '', steps: '', conditions: '', is_primary: true, method_tags: [] }];
+  let solutions = [];
   const prefillText = inbox?.raw_text ? String(inbox.raw_text) : '';
   const prefillHint = inbox?.source_hint || '待确认';
   let occurrences = [{
@@ -248,6 +249,24 @@ export default async function mount(root, ctx) {
   `;
 
   const form = $('#newq-form', root);
+  const sections=[...form.querySelectorAll(':scope > section')];
+  const byTitle=title=>sections.find(s=>s.querySelector('h3')?.textContent===title);
+  const sourceSection=byTitle('出处'), classification=byTitle('分类、难度与推荐');
+  // Keep primary knowledge tags visible; ratings remain mounted in an optional fold.
+  const rating=document.createElement('section');
+  const tagBlock=classification.querySelector('.card-body > div');
+  while(tagBlock.nextElementSibling)rating.append(tagBlock.nextElementSibling);
+  classification.querySelector('.card-body').append(rating);
+  foldSection(rating,'难度与推荐');
+  classification.querySelector('h3').textContent='主要知识点';
+  const answer=byTitle('答案'), sub=byTitle('小问'), solution=byTitle('解法');
+  foldSection(sub,'小问');foldSection(solution,'独立解法');
+  foldSection(byTitle('教学说明'),'教学说明');foldSection(byTitle('保存'),'修订说明');
+  // Basic question, options, answer/analysis, knowledge, source, then optional sections.
+  const basic=byTitle('基本信息'), opts=byTitle('选项');
+  // Reorder deterministically without replacing any field node.
+  [basic,opts,answer,classification,sourceSection].reverse().forEach(n=>form.prepend(n));
+  const updateFolds=bindFoldSummaries(form);
   enhanceMathFields(form, ['textarea[name="stem"]', 'textarea[name="answer"]',
     'textarea[name="analysis"]']);
   const draft = draftStore(metaRes.draft_scope, `new-question:${inboxId||'blank'}`), previousDraft=draft.read();
@@ -361,7 +380,7 @@ export default async function mount(root, ctx) {
         </label>
         <label class="field"><span>原题号</span><input type="text" data-occ-index="${index}" data-occ-field="qno" value="${esc(occ.qno || '')}" placeholder="如 8"></label>
       </div>
-      <div class="inline-fields three">
+      <details class="compact-fold"><summary>原文、页码与备注${occ.raw_text || occ.pdf_page || occ.print_page || occ.note ? '（已填写）' : ''}</summary><div class="inline-fields three">
         <label class="field"><span>PDF 页序</span><input type="number" min="1" data-occ-index="${index}" data-occ-field="pdf_page" value="${esc(occ.pdf_page || '')}" placeholder="3"></label>
         <label class="field"><span>印刷页码</span><input type="text" data-occ-index="${index}" data-occ-field="print_page" value="${esc(occ.print_page || '')}" placeholder="12"></label>
         <label class="check" style="align-self:end;margin-bottom:6px;"><input type="checkbox" data-occ-index="${index}" data-occ-field="pending" ${occ.pending ? 'checked' : ''}> 出处待确认</label>
@@ -371,7 +390,7 @@ export default async function mount(root, ctx) {
       </label>
       <label class="field"><span>出处备注</span>
         <input type="text" data-occ-index="${index}" data-occ-field="note" value="${esc(occ.note || '')}" placeholder="如 来源线索、题号存疑">
-      </label>
+      </label></details>
     </div>`).join('');
   }
 
@@ -396,6 +415,7 @@ export default async function mount(root, ctx) {
     const hasSub = qtype === 'blank' || qtype === 'solve';
     $('#sec-options', root).classList.toggle('hidden', !choice);
     $('#sec-subq', root).classList.toggle('hidden', !hasSub);
+    $('#sec-subq',root).closest('.form-fold').hidden=!hasSub;
     $('#answer-choice', root).classList.toggle('hidden', !choice);
     $('#answer-text-wrap', root).classList.toggle('hidden', choice);
     $$('#qtype-switch button', root).forEach((btn) => {
@@ -591,7 +611,7 @@ export default async function mount(root, ctx) {
     const stem = val('stem');
     if (!stem) {
       flash('题干不能为空。');
-      form.querySelector('[name="stem"]').focus();
+      revealField(form.querySelector('[name="stem"]'));
       return;
     }
 
@@ -725,6 +745,7 @@ export default async function mount(root, ctx) {
       refreshMeta();
       location.hash = aiJob ? `#/ai?job=${encodeURIComponent(aiJob)}` : `#/question/${encodeURIComponent(newId)}`;
     } catch (err) {
+      form.querySelectorAll('details.form-fold').forEach(d=>d.open=true);
       flash(err.message);
       button.disabled = false;
       button.textContent = inboxId ? '保存并整理' : '保存题目';
@@ -746,12 +767,12 @@ export default async function mount(root, ctx) {
     draftBar.querySelector('[data-restore-draft]').onclick=()=>{
       const d=previousDraft.data;qtype=d.qtype;answerKeys=new Set(d.answerKeys);tags=d.tags;options=d.options;subquestions=d.subquestions;solutions=d.solutions;occurrences=d.occurrences;
       for(const el of form.querySelectorAll('[name]'))if(Object.hasOwn(d.fields,el.name)){if(el.type==='checkbox')el.checked=Boolean(d.fields[el.name]);else el.value=d.fields[el.name];}
-      renderOptions();renderSubquestions();renderSolutions();renderOccurrences();renderTags();syncQtype();removeActions();keepDraft();
+      renderOptions();renderSubquestions();renderSolutions();renderOccurrences();renderTags();syncQtype();removeActions();keepDraft();updateFolds();
     };
     draftBar.querySelector('[data-discard-draft]').onclick=()=>{draft.clear();removeActions();draftBar.querySelector('[data-draft-status]').textContent='旧草稿已丢弃，可继续录入。';};
   }
   draftReady=true;
-  const changed=()=>{keepDraft();draftBar.querySelectorAll('button').forEach(b=>b.remove());};
+  const changed=()=>{updateFolds();keepDraft();draftBar.querySelectorAll('button').forEach(b=>b.remove());};
   form.addEventListener('input',changed);form.addEventListener('change',changed);
   form.addEventListener('click',e=>{if(e.target.closest('button:not([type="submit"])'))queueMicrotask(keepDraft);});
 }

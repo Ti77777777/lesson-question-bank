@@ -8,7 +8,6 @@ import { INBOX_STATUS, INBOX_TONE } from '../lib/constants.js';
 import { flash, contextHelp } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
 import { upgradeMath } from '../lib/math.js';
-import { validatedRecent } from '../lib/recent-work.js';
 
 const FILTERS = [
   ['', '全部'],
@@ -22,20 +21,7 @@ export default async function mount(root, ctx) {
   let status = '';
   let items = [];
   let total = 0;
-
-  async function paintRecent() {
-    const card = $('#recent-work', root);
-    const list = $('#recent-list', root);
-    if (!card || !list) return;
-    const rows = await validatedRecent(3);
-    if (!ctx.current() || !rows.length) return;
-    list.innerHTML = rows.map((row) => `
-      <a class="recent-item" href="${row.mode === 'layout' ? '#/layout/' : '#/collection/'}${encodeURIComponent(row.id)}">
-        <b>${esc(row.title)}</b>
-        <span>${esc(row.count)} 题${row.mode === 'layout' ? '，上次在排版' : ''}</span>
-      </a>`).join('');
-    card.hidden = false;
-  }
+  let initialForm = true;
 
   root.innerHTML = `
     <div class="page-head">
@@ -48,10 +34,6 @@ export default async function mount(root, ctx) {
       </div>
     </div>
 
-    <section class="card" id="recent-work" hidden>
-      <div class="card-head"><h2>继续上次工作</h2></div>
-      <div class="recent-list" id="recent-list"></div>
-    </section>
 
     <div class="inbox-grid">
       <section class="card">
@@ -64,7 +46,7 @@ export default async function mount(root, ctx) {
         <div id="inbox-list">${loading()}</div>
       </section>
 
-      <aside class="card inbox-form">
+      <aside><details class="card inbox-form compact-card" id="inbox-register"><summary>登记资料</summary>
         <div class="card-head">
           <h2>登记一条资料</h2>
           ${contextHelp('录入说明','<p>粘贴原始文字，或登记文件名。识别不清的地方照原样保留。</p><p>来源线索不清楚时可以留空，整理入库前再核对。</p>')}
@@ -96,7 +78,7 @@ export default async function mount(root, ctx) {
             <button type="submit" class="btn btn-primary" id="inbox-submit">登记到收题箱</button>
           </div>
         </form>
-      </aside>
+      </details></aside>
     </div>
   `;
 
@@ -111,6 +93,7 @@ export default async function mount(root, ctx) {
   }
 
   function renderItems() {
+    if(initialForm){$('#inbox-register',root).open=!total;initialForm=false;}
     if (!items.length) {
       const title = status ? `没有「${INBOX_STATUS[status]}」的条目` : '收题箱是空的';
       const hint = status
@@ -313,5 +296,5 @@ export default async function mount(root, ctx) {
   });
 
   await loadList();
-  paintRecent();
+
 }

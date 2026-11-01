@@ -29,7 +29,7 @@ export default async function mount(root, ctx) {
   const store = draftStore(data.draft_scope, `layout:${cid}`), recovered = store.read();
   const $ = s => root.querySelector(s);
   const effective = item => ({ ...item, ...(overrides[item.id] || {}) });
-  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p><p class="page-sub" data-page-state role="status" hidden></p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status" title="改动自动保存到题库">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-save title="立即保存排版与留白，不生成讲义">保存改动</button><button class="btn btn-primary" data-publish title="生成学生版、解答版、解析版，并记入导出与归档" ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
+  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p><p class="page-sub" data-page-state role="status" hidden></p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status" title="改动自动保存到题库">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-retry-save hidden>重试保存</button><details class="compact-actions"><summary class="btn">更多操作</summary><div><button class="btn" data-save title="立即保存排版与留白，不生成讲义">立即保存</button></div></details><button class="btn btn-primary" data-publish title="生成学生版、解答版、解析版，并记入导出与归档" ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
     <div data-recovery></div><div class="layout-workspace"><aside class="layout-controls">
       <section class="card"><h2>讲义设置</h2>
         <label class="field"><span>讲义标题</span><input data-option="title" value="${esc(options.title||'')}" maxlength="300"></label>
@@ -50,7 +50,7 @@ export default async function mount(root, ctx) {
   $('[data-option="theme"]').innerHTML = selectOptions({ blue: '青蓝', green: '松绿', purple: '浅紫', orange: '暖橙', ...(!COLORS[options.theme] ? { [options.theme]: options.theme } : {}) }, options.theme);
   const saver = autosaver({read:payload,store,base:data.revision,
     save:(value,base)=>api(`/api/collections/${encodeURIComponent(cid)}/layout`,{method:'PUT',body:{...value,base_revision:base}}),
-    onState:(state,error)=>{if(disposed)return;dirty=state!=='saved';saveState=state;$('[data-save-state]').textContent=({pending:'待保存',saving:'正在保存…',saved:'已保存',unprotected:'浏览器无法保留草稿，正在尝试保存到题库',error:`保存失败，修改仍保留在本页：${error?.message||''}`})[state];updateHeadState();}
+    onState:(state,error)=>{if(disposed)return;dirty=state!=='saved';saveState=state;$('[data-retry-save]').hidden=state!=='error';$('[data-save-state]').textContent=({pending:'待保存',saving:'正在保存…',saved:'已保存',unprotected:'浏览器无法保留草稿，正在尝试保存到题库',error:`保存失败，修改仍保留在本页：${error?.message||''}`})[state];updateHeadState();}
   });
   ctx.onCleanup(()=>saver.dispose());
   const beforeUnload=e=>{if(saver.dirty){e.preventDefault();e.returnValue='';}};
@@ -204,7 +204,16 @@ export default async function mount(root, ctx) {
   $('[data-mode="quick"]').onclick=()=>showMode('quick');
   $('[data-version]').onchange = () => { version = $('[data-version]').value; pdf = null; paint(); if (mode === 'pdf') showMode('pdf'); };
   $('[data-zoom]').onchange = () => { $('[data-pages]').style.zoom = $('[data-zoom]').value; paint(); };
-  $('[data-save]').onclick = async () => { try { await save(); } catch(e) { flash(e.message); } };
+  const saveNow=async()=>{try{await save();}catch(e){flash(e.message);}};
+  $('[data-save]').onclick=saveNow;$('[data-retry-save]').onclick=saveNow;
+  let leaving=false;
+  const beforeNavigation=async event=>{
+    const link=event.target.closest('a[href^="#/"]');
+    if(!link||!saver.dirty||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+    event.preventDefault();event.stopImmediatePropagation();if(leaving)return;leaving=true;
+    try{await save();if(!disposed)location.hash=link.hash;}catch(e){flash('保存失败，请重试后离开：'+e.message);}finally{leaving=false;}
+  };
+  document.addEventListener('click',beforeNavigation,true);ctx.onCleanup(()=>document.removeEventListener('click',beforeNavigation,true));
   async function generatePreview(force=false) {
     if(pdf&&!force){showMode('pdf');return;}
     const button = $('[data-compile]'), requestedVersion = version, signature = JSON.stringify(payload());

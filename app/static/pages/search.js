@@ -55,7 +55,7 @@ export default async function mount(root, ctx) {
     <div class="page-head search-heading">
       <div><h1 class="page-title">题库检索</h1>
         </div>
-      <div class="row-actions"><a class="btn" href="#/sources">管理试卷信息</a><button type="button" class="btn" id="search-add-collection">加入已有题单</button><button type="button" class="btn" id="search-basket">查看选题篮</button></div>
+      <div class="row-actions"><details class="compact-actions"><summary class="btn">更多操作</summary><div><a class="btn" href="#/sources">管理试卷信息</a></div></details><button type="button" class="btn" id="search-add-collection">加入已有题单</button></div>
     </div>
     <div class="search-layout">
     <aside class="search-tag-sidebar" id="search-tag-sidebar" aria-label="知识点与方法标签筛选"></aside>
@@ -68,7 +68,6 @@ export default async function mount(root, ctx) {
     <div class="saved-searches" id="saved-searches"></div>
     <section class="card search-filters" aria-label="题目筛选">
       <div class="search-filter-top"><span>筛选条件</span>${contextHelp('筛选说明','<p>更改条件后自动检索。每类可单独切换多选；同类条件取任一，不同类别同时满足。</p><p>难度为1至5级，未标注题目不计入指定区间。已用情况只统计实际使用记录。</p>')}</div>
-      <div class="search-filter-row"><span class="search-filter-label">来源类别</span><div class="search-options" id="f-categories"></div>${modeControl('category')}</div>
       <div class="search-filter-row"><span class="search-filter-label">适用年级</span><div class="search-options" id="f-grades"></div>${modeControl('grade')}</div>
       <div class="search-filter-row"><span class="search-filter-label">题型</span><div class="search-options" id="f-qtypes">
         <button type="button" class="search-option" data-qtype="">全部</button>
@@ -78,15 +77,15 @@ export default async function mount(root, ctx) {
         ${LEVELS.map(([id, name, score]) => `<button type="button" class="search-option" data-level="${id}">${name}${score ? `<small>${score}</small>` : ''}</button>`).join('')}
         <span class="search-inline-hint" id="custom-level" hidden>自定义区间</span>
       </div>${modeControl('levels')}</div>
-      <div class="search-source-area">
-        <div class="search-source-title">定位试卷</div>
+      <details class="search-source-area search-fold" id="source-fold"><summary>按试卷找题</summary>      <div class="search-filter-row"><span class="search-filter-label">来源类别</span><div class="search-options" id="f-categories"></div>${modeControl('category')}</div>
+
         <div class="search-source-fields">
           <div class="field"><div class="search-field-heading"><label for="f-year">年份</label>${modeControl('year')}</div><select id="f-year"><option value="">全部年份</option></select><details class="search-multi-select" id="multi-year" hidden><summary></summary><div data-options></div></details></div>
           <div class="field"><div class="search-field-heading"><label for="f-region">地区 / 卷别</label>${modeControl('region')}</div><select id="f-region"><option value="">全部地区 / 卷别</option></select><details class="search-multi-select" id="multi-region" hidden><summary></summary><div data-options></div></details></div>
           <div class="field search-source-select"><div class="search-field-heading"><label for="f-source">来源试卷</label>${modeControl('sourceId')}</div><select id="f-source"><option value="">全部试卷与资料</option></select><details class="search-multi-select" id="multi-source" hidden><summary></summary><div data-options></div></details></div>
         </div>
         <p class="search-source-caption" id="source-caption" hidden></p>
-      </div>
+      </details>
       <details class="search-advanced" id="f-advanced">
         <summary>更多条件 <span id="advanced-count"></span></summary>
         <div class="search-advanced-body">
@@ -106,7 +105,7 @@ export default async function mount(root, ctx) {
       <div class="search-active" id="active-filters" aria-label="已选条件"></div>
       <p class="search-validation" id="filter-error" role="alert" hidden></p>
     </section>
-    <div class="usage-scope" id="usage-scope">
+    <details class="search-fold" id="usage-fold"><summary>按使用情况筛选</summary><div class="usage-scope" id="usage-scope">
       <label class="check">教学对象
         <select id="f-audience" aria-label="按教学对象查看已用情况"><option value="">不限</option></select>
       </label>
@@ -114,6 +113,7 @@ export default async function mount(root, ctx) {
       <label class="check"><input type="checkbox" id="f-only-unused" ${state.onlyUnused ? 'checked' : ''}> 仅看未用过</label>
       <span class="hint" id="usage-scope-note" role="status"></span>
     </div>
+    </details><p data-usage-summary class="usage-summary" hidden></p>
     <div class="results-head search-results-head">
       <div class="search-result-count" id="results-total" role="status" aria-live="polite"></div>
       <span class="hint" id="results-note"></span><span class="spacer"></span>
@@ -220,6 +220,9 @@ export default async function mount(root, ctx) {
     hintBtn.textContent = advancedOn ? `已启用 ${advancedOn} 个筛选` : '';
     $('#advanced-count', root).textContent = advancedOn ? `（${advancedOn} 项）` : '';
     renderSourceOptions();
+    const usageSummary=$('[data-usage-summary]',root);
+    usageSummary.hidden=!state.audience;
+    usageSummary.textContent=state.audience ? `${$('#f-audience',root).selectedOptions[0]?.textContent||state.audience}，近 ${state.usedDays} 天${state.onlyUnused?'，仅看未用过':''}` : '';
     const filters = activeConditions();
     $('#active-filters', root).innerHTML = filters.length ? `<span class="search-active-label">已选 ${filters.length} 项</span><div class="search-active-chips">${filters.map(f => `<button type="button" class="search-active-chip" data-remove="${esc(f.key)}" title="移除：${esc(f.name)}">${esc(f.name)}<span aria-hidden="true">×</span></button>`).join('')}</div><button type="button" class="btn-link" id="f-reset">清空条件</button>` : '';
   }
@@ -382,7 +385,7 @@ export default async function mount(root, ctx) {
             ${badge(QTYPES[item.qtype] || item.qtype || '未分题型', 'plain')}
             ${badge(reviewLabel(item.review_state), reviewTone(item.review_state))}
             ${item.status === 'inactive' ? badge('停用', 'na') : ''}
-            ${item.correction_pending ? badge(`待纠错 ${item.correction_pending}`, 'pending') : ''}
+            ${item.correction_pending ? `<button class="badge badge-pending" type="button" data-correct="${esc(item.id)}">待纠错 ${esc(item.correction_pending)}</button>` : ''}
             <span class="name">${esc(title)}</span>
           </div>
           <div class="q-stem" data-rich>${esc(stem || '（题面预览为空）')}</div>
@@ -396,16 +399,16 @@ export default async function mount(root, ctx) {
         </div>
         <div class="q-side">
           <div class="diff-line">
-            ${diffCell('计算', dif.calc)}
+
             ${diffCell('思维', dif.think)}
-            ${diffCell('综合', dif.scope)}
+
           </div>
-          <div class="used" data-used="${esc(item.id)}">最近使用：<b>${item.used_on ? esc(item.used_on.slice(0, 10)) : '无记录'}</b></div>
-          <button type="button" class="btn btn-sm" data-preview="${esc(item.id)}">查看题目</button>
+          <div class="used" data-used="${esc(item.id)}" ${state.audience ? '' : 'hidden'}></div>
+
           <button type="button" class="btn btn-sm ${inBasketNow ? '' : 'btn-primary'}" data-add="${esc(item.id)}">
             ${inBasketNow ? '移出选题篮' : '加入选题篮'}
           </button>
-          <button type="button" class="btn btn-sm" data-correct="${esc(item.id)}" aria-label="纠错 ${esc(item.id)}">纠错${item.correction_count ? `（${item.correction_count}）` : ''}</button>
+          <details class="compact-actions"><summary class="btn btn-sm">更多</summary><div><button type="button" class="btn" data-correct="${esc(item.id)}" aria-label="纠错 ${esc(item.id)}">纠错${item.correction_count ? `（${item.correction_count}）` : ''}</button></div></details>
         </div>
       </article>`;
     }).join('');
@@ -436,8 +439,7 @@ export default async function mount(root, ctx) {
       btn.textContent = active ? '移出选题篮' : '加入选题篮';
       btn.classList.toggle('btn-primary', !active);
     });
-    const headBtn = $('#search-basket', root);
-    if (headBtn) headBtn.textContent = `查看选题篮（${basket.size}）`;
+    $('#search-add-collection', root).disabled = !basket.size;
   }
 
   resultsEl.addEventListener('click', (event) => {
@@ -471,7 +473,7 @@ export default async function mount(root, ctx) {
       syncBasketButtons();
       return;
     }
-    if (event.target.closest('a, button, input, select')) return;
+    if (event.target.closest('a, button, input, select, summary')) return;
     const card = event.target.closest('[data-open]');
     if (card && !window.getSelection()?.toString()) showPreview(card.dataset.open);
   });
@@ -485,7 +487,6 @@ export default async function mount(root, ctx) {
     }});ctx.onCleanup?.(modal.close);
   }
 
-  $('#search-basket', root).addEventListener('click', openBasket);
   $('#search-add-collection', root).addEventListener('click', () => openAddToCollection(readBasket()));
 
   // N04 按教学对象查看已用：选对象只做标注，勾上「仅看未用过」才过滤
@@ -507,6 +508,7 @@ export default async function mount(root, ctx) {
     }
     changed();
   });
+  syncBasketButtons();
   loadAudiences();
   document.addEventListener('basket:change', syncBasketButtons);
   if (ctx.onCleanup) ctx.onCleanup(() => document.removeEventListener('basket:change', syncBasketButtons));
