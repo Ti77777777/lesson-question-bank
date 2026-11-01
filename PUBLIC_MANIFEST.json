@@ -376,8 +376,8 @@
       "sha256": "e06cca9fc3a81d33c45f47de6ab9c131d49f5221be10bf6bd632463ba223e1ba"
     },
     "CHANGELOG.md": {
-      "bytes": 47822,
-      "sha256": "ee7a8721b279b03119ae4ac9b905da5355f227adbdb89a0edbeedf6b7f7da24d"
+      "bytes": 49011,
+      "sha256": "8630ddd236a20f9c339b8162705cb14826fae21c506acf0778ba8c086e5b9d53"
     },
     "data/schema.sql": {
       "bytes": 23385,
@@ -420,12 +420,12 @@
       "sha256": "75869212ac25f4e4c39820bcb0ab97233e038e0dac93c2d563e86883eb0dbfe7"
     },
     "docs/优化规范与验收标准.md": {
-      "bytes": 18577,
-      "sha256": "12f386c4471e803012f97088624a7a22f752db8e2228def4c0ee70f1a4045a62"
+      "bytes": 18919,
+      "sha256": "901cbefbbf8b1a3626ba7271359a769340fdd2add45d746c240f8d70a615d9e6"
     },
     "docs/功能实现与验收台账.md": {
-      "bytes": 8209,
-      "sha256": "7ae6244facd03f4794983d238c9d814dc74109ff0f0a85a101639b5d1cd30ecc"
+      "bytes": 8654,
+      "sha256": "77316701916684fc887615016e7d431a929cc19bb3360b7fbe5ab33531895468"
     },
     "docs/后端安全审核报告-2026-10-30.md": {
       "bytes": 7898,
@@ -460,12 +460,12 @@
       "sha256": "1dfde27b7df13548d8deb370479b5318151853b0cea77faa45de906d5f303355"
     },
     "docs/新功能设计与实施规划.md": {
-      "bytes": 22457,
-      "sha256": "83358794c4e8c215ac9d2a017895f2887197e4fd92f117e6690f4f1b70404faf"
+      "bytes": 22706,
+      "sha256": "8c5053e260bc359b03f9de26e09d827ccc33149c4b4e929e6a1fb36263add2ca"
     },
     "docs/旧功能优化方案.md": {
-      "bytes": 21007,
-      "sha256": "df01a8cc3a3e0444feadeb4c75a168d856ad1bd16dc9e48e1a21facd55313afe"
+      "bytes": 21214,
+      "sha256": "543d33254d0956b9fb147ca65f450f23b45edc5067b6ae324d9fb233af804972"
     },
     "docs/标签分类与选择说明.md": {
       "bytes": 3288,
@@ -487,13 +487,17 @@
       "bytes": 3140,
       "sha256": "6ae90d0faca908f488d7351925c1205c68f794aff62d509cd3e3b2b78a554ebf"
     },
+    "docs/界面精简与功能收拢方案-2026-11-01.md": {
+      "bytes": 18485,
+      "sha256": "670b246d40aafb78a31d3c9531e507933c13e5c6dc15381406f23812ec8d0bb6"
+    },
     "docs/简单漏洞测试-2026-10-30.md": {
       "bytes": 4780,
       "sha256": "0f440359230cf7623d0c7c411b384c461ced9a3036b05e79eddbdf29f0b53fa8"
     },
     "docs/系统总体设计大纲.md": {
-      "bytes": 28252,
-      "sha256": "a49497e9cc1e94058d212637c57efc788ecb8e4347503f7e6071904f3e32e084"
+      "bytes": 28547,
+      "sha256": "63410ebae28720ac3d1c5a1d099c68c2c1c2fb91fe5038240244173de6385bfa"
     },
     "docs/编辑与草稿.md": {
       "bytes": 9148,
@@ -532,8 +536,8 @@
       "sha256": "c9dc2f55e231ae9437820a189c7a97f2aa12491d92fd6a0b746468cc78b048f8"
     },
     "README.md": {
-      "bytes": 5137,
-      "sha256": "e4bc622c0d44abde991709f72dfebd1f928eaf3a7299c649c0d11cd7df362773"
+      "bytes": 5396,
+      "sha256": "6423910001cba8443fd5e8df491e46877dc5b7548944369ce62c54f3991105ef"
     },
     "requirements.txt": {
       "bytes": 103,
