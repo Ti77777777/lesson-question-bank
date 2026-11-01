@@ -75,7 +75,10 @@ def view(req):
     with db.transaction():
         snap, saved = snapshot(req.params['cid'])
         stamp = current_revision(req.params['cid'])
+        base_items = db.all_('SELECT id,space_mm,page_break_before FROM collection_item WHERE collection_id=?',
+                             (req.params['cid'],))
     return {'snapshot': snap, 'layout': saved, 'revision': stamp,
+            'base_items': base_items,
             'draft_scope': db.rel_to_root(db.DB_PATH) + ':' + str(db.scalar("SELECT value FROM meta WHERE key='created_at'"))}
 
 

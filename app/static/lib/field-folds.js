@@ -15,7 +15,7 @@ export function revealField(field) {
   for (let parent = field.parentElement; parent; parent = parent.parentElement) {
     if (parent.tagName === 'DETAILS') parent.open = true;
   }
-  field.focus(); field.scrollIntoView?.({block:'center'});
+  field.scrollIntoView?.({block:'center'}); field.focus();
 }
 
 export function bindFoldSummaries(form) {

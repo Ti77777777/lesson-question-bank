@@ -8,7 +8,7 @@ import { richToHtml, loadKatex } from '../lib/math.js';
 import { paginateBlocks } from '../lib/layout-preview.js';
 import { groupedItems, movePreviewItem, bindLayoutInteractions } from '../lib/layout-interactions.js';
 
-const VERSIONS = { student: '学生版', answer: '答案版', teacher: '教师版' };
+const VERSIONS = { student: '学生版', answer: '解答版', teacher: '解析版' };
 const COLORS = { blue: '#426987', green: '#39705b', purple: '#765c91', orange: '#ae7441' };
 const FORMATS = { standard: '标准', compact: '紧凑', loose: '宽松', single: '单面' };
 const selectOptions = (values, selected) => Object.entries(values).map(([v, t]) => `<option value="${esc(v)}" ${v === selected ? 'selected' : ''}>${esc(t)}</option>`).join('');
@@ -18,6 +18,9 @@ export default async function mount(root, ctx) {
   const data = await api(`/api/collections/${encodeURIComponent(cid)}/layout`);
   if (!ctx.current()) return;
   const snap = data.snapshot;
+  // The snapshot is already effective; keep the original spacing for reset/inherit.
+  const baseItems = new Map((data.base_items || []).map(item => [item.id, item]));
+  snap.items = snap.items.map(item => ({...item, ...(baseItems.get(item.id) || {})}));
   rememberCollection(cid, (snap.collection || {}).title, 'layout');
   snap.items = groupedItems(snap.items, snap.sections);
   let options = { ...snap.options }, overrides = structuredClone(data.layout.items || {});
@@ -25,25 +28,26 @@ export default async function mount(root, ctx) {
   let interactionTimer;
   root.classList.add('layout-page');
   ctx.onCleanup(() => { disposed = true;clearTimeout(interactionTimer);root.classList.remove('layout-page'); });
-  const payload = () => ({ options: Object.fromEntries(['title', 'subtitle', 'pretitle', 'creator', 'motto', 'theme', 'format', 'cover', 'toc', 'show_sources', 'teacher_notes', 'options_layout'].map(k => [k, options[k] ?? (['cover', 'teacher_notes'].includes(k) ? true : ['toc', 'show_sources'].includes(k) ? false : '')])), items: overrides, order: snap.items.map(i=>({id:i.id,section_id:i.section_id||null})) });
+  const payload = () => ({ options: Object.fromEntries(['title', 'subtitle', 'pretitle', 'creator', 'motto', 'theme', 'format', 'cover', 'toc', 'show_sources', 'teacher_notes', 'options_layout', 'motto', 'versions'].map(k => [k, options[k] ?? (['cover', 'teacher_notes'].includes(k) ? true : ['toc', 'show_sources'].includes(k) ? false : '')])), items: overrides, order: snap.items.map(i=>({id:i.id,section_id:i.section_id||null})) });
   const store = draftStore(data.draft_scope, `layout:${cid}`), recovered = store.read();
   const $ = s => root.querySelector(s);
   const effective = item => ({ ...item, ...(overrides[item.id] || {}) });
-  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p><p class="page-sub" data-page-state role="status" hidden></p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status" title="改动自动保存到题库">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-retry-save hidden>重试保存</button><details class="compact-actions"><summary class="btn">更多操作</summary><div><button class="btn" data-save title="立即保存排版与留白，不生成讲义">立即保存</button></div></details><button class="btn btn-primary" data-publish title="生成学生版、解答版、解析版，并记入导出与归档" ${snap.items.length ? '' : 'disabled'}>导出三版讲义</button></div></div>
+  root.innerHTML = `<div class="page-head"><div><h1 class="page-title">排版与预览</h1><p class="page-sub">${esc(snap.collection.title)}，${snap.items.length}道题</p><p class="page-sub" data-page-state role="status" hidden></p></div><div class="detail-actions"><span class="layout-save-state" data-save-state role="status" title="改动自动保存到题库">已保存</span><a class="btn" href="#/collection/${encodeURIComponent(cid)}">返回题单</a><button class="btn btn-sm" data-retry-save hidden>重试保存</button><details class="compact-actions"><summary class="btn">更多操作</summary><div><button class="btn" data-save title="立即保存排版与留白，不生成讲义">立即保存</button></div></details><button class="btn btn-primary" data-publish title="生成学生版、解答版、解析版，并记入导出与归档" ${snap.items.length ? '' : 'disabled'}>导出讲义</button></div></div>
     <div data-recovery></div><div class="layout-workspace"><aside class="layout-controls">
       <section class="card"><h2>讲义设置</h2>
         <label class="field"><span>讲义标题</span><input data-option="title" value="${esc(options.title||'')}" maxlength="300"></label>
         <label class="field"><span>版面密度</span><select data-option="format">${selectOptions(FORMATS, options.format)}</select></label>
         <details class="compact-fold"><summary>封面、署名与显示</summary><div class="compact-fold-body">
-        ${[['subtitle', '副标题'], ['pretitle', '封面前置语'], ['creator', '编写署名']].map(([k,t]) => `<label class="field"><span>${t}</span><input data-option="${k}" value="${esc(options[k] || '')}" maxlength="300"></label>`).join('')}
+        ${[['subtitle', '副标题'], ['pretitle', '封面前置语'], ['creator', '编写署名'], ['motto', '座右铭']].map(([k,t]) => `<label class="field"><span>${t}</span><input data-option="${k}" value="${esc(options[k] || '')}" maxlength="300"></label>`).join('')}
         <label class="field"><span>主题色</span><select data-option="theme">${selectOptions({ blue: '青蓝', green: '松绿', purple: '浅紫', orange: '暖橙' }, options.theme)}</select></label>
-        <label class="field"><span>全卷选项排列</span><select data-option="options_layout">${selectOptions({ auto: '自动：放得下时横排', vertical: '全部竖排' }, options.options_layout || 'auto')}</select></label>
-        <div class="layout-checks">${[['cover','显示封面'],['show_sources','显示题目来源'],['teacher_notes','教师版讲评提示']].map(([k,t]) => `<label><input type="checkbox" data-option="${k}" ${options[k] ? 'checked' : ''}>${t}</label>`).join('')}</div>
+        <label class="field"><span>全卷选项排列</span><select data-option="options_layout">${selectOptions({ auto: '自动：放得下时横排', horizontal: '横排（原设置）', vertical: '全部竖排' }, options.options_layout || 'auto')}</select></label>
+        <div class="layout-checks">${[['cover','显示封面'],['toc','目录参数（当前模板暂未使用）'],['show_sources','显示题目来源'],['teacher_notes','教师版讲评提示']].map(([k,t]) => `<label><input type="checkbox" data-option="${k}" ${options[k] ? 'checked' : ''}>${t}</label>`).join('')}</div>
         </div></details>
+        <details class="compact-fold"><summary>导出版别 <span data-versions-summary></span></summary><div class="layout-checks">${Object.entries(VERSIONS).map(([k,t])=>`<label><input type="checkbox" data-export-version="${k}" ${(options.versions||Object.keys(VERSIONS)).includes(k)?'checked':''}>${t}</label>`).join('')}</div></details>
       </section>
       <section class="card"><h2>当前题目</h2><div class="layout-item-list" data-item-list></div><div data-item-settings></div></section>
       <details class="card compact-card"><summary>讲义样式</summary><div class="compact-card-body"><div data-templates></div></div></details>
-      <details class="compact-fold layout-help"><summary>操作帮助</summary><div class="compact-fold-body"><p>拖动题目左侧把手排序，拖动作答区底边调整留白；也可使用方向键。Esc取消拖动。</p><p>修改自动保存，PDF校样不新增发布记录。快速预览估算分页，最终位置以PDF校样为准。</p><p>「讲义样式」中的套用只修改这份题单；保存样式供以后复用，两者都不产生导出记录。</p><p>需要正式文件时点击「导出三版讲义」，导出记录可在「导出与归档」中查看；实际用过后可登记使用。</p></div></details>
+      <details class="compact-fold layout-help"><summary>操作帮助</summary><div class="compact-fold-body"><p>拖动题目左侧把手排序，拖动作答区底边调整留白；也可使用方向键。Esc取消拖动。</p><p>修改自动保存，PDF校样不新增发布记录。快速预览估算分页，最终位置以PDF校样为准。</p><p>「讲义样式」中的套用只修改这份题单；保存样式供以后复用，两者都不产生导出记录。</p><p>需要正式文件时点击「导出讲义」，导出记录可在「导出与归档」中查看；实际用过后可登记使用。</p></div></details>
     </aside><section class="layout-stage"><div class="layout-toolbar"><div class="layout-modes"><button class="btn btn-sm active" data-mode="quick">快速预览</button><button class="btn btn-sm" data-mode="pdf" data-compile ${snap.items.length ? '' : 'disabled'}>PDF校样</button></div><select data-version aria-label="预览版本">${selectOptions(VERSIONS, version)}</select><label class="layout-zoom">缩放<select data-zoom aria-label="预览缩放"><option value="0.65">65%</option><option value="0.8" selected>80%</option><option value="1">100%</option></select></label></div>
       <div class="layout-status"><span data-status role="status">分页为估算</span><span data-interaction role="status"></span></div><div class="layout-page-nav" data-page-nav aria-label="预览页码"></div><div class="layout-canvas" data-canvas><div data-pages></div><div data-pdf hidden></div></div><div data-export role="status"></div></section></div>`;
   // Friendly labels without binding model values to arbitrary HTML.
@@ -55,7 +59,7 @@ export default async function mount(root, ctx) {
   ctx.onCleanup(()=>saver.dispose());
   const beforeUnload=e=>{if(saver.dirty){e.preventDefault();e.returnValue='';}};
   window.addEventListener('beforeunload',beforeUnload);ctx.onCleanup(()=>window.removeEventListener('beforeunload',beforeUnload));
-  function syncControls(){root.querySelectorAll('[data-option]').forEach(input=>{const v=options[input.dataset.option];if(input.type==='checkbox')input.checked=Boolean(v);else input.value=v??'';});renderItemSettings();paint();}
+  function syncControls(){root.querySelectorAll('[data-export-version]').forEach(e=>e.checked=(options.versions||Object.keys(VERSIONS)).includes(e.dataset.exportVersion));updateVersionSummary();root.querySelectorAll('[data-option]').forEach(input=>{const v=options[input.dataset.option];if(input.type==='checkbox')input.checked=Boolean(v);else input.value=v??'';});renderItemSettings();paint();}
   if(recovered){
     $('[data-recovery]').innerHTML='<div class="draft-banner"><span>发现上次未完成的排版草稿。</span><button class="btn btn-sm" data-restore>恢复草稿</button><button class="btn btn-sm" data-discard>丢弃草稿</button></div>';
     $('[data-restore]').onclick=async()=>{
@@ -72,6 +76,17 @@ export default async function mount(root, ctx) {
   }
   mountLayoutTemplates($('[data-templates]'),{read:payload,current:()=>!disposed,apply:t=>{options={...options,...t.options};snap.items.forEach(i=>{overrides[i.id]={...(overrides[i.id]||{}),space_mm:t.space_mm};});markDirty();syncControls();}});
 
+  function updateVersionSummary(){
+    const selected=options.versions||Object.keys(VERSIONS);
+    $('[data-versions-summary]').textContent=selected.map(v=>VERSIONS[v]).join('、');
+    $('[data-publish]').title='导出'+selected.map(v=>VERSIONS[v]).join('、')+'，并记入归档';
+  }
+  root.querySelectorAll('[data-export-version]').forEach(input=>input.onchange=()=>{
+    const selected=[...root.querySelectorAll('[data-export-version]:checked')].map(e=>e.dataset.exportVersion);
+    if(!selected.length){input.checked=true;flash('至少保留一种导出版别。');return;}
+    options.versions=selected;updateVersionSummary();markDirty();
+  });
+  updateVersionSummary();
   function updateHeadState() {
     if (disposed) return;
     const stateNode=$('[data-page-state]');
@@ -92,7 +107,7 @@ export default async function mount(root, ctx) {
     const original = snap.items.find(i => i.id === selected);
     if (!original) { $('[data-item-settings]').innerHTML = '<p class="hint">题单为空，请先返回题单添加题目。</p>'; return; }
     const item = effective(original), num = snap.items.indexOf(original) + 1;
-    $('[data-item-settings]').innerHTML = `<h3>第${num}题</h3><label class="field"><span>学生版作答留白（毫米）</span><input type="number" data-item="space_mm" min="0" max="200" step="5" value="${Number(item.space_mm || 0)}"></label><div class="layout-checks"><label><input type="checkbox" data-item="page_break_before" ${item.page_break_before ? 'checked' : ''}>本题从新页开始</label></div><details class="compact-fold"><summary>选项与完整性</summary><div class="compact-fold-body"><label class="field"><span>本题选项排列</span><select data-item="options_layout">${selectOptions({ inherit: '跟随整卷设置', auto: '自动横排或竖排', vertical: '竖排' }, overrides[selected]?.options_layout || 'inherit')}</select></label><label class="check"><input type="checkbox" data-item="keep_together" ${item.keep_together ? 'checked' : ''}>尽量保持本题完整</label><p class="hint">超出一页的长题仍会分开。</p><button class="btn btn-sm" data-reset>恢复本题原排版</button></div></details>`;
+    $('[data-item-settings]').innerHTML = `<h3>第${num}题</h3><label class="field"><span>学生版作答留白（毫米）</span><input type="number" data-item="space_mm" min="0" max="200" step="5" value="${Number(item.space_mm || 0)}"></label><div class="layout-checks"><label><input type="checkbox" data-item="page_break_before" ${item.page_break_before ? 'checked' : ''}>本题从新页开始</label></div><details class="compact-fold"><summary>选项与完整性</summary><div class="compact-fold-body"><label class="field"><span>本题选项排列</span><select data-item="options_layout">${selectOptions({ inherit: '跟随整卷设置', auto: '自动横排或竖排', horizontal: '横排（原设置）', vertical: '竖排' }, overrides[selected]?.options_layout || 'inherit')}</select></label><label class="check"><input type="checkbox" data-item="keep_together" ${item.keep_together ? 'checked' : ''}>尽量保持本题完整</label><p class="hint">超出一页的长题仍会分开。</p><button class="btn btn-sm" data-reset>恢复本题原排版</button></div></details>`;
     $('[data-item-settings]').querySelectorAll('[data-item]').forEach(input => { const update = () => {
       let val = input.type === 'checkbox' ? input.checked : input.type === 'number' ? Number(input.value) : input.value;
       if (input.dataset.item === 'space_mm' && (!Number.isFinite(val) || val < 0 || val > 200)) { flash('留白须为0至200毫米'); return; }
@@ -234,14 +249,14 @@ export default async function mount(root, ctx) {
     const b = $('[data-publish]'); b.disabled = true; b.textContent = '正在导出…';
     try {
       await save();
-      const result = await api(`/api/collections/${encodeURIComponent(cid)}/build`, { method: 'POST', body: { ...payload().options, versions: ['student', 'answer', 'teacher'] } });
+      const result = await api(`/api/collections/${encodeURIComponent(cid)}/build`, { method: 'POST', body: { ...payload().options, versions: options.versions||Object.keys(VERSIONS) } });
       if (disposed) return;
       exportedId = result.release?.id || result.release_id || '';
       updateHeadState();
-      $('[data-export]').innerHTML = `<div class="card"><h3>${result.release?.status === 'failed' ? '导出未完成，请到归档查看诊断' : '三版讲义已导出'}</h3><div class="detail-actions">${Object.entries(result.files || {}).filter(([,f]) => f.url).map(([v,f]) => `<a class="btn" target="_blank" rel="noopener" href="${esc(f.url)}">${VERSIONS[v]}，${f.pages || '?'}页</a>`).join('')}<a class="btn" href="#/releases">查看归档</a></div></div>`;
+      $('[data-export]').innerHTML = `<div class="card"><h3>${result.release?.status === 'failed' ? '导出未完成，请到归档查看诊断' : '讲义已导出'}</h3><div class="detail-actions">${Object.entries(result.files || {}).filter(([,f]) => f.url).map(([v,f]) => `<a class="btn" target="_blank" rel="noopener" href="${esc(f.url)}">${VERSIONS[v]}，${f.pages || '?'}页</a>`).join('')}<a class="btn" href="#/releases">查看归档</a></div></div>`;
       document.dispatchEvent(new Event('meta:refresh'));
     } catch(e) { flash(e.message); }
-    finally { if (!disposed) { b.disabled = false; b.textContent = '导出三版讲义'; } }
+    finally { if (!disposed) { b.disabled = false; b.textContent = '导出讲义'; } }
   };
   renderItemSettings(); $('[data-pages]').style.zoom = '0.8'; paint();
   loadKatex().then(() => { if (!disposed) paint(); });

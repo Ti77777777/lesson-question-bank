@@ -746,9 +746,13 @@ export default async function mount(root, ctx) {
       location.hash = aiJob ? `#/ai?job=${encodeURIComponent(aiJob)}` : `#/question/${encodeURIComponent(newId)}`;
     } catch (err) {
       form.querySelectorAll('details.form-fold').forEach(d=>d.open=true);
+      const fields=[[/难度|推荐|difficulty|rating/i,'[name="difficulty_calc"]'],[/分钟|用时|time/i,'[name="time_solve_min"]'],[/小问|subquestion/i,'[data-sub-field="text"]'],[/解法|solution/i,'[data-sol-field="steps"]'],[/出处|来源|页码|occurrence/i,'[data-occ-field="source_id"]'],[/教学|teaching/i,'[name="teach_why"]']];
+      const target=fields.find(([pattern])=>pattern.test(err.message||''))?.[1];
+
       flash(err.message);
       button.disabled = false;
       button.textContent = inboxId ? '保存并整理' : '保存题目';
+      revealField(form.querySelector(target||'[name="stem"]')||form.querySelector('[name="stem"]'));
     }
   });
 

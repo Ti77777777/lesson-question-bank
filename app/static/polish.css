@@ -317,3 +317,10 @@ input[type=checkbox],input[type=radio] { accent-color:var(--indigo); }
 }
 
 [hidden] { display:none !important; }
+
+.search-filters:has(.context-help[open]),.search-filters:has(.search-multi-select[open]) { overflow:visible; position:relative; z-index:45; }
+
+.search-workbench .saved-searches { margin:8px 0; padding:0; }
+.search-workbench .search-filter-row { padding-top:8px; padding-bottom:8px; }
+.search-workbench .search-fold { padding-top:8px; padding-bottom:8px; }
+.search-workbench .search-results-head { margin-top:14px; }

@@ -173,6 +173,7 @@ export default async function mount(root, ctx) {
         <span class="review-name">${esc(label)}</span>
         ${badge(reviewLabel(result), reviewTone(result))}
       </div>
+      ${last?.note && result !== 'pass' ? `<div class="review-last">${esc(last.note)}</div>` : ''}
       <details class="review-edit compact-fold"><summary>进行审校</summary><div class="review-controls">
         <select data-review-select="${item}" aria-label="${esc(label)}审校结论">
           ${Object.entries(REVIEW_RESULTS).map(([value, text]) => `<option value="${value}" ${value === result ? 'selected' : ''}>${text}</option>`).join('')}

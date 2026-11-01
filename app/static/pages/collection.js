@@ -1,12 +1,12 @@
 /* 题单编辑：题目与分节排序、跨节移动、教学角色与留白设置；右侧组题检查；顶部生成讲义。 */
 
-import { api, fileUrl } from '../lib/api.js';
+import { api } from '../lib/api.js';
 import {
   esc, badge, fmtDate, truncate, $, emptyState, errorCard, loading, num, debounce,
 } from '../lib/dom.js';
 import {
   QTYPES, ROLES, SECTION_KINDS, reviewLabel, reviewTone,
-  COLLECTION_PURPOSES, HINT_LEVELS, BUILD_THEMES, BUILD_FORMATS, RELEASE_STATUS, RELEASE_TONE,
+  COLLECTION_PURPOSES, HINT_LEVELS,
 } from '../lib/constants.js';
 import {
   flash, openModal, runSubmit, confirmDialog, contextHelp,
@@ -90,6 +90,7 @@ export default async function mount(root, ctx) {
 
   function renderItem(item, index, groupLength) {
     const q = item.question || {};
+    const display={...item,...(collection.layout_options?.items?.[item.id]||{})};
     const role = ROLES[item.role] || item.role || '未设角色';
     const warnings = Array.isArray(item.warnings) ? item.warnings : [];
     const timeText = `作答 ${num(item.time_solve_min)} 分，讲解 ${num(item.time_explain_min)} 分`;
@@ -103,9 +104,9 @@ export default async function mount(root, ctx) {
           ${badge(role, 'info')}
           ${badge(reviewLabel(item.review_state), reviewTone(item.review_state))}
           <span class="hint">${esc(timeText)}</span>
-          ${item.space_mm ? `<span class="hint">留白 ${esc(num(item.space_mm))} mm</span>` : ''}
+          ${display.space_mm ? `<span class="hint">留白 ${esc(num(display.space_mm))} mm</span>` : ''}
           ${Number(item.required) === 0 ? badge('选做', 'plain') : ''}
-          ${Number(item.page_break_before) ? badge('另起页', 'plain') : ''}
+          ${Number(display.page_break_before) ? badge('另起页', 'plain') : ''}
         </div>
         ${q.stem_preview ? `<div class="item-stem" data-rich>${esc(q.stem_preview)}</div>` : ''}
         ${warnings.map((text) => `<div class="item-warn">${esc(text)}</div>`).join('')}
@@ -176,7 +177,7 @@ export default async function mount(root, ctx) {
         ${over ? '<div class="item-warn">已超过时间预算的 90%。</div>' : ''}
       </div>
 
-      <div>
+      <div ${duplicates.length ? '' : 'hidden'}>
         <div class="mini-title"><span>重复提示</span><span class="hint" style="font-size:var(--font-13);">${duplicates.length} 组</span></div>
         ${duplicates.length ? `<ul class="check-list warn">${duplicates.map((dup) => {
           const a = itemById(dup.a);
@@ -185,7 +186,7 @@ export default async function mount(root, ctx) {
         }).join('')}</ul>` : '<div class="check-empty">未发现疑似重复。</div>'}
       </div>
 
-      <div>
+      <div ${unreviewed.length ? '' : 'hidden'}>
         <div class="mini-title"><span>未审校条目</span><span class="hint" style="font-size:var(--font-13);">${unreviewed.length} 条</span></div>
         ${unreviewed.length ? `<ul class="check-list warn">${unreviewed.map((id) => {
           const item = itemById(typeof id === 'string' ? id : id.id || id.item_id);
@@ -194,7 +195,7 @@ export default async function mount(root, ctx) {
         }).join('')}</ul>` : '<div class="check-empty">题单内条目均已通过审校。</div>'}
       </div>
 
-      <div>
+      <div ${missing.length ? '' : 'hidden'}>
         <div class="mini-title"><span>缺项提示</span></div>
         ${missing.length ? `<ul class="check-list warn">${missing.map((text) => `<li>${esc(text)}</li>`).join('')}</ul>` : '<div class="check-empty">未发现缺项。</div>'}
       </div>
@@ -261,7 +262,7 @@ export default async function mount(root, ctx) {
           <button type="button" class="btn" data-act="undo" ${history.canUndo() ? '' : 'disabled'} title="${esc(history.peekUndo()?.label || '没有可撤销的操作')}">撤销${history.canUndo() ? '：' + esc(history.peekUndo().label) : ''}</button>
           <button type="button" class="btn" data-act="redo" ${history.canRedo() ? '' : 'disabled'} title="${esc(history.peekRedo()?.label || '没有可重做的操作')}">重做${history.canRedo() ? '：' + esc(history.peekRedo().label) : ''}</button>
           <a class="btn btn-primary" href="#/layout/${encodeURIComponent(cid)}">排版与导出</a>
-          <details class="compact-actions"><summary class="btn">更多操作</summary><div><button type="button" class="btn" data-act="edit-collection">改题单信息</button><button type="button" class="btn" data-act="build">快速导出</button><a class="btn" href="#/releases">查看归档</a></div></details>
+          <details class="compact-actions"><summary class="btn">更多操作</summary><div><button type="button" class="btn" data-act="edit-collection">改题单信息</button><a class="btn" href="#/releases">查看归档</a></div></details>
         </div>
       </div>
 
@@ -464,10 +465,9 @@ export default async function mount(root, ctx) {
           </label>
           <label class="field"><span>所在分节</span><select data-section>${sectionOptions}</select></label>
         </div>
-        <div class="inline-fields three">
+        <div class="inline-fields two">
           <label class="field"><span>独立作答（分钟）</span><input type="number" min="0" step="0.5" data-solve placeholder="留空用题目估计" value="${item.time_solve_min ?? ''}"></label>
           <label class="field"><span>讲解时间（分钟）</span><input type="number" min="0" step="0.5" data-explain placeholder="留空用题目估计" value="${item.time_explain_min ?? ''}"></label>
-          <label class="field"><span>作答留白（mm）</span><input type="number" min="0" step="1" data-space placeholder="如 40" value="${item.space_mm ?? ''}"></label>
         </div>
         <div class="inline-fields two">
           <label class="field"><span>提示层级</span>
@@ -476,11 +476,11 @@ export default async function mount(root, ctx) {
           <div class="field"><span>其他</span>
             <div class="row" style="padding-top:5px;">
               <label class="check"><input type="checkbox" data-required ${Number(item.required) === 0 ? '' : 'checked'}> 必做</label>
-              <label class="check"><input type="checkbox" data-break ${Number(item.page_break_before) ? 'checked' : ''}> 此题前分页</label>
+
             </div>
           </div>
         </div>
-        <label class="field"><span>本次讲评备注</span>
+        <a class="btn" href="#/layout/${encodeURIComponent(cid)}">调整留白与分页</a><label class="field"><span>本次讲评备注</span>
           <textarea rows="2" data-note placeholder="只记本班讲法，不改公共解析">${esc(item.note || '')}</textarea>
         </label>`,
       footer: `<button type="button" class="btn" data-close>取消</button>
@@ -497,10 +497,8 @@ export default async function mount(root, ctx) {
           role: value('[data-role]'),
           time_solve_min: value('[data-solve]') ? Number(value('[data-solve]')) : null,
           time_explain_min: value('[data-explain]') ? Number(value('[data-explain]')) : null,
-          space_mm: value('[data-space]') ? Number(value('[data-space]')) : null,
           hint_level: value('[data-hint]'),
           required: modal.body.querySelector('[data-required]').checked ? 1 : 0,
-          page_break_before: modal.body.querySelector('[data-break]').checked ? 1 : 0,
           note: value('[data-note]').trim() || null,
         };
         const inverses = [];
@@ -735,154 +733,8 @@ export default async function mount(root, ctx) {
 
   // ------------------------------------------------------------ 生成讲义
 
-  function openBuildModal() {
-    const defaultTitle = collection.title || '';
-    const modal = openModal({
-      title: '生成讲义',
-      width: 'modal-wide',
-      body: `<div class="modal-error" hidden></div>
-        <div class="inline-fields two">
-          <label class="field"><span>标题<span class="req">*</span></span><input type="text" data-title value="${esc(defaultTitle)}"></label>
-          <label class="field"><span>副标题</span><input type="text" data-subtitle value="习题课讲义"></label>
-        </div>
-        <div class="inline-fields three">
-          <label class="field"><span>前置语</span><input type="text" data-pretitle value="${esc(collection.topic || '高一数学专题')}"></label>
-          <label class="field"><span>主题色</span>
-            <select data-theme>${BUILD_THEMES.map(([value, label]) => `<option value="${value}" ${value === 'blue' ? 'selected' : ''}>${label}</option>`).join('')}</select>
-          </label>
-          <label class="field"><span>版面</span>
-            <select data-format>${BUILD_FORMATS.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select>
-          </label>
-        </div>
-        <label class="field"><span>座右铭</span><input type="text" data-motto placeholder="如 先看定义，再动手"></label>
-        <div class="inline-fields two">
-          <div class="field"><span>版本</span>
-            <div class="row" style="padding-top:5px;">
-              <label class="check"><input type="checkbox" data-student checked> 学生版</label>
-              <label class="check"><input type="checkbox" data-answer checked> 解答版</label>
-              <label class="check"><input type="checkbox" data-teacher checked> 解析版</label>
-            </div>
-          </div>
-          <label class="check" style="margin-bottom:6px;"><input type="checkbox" data-toc checked> 生成目录</label>
-        </div>
-        <div data-result></div>`,
-      footer: `<button type="button" class="btn" data-close>关闭</button>
-               <button type="button" class="btn btn-primary" data-build>生成 PDF</button>`,
-    });
+  function openBuildModal() { location.hash = `#/layout/${encodeURIComponent(cid)}`; }
 
-    const errEl = modal.body.querySelector('.modal-error');
-    const resultEl = modal.body.querySelector('[data-result]');
-    const buildBtn = modal.foot.querySelector('[data-build]');
-    const savedLayout = collection.layout_options?.options || {};
-    for (const key of ['title','subtitle','pretitle','motto','theme','format']) {
-      const input = modal.body.querySelector('[data-' + key + ']');
-      if (input && savedLayout[key] != null) input.value = savedLayout[key];
-    }
-    if (savedLayout.toc != null) modal.body.querySelector('[data-toc]').checked = savedLayout.toc;
-
-    buildBtn.addEventListener('click', async () => {
-      const versions = [];
-      if (modal.body.querySelector('[data-student]').checked) versions.push('student');
-      if (modal.body.querySelector('[data-answer]').checked) versions.push('answer');
-      if (modal.body.querySelector('[data-teacher]').checked) versions.push('teacher');
-      if (!versions.length) {
-        errEl.hidden = false;
-        errEl.textContent = '请至少选择一个版本。';
-        return;
-      }
-      const title = modal.body.querySelector('[data-title]').value.trim();
-      if (!title) {
-        errEl.hidden = false;
-        errEl.textContent = '请填写讲义标题。';
-        return;
-      }
-      buildBtn.disabled = true;
-      buildBtn.textContent = '生成中…';
-      errEl.hidden = true;
-      resultEl.innerHTML = '<div class="hint" style="padding-top:6px;">正在生成 LaTeX 并编译，可能需要一会儿。</div>';
-      try {
-        const data = await api(`/api/collections/${encodeURIComponent(cid)}/build`, {
-          method: 'POST',
-          body: {
-            title,
-            subtitle: modal.body.querySelector('[data-subtitle]').value.trim() || null,
-            pretitle: modal.body.querySelector('[data-pretitle]').value.trim() || null,
-            motto: modal.body.querySelector('[data-motto]').value.trim() || null,
-            theme: modal.body.querySelector('[data-theme]').value,
-            versions,
-            template: 'exbook',
-            format: modal.body.querySelector('[data-format]').value,
-            toc: modal.body.querySelector('[data-toc]').checked,
-          },
-        });
-        resultEl.innerHTML = buildResultHtml(data);
-        flash(`已生成 ${data?.release?.id || '讲义'}。`, data?.release?.status === 'failed' ? 'error' : 'ok');
-        refreshMeta();
-      } catch (err) {
-        errEl.hidden = false;
-        errEl.textContent = err.message;
-        resultEl.innerHTML = '';
-        flash(err.message);
-      } finally {
-        buildBtn.disabled = false;
-        buildBtn.textContent = '重新生成';
-      }
-    });
-  }
-
-  function buildResultHtml(data) {
-    const release = data?.release || {};
-    const files = data?.files || {};
-    const tex = data?.tex || {};
-    const checks = data?.checks || {};
-    const failed = release.status === 'failed';
-    const warnings = Array.isArray(checks.warnings)
-      ? checks.warnings.join('\n')
-      : (checks.warnings || '');
-
-    const fileChip = (entry, label) => {
-      if (!entry) return `<span class="file-chip missing">${label}未生成</span>`;
-      const url = entry.url || fileUrl(entry.path || '');
-      if (!url) return `<span class="file-chip missing">${label}没有文件路径</span>`;
-      return `<a class="file-chip" href="${esc(url)}" target="_blank" rel="noopener">${label} PDF
-        ${entry.pages ? `<span class="pg">${esc(entry.pages)} 页</span>` : ''}</a>`;
-    };
-
-    const pill = (label, value, bad = false) => `<span class="check-pill ${bad ? 'bad' : 'good'}">${label} ${esc(value ?? 0)}</span>`;
-    const leak = checks.leak || 'clean';
-    const leakBad = leak !== 'clean';
-
-    return `<div class="build-result">
-      <div class="spread" style="margin-bottom:8px;">
-        <h3 style="margin:0;">${esc(release.id || '讲义')}</h3>
-        ${badge(RELEASE_STATUS[release.status] || release.status || '已生成', RELEASE_TONE[release.status] || (failed ? 'fail' : 'pass'))}
-      </div>
-      <div class="release-files" style="margin-bottom:8px;">
-        ${fileChip(files.student, '学生版')}
-        ${files.answer ? fileChip(files.answer, '解答版') : ''}
-        ${fileChip(files.teacher, '解析版')}
-      </div>
-      <div class="checks-inline">
-        ${pill('学生版错误', checks.student_errors, Number(checks.student_errors) > 0)}
-        ${pill('解答版错误', checks.answer_errors, Number(checks.answer_errors) > 0)}
-        ${pill('解析版错误', checks.teacher_errors, Number(checks.teacher_errors) > 0)}
-        ${pill('溢出', checks.overfull, Number(checks.overfull) > 0)}
-        ${pill('缺字', checks.missing_char, Number(checks.missing_char) > 0)}
-        <span class="check-pill ${leakBad ? 'bad' : 'good'}">答案泄露 ${esc(leak === 'clean' ? '未发现' : leak)}</span>
-      </div>
-      ${tex.student || tex.teacher ? `<div class="hint" style="margin-top:8px;">TeX 源文件：<span class="mono">${esc(tex.student || '')}</span>${tex.answer ? `，<span class="mono">${esc(tex.answer)}</span>` : ''}${tex.teacher ? `，<span class="mono">${esc(tex.teacher)}</span>` : ''}</div>` : ''}
-      ${warnings ? `<div class="build-warn">${esc(warnings)}</div>` : ''}
-      ${failed ? '<div class="hint" style="margin-top:8px;color:var(--ochre);">构建失败。上面是编译器输出尾部，请据此检查缺项或环境。</div>' : ''}
-      <div class="row-actions" style="margin-top:10px;">
-        <a class="btn btn-sm" href="#/releases">到导出与归档查看</a>
-        ${release.id ? `<span class="hint">快照与文件版本已登记。</span>` : ''}
-      </div>
-    </div>`;
-  }
-
-  // ------------------------------------------------------------ 事件
-
-  // 只有在非文本编辑区域才接管撤销快捷键，输入框里的撤销仍由浏览器处理
   function onHistoryKey(event) {
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const tag = (event.target.tagName || '').toLowerCase();

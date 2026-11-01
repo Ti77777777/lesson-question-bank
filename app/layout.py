@@ -15,13 +15,19 @@ def validate(value, item_ids):
     items = value.get('items', {})
     if not isinstance(options, dict) or not isinstance(items, dict):
         raise ApiError(400, 'layout', '排版设置须包含选项对象与条目对象')
-    allowed = TEXT_FIELDS | BOOL_FIELDS | {'format', 'theme', 'options_layout'}
+    allowed = TEXT_FIELDS | BOOL_FIELDS | {'format', 'theme', 'options_layout', 'versions'}
     if set(options) - allowed:
         raise ApiError(400, 'layout', '包含不支持的版面选项')
     from app.latex.exbook import THEMES
     clean = {}
     for key, val in options.items():
-        if key in TEXT_FIELDS:
+        if key == 'versions':
+            if (not isinstance(val, list) or not val or
+                    any(not isinstance(v, str) or v not in {'student', 'answer', 'teacher'} for v in val) or
+                    len(set(val)) != len(val)):
+                raise ApiError(400, 'layout', '导出版别须为学生版、解答版、解析版中的至少一种')
+            clean[key] = [v for v in ('student', 'answer', 'teacher') if v in val]
+        elif key in TEXT_FIELDS:
             if not isinstance(val, str) or len(val) > 300:
                 raise ApiError(400, 'layout', '标题与署名等文字须在300字以内')
             clean[key] = val.strip()

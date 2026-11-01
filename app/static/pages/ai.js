@@ -18,7 +18,7 @@ export default async function mount(root,ctx){
   root.classList.add('ai-page');
   ctx.onCleanup(()=>{disposed=true;root.classList.remove('ai-page');});
   root.innerHTML=`<div class="page-head ai-page-heading"><div><h1 class="page-title">AI 题目工作台</h1></div></div>
-    <details class="card ai-settings"><summary>模型与接口设置 <span id="ai-key-state"></span></summary><div data-provider-settings></div></details>
+    <details class="card ai-settings" ${ctx.query.settings?'open':''}><summary>模型与接口设置 <span id="ai-key-state"></span></summary><div data-provider-settings></div></details>
     <section class="card ai-create"><details class="ai-new-task" id="ai-new-task" ${!selected||ctx.query.qid?'open':''}><summary>导入试卷</summary><div class="ai-form-row ai-create-fields"><label class="ai-upload">选择试卷或图片<input id="ai-upload" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp"></label><label>适用学生<input id="ai-audience" value="高一学生"></label><label>预算上限（元）<input id="ai-budget" type="number" value="10" min="0.1" max="500" step="0.1"></label><label class="ai-auto"><input type="checkbox" id="ai-auto" checked>AI 自复核通过即入库</label></div><div id="ai-files" class="muted"></div>
     <details ${ctx.query.qid?'open':''}><summary>题目编号与页码</summary><div class="ai-form-row"><label>题目编号（逗号或换行分隔）<textarea id="ai-qids" placeholder="Q000001,Q000002">${esc(ctx.query.qid||'')}</textarea></label><label>仅处理这些PDF页（留空为全部）<input id="ai-pages" placeholder="例如 1,2,3"></label></div></details>
     <div class="ai-create-footer"><div class="ai-form-row"><button class="btn btn-primary" id="ai-start">开始处理</button><span id="ai-start-state" role="status"></span></div>${contextHelp('上传说明','<p>单份文件最多50页、50MB。费用为估算，以服务商账单为准。</p>')}</div></details></section>

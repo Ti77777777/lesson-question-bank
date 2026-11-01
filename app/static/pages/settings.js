@@ -1,3 +1,4 @@
+import { mountBackupPanel } from '../lib/backup-panel.js';
 /* 系统设置：把题库信息、备份位置与模型配置集中到一页，只读展示。 */
 
 import { api } from '../lib/api.js';
@@ -51,7 +52,7 @@ function renderAi(el, data) {
     `<tr><th>输入单价</th><td>${price(cfg.input_price)}</td></tr>`,
     `<tr><th>输出单价</th><td>${price(cfg.output_price)}</td></tr>`,
   ])}
-  <a class="btn" href="#/ai">配置模型接口</a>`;
+  <a class="btn" href="#/ai?settings=1">配置模型接口</a>`;
 }
 
 export default async function mount(root, ctx) {
@@ -73,9 +74,7 @@ export default async function mount(root, ctx) {
 
     <section class="card">
       <div class="card-head"><h2>备份</h2></div>
-      <div class="card-body">
-        <a class="btn" href="#/releases">备份与恢复</a>
-      </div>
+      <details class="compact-fold" id="system-backup"><summary>备份与恢复</summary><div class="card-body" id="backup-panel"></div></details>
     </section>
 
     <section class="card">
@@ -84,6 +83,8 @@ export default async function mount(root, ctx) {
     </section>
   `;
 
+  ctx.onCleanup(mountBackupPanel($('#backup-panel',root)));
+  if(ctx.query.section==='backup')$('#system-backup',root).open=true;
   const libraryEl = $('#settings-library', root);
   const aiEl = $('#settings-ai', root);
 

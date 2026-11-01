@@ -58,6 +58,38 @@ class LayoutTest(unittest.TestCase):
         self.assertIn('PRIVATE_ANSWER', teacher)
         self.assertIn('PRIVATE_ANALYSIS', teacher)
 
+    def test_unified_export_keeps_legacy_fields_versions_and_effective_overrides(self):
+        options = {'title': '统一导出', 'subtitle': '副标题', 'pretitle': '前置语',
+                   'creator': '演示署名', 'motto': '先看定义', 'theme': 'green',
+                   'format': 'loose', 'cover': True, 'toc': True,
+                   'show_sources': True, 'teacher_notes': False,
+                   'options_layout': 'horizontal', 'versions': ['teacher', 'student']}
+        config = {'options': options, 'items': {self.iid: {'space_mm': 75, 'page_break_before': True}}}
+        # Before removing the duplicate UI, take the effective documents as the baseline.
+        preview, _ = api_layout.snapshot(self.cid, config)
+        expected = {v: exbook.render_document(preview, preview['options'], v)
+                    for v in ('student', 'answer', 'teacher')}
+        api_layout.save(req({'cid': self.cid}, config))
+        # Editing teaching settings must not reset values owned by the layout editor.
+        teaching.item_update(req({'cid': self.cid, 'iid': self.iid}, {'role': 'practice'}))
+        formal = build.make_snapshot(self.cid)
+        self.assertEqual(formal['options']['versions'], ['student', 'teacher'])
+        self.assertEqual(formal['options']['motto'], '先看定义')
+        self.assertTrue(formal['options']['toc'])
+        self.assertEqual(formal['items'][0]['space_mm'], 75)
+        self.assertTrue(formal['items'][0]['page_break_before'])
+        view = api_layout.view(req({'cid': self.cid}))
+        self.assertEqual(view['base_items'][0]['space_mm'], 15)
+        self.assertEqual(view['snapshot']['items'][0]['space_mm'], 75)
+        # Restore the teaching role for an exact render comparison.
+        teaching.item_update(req({'cid': self.cid, 'iid': self.iid}, {'role': 'example'}))
+        formal = build.make_snapshot(self.cid)
+        for version, document in expected.items():
+            self.assertEqual(exbook.render_document(formal, formal['options'], version), document)
+        for bad in [[], ['unknown'], ['student', 'student'], 'student', [True]]:
+            with self.assertRaises(ApiError):
+                api_layout.save(req({'cid': self.cid}, {'options': {'versions': bad}}))
+
     def test_autosave_conflict_keeps_newer_layout_and_detects_item_edit(self):
         first = api_layout.view(req({'cid': self.cid}))['revision']
         saved = api_layout.save(req({'cid': self.cid}, {'base_revision': first, 'options': {'title': '较新修改'}}))

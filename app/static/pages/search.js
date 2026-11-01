@@ -111,9 +111,9 @@ export default async function mount(root, ctx) {
       </label>
       <label class="check">近 <input type="number" id="f-used-days" min="0" max="3650" step="1" value="${esc(state.usedDays)}" aria-label="观察天数" class="usage-days"> 天</label>
       <label class="check"><input type="checkbox" id="f-only-unused" ${state.onlyUnused ? 'checked' : ''}> 仅看未用过</label>
-      <span class="hint" id="usage-scope-note" role="status"></span>
+
     </div>
-    </details><p data-usage-summary class="usage-summary" hidden></p>
+    </details><p class="hint" id="usage-scope-note" role="status"></p><p data-usage-summary class="usage-summary" hidden></p>
     <div class="results-head search-results-head">
       <div class="search-result-count" id="results-total" role="status" aria-live="polite"></div>
       <span class="hint" id="results-note"></span><span class="spacer"></span>
@@ -191,11 +191,20 @@ export default async function mount(root, ctx) {
     if (state.calcMax) push('calcMax', `计算 ≤ ${state.calcMax}`);
     if (state.scopeMax) push('scopeMax', `综合 ≤ ${state.scopeMax}`);
     for (const id of state.tags) push(`tag:${id}`, `${state.tagMode === 'exclude' ? '排除：' : ''}${tagList.find(t => t.id === id)?.name || id}`);
+    if(state.audience) {
+      const select=$('#f-audience',root);
+      push('audience',`对象：${select.value===state.audience ? select.selectedOptions[0]?.textContent||state.audience : state.audience}`);
+      push('usedDays',`近 ${state.usedDays} 天`);
+    }
+    if(state.onlyUnused)push('onlyUnused','仅看未用过');
     if (state.onlyUsable) push('onlyUsable', '审校通过');
     if (state.onlyCorrections) push('onlyCorrections', '待纠错');
     return list;
   }
   function renderControls() {
+    $('#f-audience',root).value=state.audience;
+    $('#f-used-days',root).value=state.usedDays;
+    $('#f-only-unused',root).checked=state.onlyUnused;
     const markup = [{id: '', name: '全部'}, ...categories].map(c => `<button type="button" class="search-option" data-category="${esc(c.id)}">${esc(c.name)}</button>`).join('');
     if (markup !== categoryMarkup) { $('#f-categories', root).innerHTML = markup; categoryMarkup = markup; }
     const gradeButtons=[{id:'',name:'全部'},...grades].map(g=>`<button type="button" class="search-option" data-grade="${esc(g.id)}">${esc(g.name)}</button>`).join('');
@@ -320,7 +329,9 @@ export default async function mount(root, ctx) {
       const list = data.items || [];
       select.innerHTML = '<option value="">不限</option>' + list.map((row) =>
         `<option value="${esc(row.id)}" ${row.id === state.audience ? 'selected' : ''}>${esc(identityLabel(row))}</option>`).join('');
-      select.disabled = false;
+      if(state.audience&&!list.some(a=>a.id===state.audience))select.insertAdjacentHTML('beforeend',`<option value="${esc(state.audience)}">${esc(state.audience)}（未在列表中）</option>`);
+      select.value=state.audience;
+      select.disabled = false;renderControls();
     } catch {
       // 读不到对象列表时不禁用检索，只是没有可选对象
     }
@@ -329,12 +340,14 @@ export default async function mount(root, ctx) {
   async function annotateUsage(list) {
     if (!state.audience || !Array.isArray(list) || !list.length) return;
     const note = $('#usage-scope-note', root);
+    const ticket=revision;
     try {
       const data = await api('/api/usage-summary', { query: {
         audience_id: state.audience,
         days: Number(state.usedDays || 30),
         question_ids: list.map((item) => item.id).join(','),
       } });
+      if(ticket!==revision||!ctx.current())return;
       const hits = data.items || {};
       const name = (data.audience || {}).name || '该对象';
       list.forEach((item) => {
@@ -351,7 +364,7 @@ export default async function mount(root, ctx) {
           : '';
       }
     } catch {
-      if (note) note.textContent = '已用情况读取失败，不影响检索结果。';
+      if (note&&ticket===revision&&ctx.current()) note.textContent = '已用情况读取失败，不影响检索结果。';
     }
   }
 
@@ -569,12 +582,14 @@ export default async function mount(root, ctx) {
       else if (key.startsWith('type:')) state.qtypes.delete(key.slice(5));
       else if (key.startsWith('tag:')) state.tags.delete(key.slice(4));
       else if (key === 'think') { state.thinkMin = state.thinkMax = state.levels = ''; state.unrated = false; }
-      else state[key] = ['onlyUsable', 'onlyCorrections'].includes(key) ? false : '';
+      else if(key==='audience'){state.audience='';state.onlyUnused=false;}
+      else if(key==='usedDays')state.usedDays='30';
+      else state[key] = ['onlyUsable', 'onlyCorrections','onlyUnused'].includes(key) ? false : '';
       if (key === 'keyword') $('#f-keyword', root).value = '';
       changed();
     }
     if (event.target.closest('#f-reset')) {
-      Object.assign(state, {keyword: '', sourceId: '', category: '', year: '', region: '',grade:'', levels:'', qtypes: new Set(), tags: new Set(), tagMode: 'all', thinkMin: '', thinkMax: '', calcMax: '', scopeMax: '', unrated: false, onlyUsable: false, onlyCorrections: false});
+      Object.assign(state, {audience:'',usedDays:'30',onlyUnused:false,keyword: '', sourceId: '', category: '', year: '', region: '',grade:'', levels:'', qtypes: new Set(), tags: new Set(), tagMode: 'all', thinkMin: '', thinkMax: '', calcMax: '', scopeMax: '', unrated: false, onlyUsable: false, onlyCorrections: false});
       $('#f-keyword', root).value = ''; changed();
     }
   });

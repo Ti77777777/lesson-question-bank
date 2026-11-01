@@ -6,7 +6,6 @@ import { esc, badge, fmtDateTime, $, emptyState, errorCard, loading, num } from 
 import { RELEASE_STATUS, RELEASE_TONE } from '../lib/constants.js';
 import { flash, openModal, confirmDialog, contextHelp } from '../lib/ui.js';
 import { refreshMeta } from '../lib/bus.js';
-import { mountBackupPanel } from '../lib/backup-panel.js';
 
 function pdfLink(pathOrUrl, label, pages) {
   if (!pathOrUrl) return `<span class="file-chip missing">${esc(label)}未生成</span>`;
@@ -35,11 +34,9 @@ export default async function mount(root, ctx) {
     <section class="card">
       <div id="release-list">${loading()}</div>
     </section>
-    <details class="card compact-card backup-fold"><summary>备份与恢复</summary><div class="workspace-card compact-card-body" id="backup-panel"></div></details>
   `;
 
   const listEl = $('#release-list', root);
-  ctx.onCleanup(mountBackupPanel($('#backup-panel',root)));
   const totalEl = $('#release-total', root);
 
   function render() {
